@@ -1,0 +1,2411 @@
+
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Green Haj - BPKH (Phase-Based)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0D6E4F',
+                        primaryDark: '#095A42',
+                        primaryLight: '#E8F5F0',
+                        accent: '#F4A442',
+                        accentLight: '#FFF4E5',
+                        bgMain: '#F8FAF9',
+                        cardBg: '#FFFFFF',
+                        textDark: '#1A2E23',
+                        textMuted: '#6B7C74',
+                        border: '#E2E8E5',
+                        gain: '#22C55E',
+                        loss: '#EF4444'
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #F8FAF9 0%, #E8F5F0 100%);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .app-container {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #F8FAF9;
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.08);
+        }
+
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .page.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .phase-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phase-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .phase-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(13, 110, 79, 0.12);
+        }
+
+        .phase-card:hover::before {
+            opacity: 1;
+        }
+
+        .phase-card:active {
+            transform: scale(0.98);
+        }
+
+        .phase-card.completed {
+            border-color: #22C55E;
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15);
+        }
+
+        .phase-card.in-progress {
+            border-color: #F4A442;
+            background: linear-gradient(135deg, #FFF4E5 0%, #FEF3C7 100%);
+            box-shadow: 0 4px 16px rgba(244, 164, 66, 0.15);
+        }
+
+        .phase-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .phase-badge.completed {
+            background: #22C55E;
+            color: white;
+        }
+
+        .phase-badge.in-progress {
+            background: #F4A442;
+            color: white;
+        }
+
+        .phase-badge.pending {
+            background: #E2E8E5;
+            color: #6B7C74;
+        }
+
+        .category-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .category-icon:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #E2E8E5;
+            border-radius: 999px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0D6E4F 0%, #10B981 50%, #22C55E 100%);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 0 10px rgba(13, 110, 79, 0.3);
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0D6E4F 0%, #095A42 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(13, 110, 79, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(13, 110, 79, 0.35);
+        }
+
+        .btn-primary:hover::before {
+            opacity: 1;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(13, 110, 79, 0.2);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, #1A2E23 0%, #2D4A3E 100%);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 90%;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+                        0 0 1px rgba(255, 255, 255, 0.5) inset;
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+            animation: toastSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes toastSlide {
+            0% {
+                transform: translateX(-50%) translateY(100px) scale(0.8);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .slider-container input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #E2E8E5;
+            outline: none;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #0D6E4F;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(13, 110, 79, 0.3);
+        }
+
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #0D6E4F;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(13, 110, 79, 0.3);
+        }
+
+        .selected {
+            border-color: #0D6E4F !important;
+            background: #E8F5F0 !important;
+        }
+
+        .nav-item.active {
+            color: #0D6E4F;
+        }
+
+        .nav-item.active span {
+            color: #0D6E4F;
+        }
+
+        .payment-method {
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .payment-method:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(13, 110, 79, 0.1);
+            border-color: #0D6E4F !important;
+        }
+
+        .payment-method.selected {
+            border-color: #0D6E4F !important;
+            background: linear-gradient(135deg, #E8F5F0 0%, #D4ECE3 100%) !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 79, 0.15);
+        }
+
+        .payment-method.selected::before {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 20px;
+            height: 20px;
+            background: #0D6E4F;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .phase-timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .phase-timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #E2E8E5;
+        }
+
+        .phase-timeline-item {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .phase-timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #E2E8E5;
+        }
+
+        .phase-timeline-item.completed .phase-timeline-dot {
+            background: #22C55E;
+        }
+
+        .phase-timeline-item.in-progress .phase-timeline-dot {
+            background: #F4A442;
+            box-shadow: 0 0 0 4px #FFF4E5;
+        }
+
+        /* Smooth Card Animations */
+        .bg-white {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .bg-white:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Loading State */
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(248, 250, 249, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* Glassmorphism Effect */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Skeleton Loader */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Better Nav Transitions */
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: #E8F5F0;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%) scaleX(0);
+            width: 32px;
+            height: 3px;
+            background: #0D6E4F;
+            border-radius: 999px 999px 0 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item.active::before {
+            transform: translateX(-50%) scaleX(1);
+        }
+
+        .nav-item.active {
+            color: #0D6E4F;
+        }
+
+        .nav-item.active svg {
+            stroke: #0D6E4F;
+        }
+
+        .nav-item.active span {
+            color: #0D6E4F;
+        }
+
+        /* Improved Shadows */
+        .shadow-sm {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        /* Smooth Hover for Interactive Elements */
+        button:not(:disabled),
+        .cursor-pointer {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        button:not(:disabled):active {
+            transform: scale(0.98);
+        }
+
+        /* Better Input Focus */
+        input:focus,
+        input:focus-visible,
+        select:focus {
+            outline: 2px solid #0D6E4F;
+            outline-offset: 2px;
+            border-color: #0D6E4F;
+        }
+
+        input, select, textarea {
+            transition: all 0.2s ease;
+        }
+
+        input:hover, select:hover, textarea:hover {
+            border-color: #0D6E4F;
+        }
+
+        /* Radio and Checkbox */
+        input[type="radio"]:checked {
+            accent-color: #0D6E4F;
+        }
+
+        input[type="checkbox"]:checked {
+            accent-color: #0D6E4F;
+        }
+
+        /* Fade In Animation for Lists */
+        .fade-in-item {
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Stagger Animation */
+        .fade-in-item:nth-child(1) { animation-delay: 0.05s; }
+        .fade-in-item:nth-child(2) { animation-delay: 0.1s; }
+        .fade-in-item:nth-child(3) { animation-delay: 0.15s; }
+        .fade-in-item:nth-child(4) { animation-delay: 0.2s; }
+        .fade-in-item:nth-child(5) { animation-delay: 0.25s; }
+
+        /* Improved Status Bar */
+        .status-bar-blur {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Card Hover Effects */
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .hover-lift:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Pulse Animation for Important Elements */
+        @keyframes pulse-subtle {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.85;
+            }
+        }
+
+        .pulse-subtle {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Better Select Dropdown */
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%230D6E4F' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        /* Number Input Styling */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+
+        /* Smooth Number Transitions */
+        .number-display {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div id="toast" class="toast">Data berhasil disimpan</div>
+
+        <!-- Status Bar -->
+        <div class="status-bar-blur px-5 py-2 flex justify-between items-center text-xs text-textMuted sticky top-0 z-50 border-b border-border/50 backdrop-blur-xl">
+            <span id="currentTime">10:06</span>
+            <div class="flex items-center gap-1.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                    <circle cx="12" cy="20" r="1" />
+                </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="2" y="7" width="18" height="10" rx="2" stroke="currentColor" stroke-width="2" fill="none" />
+                    <rect x="20" y="10" width="2" height="4" rx="0.5" />
+                    <rect x="4" y="9" width="12" height="6" rx="1" fill="currentColor" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- ==================== DASHBOARD PAGE ==================== -->
+        <div id="dashboardPage" class="page active pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p id="greetingText" class="text-sm font-semibold text-textDark mb-0.5">Selamat siang, Brian Pramudita</p>
+                        <p class="text-xs text-textMuted">Green Haj 2026 - Haji Ramah Lingkungan</p>
+                    </div>
+                    <button onclick="resetAllData()" class="w-10 h-10 rounded-full bg-primaryLight flex items-center justify-center hover:bg-primary/20 transition-all" title="Reset Data">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D6E4F" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Total Emisi Summary -->
+            <div class="px-5 pt-5">
+                <div class="bg-gradient-to-br from-primary to-primaryDark rounded-2xl p-5 text-white shadow-lg fade-in-item" style="animation-delay: 0.1s;">
+                    <div class="text-center mb-4">
+                        <p class="text-xs opacity-80 mb-2">Total Emisi CO2e Perjalanan Haji</p>
+                        <p id="totalEmissionDisplay" class="text-3xl font-bold">0 Ton CO2e</p>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="totalProgressFill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase Progress -->
+            <div class="px-5 pt-5 fade-in-item" style="animation-delay: 0.15s;">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-textDark">Progress Perjalanan</h2>
+                    <span id="phaseCompletionBadge" class="text-xs bg-primaryLight text-primary px-3 py-1 rounded-full font-medium">0/8 Tahapan</span>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all">
+                    <div id="phaseProgressList" class="space-y-3">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Emisi by Phase -->
+            <div class="px-5 pt-5 fade-in-item" style="animation-delay: 0.2s;">
+                <h2 class="text-sm font-semibold text-textDark mb-3">Emisi CO2e Tertinggi</h2>
+                <div id="topEmissionsPhase" class="bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all">
+                    <p class="text-sm text-textMuted">Belum ada data emisi</p>
+                </div>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="px-5 pt-5 space-y-3">
+                <button onclick="showPage('phaseNavigationPage')" class="w-full bg-white rounded-2xl p-4 shadow-sm border border-border flex items-center gap-4 text-left fade-in-item hover:shadow-lg transition-all">
+                    <div class="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center shrink-0">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0D6E4F" stroke-width="2">
+                            <path d="M12 2v20M2 12h20" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-textDark">Input Emisi CO2e Haji</h3>
+                        <p class="text-xs text-textMuted mt-0.5">Isi data emisi CO2e per tahapan perjalanan</p>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7C74" stroke-width="2">
+                        <path d="M9 18l6-6-6-6" />
+                    </svg>
+                </button>
+
+                <button onclick="showPage('pasarKarbonPage')" class="w-full bg-white rounded-2xl p-4 shadow-sm border border-border flex items-center gap-4 text-left fade-in-item hover:shadow-lg transition-all">
+                    <div class="w-12 h-12 rounded-xl bg-accentLight flex items-center justify-center shrink-0">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4A442" stroke-width="2">
+                            <path d="M3 3v18h18" />
+                            <path d="m19 9-5 5-4-4-3 3" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-textDark">Offset Karbon (IDX)</h3>
+                        <p class="text-xs text-textMuted mt-0.5">Beli kredit karbon untuk netralkan emisi</p>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7C74" stroke-width="2">
+                        <path d="M9 18l6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Tips -->
+            <div class="px-5 pt-5 pb-5 fade-in-item" style="animation-delay: 0.3s;">
+                <div class="bg-gradient-to-br from-primary to-primaryDark rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 16v-4" />
+                                <path d="M12 8h.01" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-1">Haji Ramah Lingkungan</h4>
+                            <p class="text-xs text-white/80 leading-relaxed">Ukur jejak karbon perjalanan haji Anda dan lakukan offset melalui IDX Carbon untuk haji yang lebih berkelanjutan.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PHASE NAVIGATION PAGE ==================== -->
+        <div id="phaseNavigationPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('dashboardPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <h1 class="text-lg font-bold text-textDark">Tahapan Perjalanan Haji</h1>
+            </div>
+
+            <div class="p-5">
+                <div class="bg-primaryLight rounded-xl p-4 mb-5">
+                    <p class="text-sm text-primary">
+                        <strong>Petunjuk:</strong> Isi data emisi CO2e untuk setiap tahapan perjalanan haji Anda. Klik pada setiap tahapan untuk mulai menginput data.
+                    </p>
+                </div>
+
+                <div id="phaseList" class="space-y-3">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PHASE DETAIL PAGE ==================== -->
+        <div id="phaseDetailPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('phaseNavigationPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <div class="flex-1">
+                    <p class="text-xs text-textMuted">Tahapan</p>
+                    <h1 id="phaseDetailTitle" class="text-base font-bold text-textDark">-</h1>
+                </div>
+            </div>
+
+            <div class="p-5">
+                <!-- Phase Summary -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border mb-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-semibold text-textDark">Total Emisi CO2e Tahapan Ini</h3>
+                        <span id="phaseDetailEmission" class="text-lg font-bold text-primary">0 Ton CO2e</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="phaseDetailProgress" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Categories -->
+                <h3 class="text-sm font-semibold text-textDark mb-3">Kategori Emisi CO2e</h3>
+                <div id="phaseCategoryList" class="space-y-3">
+                    <!-- Will be populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CATEGORY INPUT PAGE ==================== -->
+        <div id="categoryInputPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="backToPhaseDetail()" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <div class="flex-1">
+                    <p id="categoryInputPhaseName" class="text-xs text-textMuted">-</p>
+                    <h1 id="categoryInputTitle" class="text-base font-bold text-textDark">-</h1>
+                </div>
+            </div>
+
+            <div id="categoryInputForm" class="p-5">
+                <!-- Dynamic form will be loaded here -->
+            </div>
+        </div>
+
+        <!-- ==================== PASAR KARBON PAGE (Simplified) ==================== -->
+        <div id="pasarKarbonPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('dashboardPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <h1 class="text-lg font-bold text-textDark">Pasar Karbon IDX</h1>
+            </div>
+
+            <div class="p-5">
+                <div class="bg-primaryLight rounded-xl p-4 mb-5 fade-in-item">
+                    <div class="flex items-start gap-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D6E4F" stroke-width="2" class="shrink-0 mt-0.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        <p class="text-sm text-primary leading-relaxed">Offset emisi perjalanan haji Anda dengan membeli kredit karbon bersertifikat dari Bursa Karbon Indonesia (IDX).</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border mb-4 fade-in-item hover-lift" style="animation-delay: 0.1s;">
+                    <h3 class="text-sm font-semibold text-textDark mb-3">Total Emisi CO2e Anda</h3>
+                    <p id="carbonMarketTotalEmission" class="text-2xl font-bold text-textDark mb-1 number-display">0 Ton CO2e</p>
+                    <p class="text-xs text-textMuted">Estimasi biaya offset: <span id="carbonMarketCost" class="font-medium text-textDark">Rp 0</span></p>
+                </div>
+
+                <h3 class="text-sm font-semibold text-textDark mb-3">Produk IDX Carbon</h3>
+                <div class="space-y-3">
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-border hover-lift fade-in-item" style="animation-delay: 0.15s;">
+                        <img src="IDTBS.jpg" alt="Restorasi Gambut" class="w-full h-32 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold text-primary bg-primaryLight px-2 py-0.5 rounded">IDTBS</span>
+                                    <h4 class="font-semibold text-textDark mt-1">Technology Based Solution</h4>
+                                    <p class="text-xs text-textMuted">Restorasi Gambut</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-textDark">Rp 58.8k</p>
+                                    <p class="text-xs text-textMuted">per Ton CO2e</p>
+                                </div>
+                            </div>
+                            <button onclick="selectCarbonProduct('IDTBS')" class="btn-primary w-full py-2 rounded-xl text-white text-sm font-semibold mt-3">
+                                Beli Sekarang
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-border hover-lift fade-in-item" style="animation-delay: 0.2s;">
+                        <img src="IDTBS-RE.jpg" alt="PLTS & PLTB" class="w-full h-32 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">IDTBS-RE</span>
+                                    <h4 class="font-semibold text-textDark mt-1">TBS Renewable Energy</h4>
+                                    <p class="text-xs text-textMuted">PLTS & PLTB</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-textDark">Rp 73.2k</p>
+                                    <p class="text-xs text-textMuted">per Ton CO2e</p>
+                                </div>
+                            </div>
+                            <button onclick="selectCarbonProduct('IDTBS-RE')" class="btn-primary w-full py-2 rounded-xl text-white text-sm font-semibold mt-3">
+                                Beli Sekarang
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-border hover-lift fade-in-item" style="animation-delay: 0.25s;">
+                        <img src="IDTBSA.jpg" alt="Konservasi Hutan" class="w-full h-32 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">IDTBSA</span>
+                                    <h4 class="font-semibold text-textDark mt-1">TBS Authorized</h4>
+                                    <p class="text-xs text-textMuted">Konservasi Hutan</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-textDark">Rp 95k</p>
+                                    <p class="text-xs text-textMuted">per Ton CO2e</p>
+                                </div>
+                            </div>
+                            <button onclick="selectCarbonProduct('IDTBSA')" class="btn-primary w-full py-2 rounded-xl text-white text-sm font-semibold mt-3">
+                                Beli Sekarang
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-border hover-lift fade-in-item" style="animation-delay: 0.3s;">
+                        <img src="IDTBSA-RE.jpg" alt="Energi Hijau Premium" class="w-full h-32 object-cover">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">IDTBSA-RE</span>
+                                    <h4 class="font-semibold text-textDark mt-1">TBSA Renewable Energy</h4>
+                                    <p class="text-xs text-textMuted">Energi Hijau Premium</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-textDark">Rp 144k</p>
+                                    <p class="text-xs text-textMuted">per Ton CO2e</p>
+                                </div>
+                            </div>
+                            <button onclick="selectCarbonProduct('IDTBSA-RE')" class="btn-primary w-full py-2 rounded-xl text-white text-sm font-semibold mt-3">
+                                Beli Sekarang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CHECKOUT PAGE ==================== -->
+        <div id="checkoutPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('pasarKarbonPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <h1 class="text-lg font-bold text-textDark">Checkout Karbon</h1>
+            </div>
+
+            <div class="p-5">
+                <!-- Product Info -->
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-border mb-4 hover-lift fade-in-item">
+                    <img id="checkoutProductImage" src="IDTBS.jpg" alt="Product" class="w-full h-40 object-cover">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span id="checkoutProductCode" class="text-xs font-bold text-primary bg-primaryLight px-2 py-0.5 rounded">IDTBS</span>
+                                <h3 id="checkoutProductName" class="font-semibold text-textDark mt-1 text-lg">Technology Based Solution</h3>
+                                <p id="checkoutProductProject" class="text-xs text-textMuted">Proyek: Restorasi Gambut</p>
+                            </div>
+                            <div class="text-right">
+                                <p id="checkoutProductPrice" class="text-xl font-bold text-textDark">Rp 58,800</p>
+                                <p class="text-xs text-textMuted">per Ton CO2e</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purchase Calculator -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border mb-4 fade-in-item" style="animation-delay: 0.1s;">
+                    <h3 class="font-semibold text-textDark mb-3">Jumlah Pembelian</h3>
+                    <div class="mb-4">
+                        <label class="text-sm text-textMuted block mb-2">Jumlah Unit (tCO2e)</label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="adjustCarbonUnit(-1)" class="w-12 h-12 rounded-xl bg-bgMain flex items-center justify-center text-xl font-bold">-</button>
+                            <input type="number" id="carbonUnits" value="1" class="flex-1 text-center text-2xl font-bold text-textDark border-2 border-border rounded-xl py-2" readonly>
+                            <button onclick="adjustCarbonUnit(1)" class="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center text-xl font-bold text-primary">+</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-primaryLight rounded-xl p-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-primary font-medium">Total Pembayaran</span>
+                            <span id="totalPaymentAmount" class="text-xl font-bold text-primary">Rp 58,800</span>
+                        </div>
+                        <p class="text-xs text-primary/70 mt-1">Setara dengan penyerapan <span id="co2OffsetDisplay">1 ton CO2</span></p>
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <p class="text-sm text-textMuted mb-3">Pilih metode pembayaran:</p>
+                <div class="space-y-3 mb-5">
+                    <button onclick="selectPaymentMethod('va')" class="payment-method w-full bg-white rounded-2xl p-4 shadow-sm border-2 border-border text-left transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2">
+                                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                                    <path d="M3 10h18" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-textDark">Virtual Account</p>
+                                <p class="text-xs text-textMuted">Transfer via bank</p>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="selectPaymentMethod('qris')" class="payment-method w-full bg-white rounded-2xl p-4 shadow-sm border-2 border-border text-left transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9333EA" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7" />
+                                    <rect x="14" y="3" width="7" height="7" />
+                                    <rect x="3" y="14" width="7" height="7" />
+                                    <rect x="14" y="14" width="7" height="7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-textDark">QRIS</p>
+                                <p class="text-xs text-textMuted">Scan QR code</p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+
+                <button onclick="processCarbonPayment()" id="carbonPayBtn" class="btn-primary w-full py-3 rounded-xl text-white font-semibold opacity-50" disabled>
+                    Beli Sekarang
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== SUCCESS PAGE ==================== -->
+        <div id="successPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('dashboardPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <h1 class="text-lg font-bold text-textDark">Pembayaran Berhasil</h1>
+            </div>
+
+            <div class="p-5 text-center">
+                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5">
+                        <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold text-textDark mb-2">Terima Kasih!</h2>
+                <p class="text-sm text-textMuted mb-6">Pembelian kredit karbon Anda berhasil. Kontribusi Anda membantu pelestarian lingkungan.</p>
+
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border text-left mb-5">
+                    <div class="flex justify-between py-2 border-b border-border">
+                        <span class="text-sm text-textMuted">Produk</span>
+                        <span id="successProductCode" class="text-sm font-medium text-textDark">IDTBS</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-border">
+                        <span class="text-sm text-textMuted">Jumlah Unit</span>
+                        <span id="successUnits" class="text-sm font-medium text-textDark">1 tCO2e</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-border">
+                        <span class="text-sm text-textMuted">Total Bayar</span>
+                        <span id="successTotal" class="text-sm font-medium text-textDark">Rp 58,800</span>
+                    </div>
+                    <div class="flex justify-between py-2">
+                        <span class="text-sm text-textMuted">Nomor Transaksi</span>
+                        <span id="successTrxId" class="text-sm font-medium text-primary">BPKH-GH-2026-001234</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <button onclick="showPage('certificatePage')" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">Lihat Sertifikat</button>
+                    <button onclick="showPage('dashboardPage')" class="w-full py-3 rounded-xl bg-bgMain text-textDark font-semibold">Kembali ke Dashboard</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CERTIFICATE PAGE ==================== -->
+        <div id="certificatePage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('dashboardPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <h1 class="text-lg font-bold text-textDark">Sertifikat Karbon</h1>
+            </div>
+            <div class="p-5">
+                <!-- Sertifikat BPKH & BATS Consulting -->
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-textDark">Sertifikat Green Haj</h2>
+                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full font-medium">✓ Tersedia</span>
+                    </div>
+                    <div class="bg-gradient-to-br from-primary to-primaryDark rounded-2xl p-5 text-white mb-4">
+                        <div class="text-center border-b border-white/20 pb-4 mb-4">
+                            <p class="text-xs opacity-80 mb-1">SERTIFIKAT PEMBELIAN KREDIT KARBON</p>
+                            <p class="text-lg font-bold">Green Haj 2026</p>
+                        </div>
+                        <div class="text-center mb-4">
+                            <p class="text-xs opacity-80">Diberikan kepada</p>
+                            <p class="font-bold text-lg">Jamaah Haji</p>
+                        </div>
+                        <div class="text-center space-y-1 text-sm">
+                            <p>telah melakukan pembelian kredit karbon melalui</p>
+                            <p class="font-semibold">Aplikasi Green Haj</p>
+                            <p class="text-xs opacity-80 mt-3">Kerjasama</p>
+                            <div class="flex items-center justify-center gap-2 mt-1">
+                                <p class="font-semibold">BPKH</p>
+                                <span class="opacity-60">×</span>
+                                <p class="font-semibold">BATS Consulting</p>
+                            </div>
+                            <p class="text-xs opacity-80 mt-3" id="certDetail">IDTBS - 1 tCO2e</p>
+                        </div>
+                        <div class="text-center mt-4 pt-4 border-t border-white/20">
+                            <p class="text-xs opacity-80">No: <span id="certNumberDisplay">BPKH-GH-2026-001234</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-border mb-4">
+                        <h3 class="font-semibold text-textDark mb-3">Unduh Sertifikat</h3>
+                        <button class="w-full flex items-center gap-3 p-3 rounded-xl bg-bgMain" style="transition: all 0.2s ease;" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="12" y1="18" x2="12" y2="12" />
+                                    <line x1="9" y1="15" x2="12" y2="12" />
+                                    <line x1="15" y1="15" x2="12" y2="12" />
+                                </svg>
+                            </div>
+                            <div class="flex-1 text-left">
+                                <p class="font-medium text-textDark">Unduh PDF</p>
+                                <p class="text-xs text-textMuted">Sertifikat resolusi tinggi</p>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-border">
+                        <h3 class="font-semibold text-textDark mb-3">Bagikan Sertifikat</h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-green-50" style="transition: all 0.2s ease;" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs font-medium text-textDark">WhatsApp</span>
+                            </button>
+                            <button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-blue-50" style="transition: all 0.2s ease;" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                        <polyline points="22,6 12,13 2,6" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs font-medium text-textDark">Email</span>
+                            </button>
+                            <button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50" style="transition: all 0.2s ease;" onmousedown="this.style.transform='scale(0.98)';" onmouseup="this.style.transform='scale(1)';">
+                                <div class="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs font-medium text-textDark">Copy Link</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sertifikat IDX Carbon (Dalam Review) -->
+                <div class="mt-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-textDark">Sertifikat IDX Carbon</h2>
+                        <span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded-full font-medium">⏳ Dalam Proses</span>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-border">
+                        <div class="text-center py-4">
+                            <div class="w-16 h-16 rounded-full bg-yellow-50 flex items-center justify-center mx-auto mb-3">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EAB308" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-textDark mb-2">Sertifikat Dalam Review</h3>
+                            <p class="text-sm text-textMuted mb-4 px-4">Sertifikat resmi dari Bursa Karbon Indonesia (IDX Carbon) sedang dalam proses verifikasi dan akan tersedia segera.</p>
+                            
+                            <div class="bg-primaryLight rounded-xl p-3 mb-4">
+                                <div class="flex items-start gap-2 text-left">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D6E4F" stroke-width="2" class="shrink-0 mt-0.5">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="16" x2="12" y2="12" />
+                                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                                    </svg>
+                                    <div class="text-xs text-primary">
+                                        <p class="font-medium mb-1">Informasi:</p>
+                                        <p>Proses verifikasi membutuhkan waktu 3-5 hari kerja. Anda akan menerima notifikasi ketika sertifikat sudah tersedia untuk diunduh.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-xs text-textMuted space-y-1">
+                                <p>Produk: <span class="font-medium text-textDark" id="idxCertProduct">IDTBS - 1 tCO2e</span></p>
+                                <p>Status: <span class="font-medium text-yellow-600">Menunggu Verifikasi IDX</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ANALYTICS PAGE ==================== -->
+        <div id="analyticsPage" class="page pb-24">
+            <div class="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
+                <button onclick="showPage('dashboardPage')" class="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A2E23" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                </button>
+                <h1 class="text-lg font-bold text-textDark">Analitik Emisi</h1>
+            </div>
+
+            <div class="p-5">
+                <!-- Summary Card -->
+                <div class="bg-gradient-to-br from-primary to-primaryDark rounded-2xl p-5 text-white mb-5">
+                    <div class="text-center mb-4">
+                        <p class="text-xs opacity-80 mb-2">Total Emisi CO2e Perjalanan</p>
+                        <p id="analyticsTotalEmission" class="text-3xl font-bold">0 Ton CO2e</p>
+                        <p class="text-xs opacity-80 mt-1">CO2 Equivalent</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div>
+                            <p class="text-xs opacity-80">Tahapan Selesai</p>
+                            <p id="analyticsCompletedPhases" class="text-lg font-bold">0/8</p>
+                        </div>
+                        <div>
+                            <p class="text-xs opacity-80">Progress</p>
+                            <p id="analyticsProgress" class="text-lg font-bold">0%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakdown by Phase -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border mb-5">
+                    <h3 class="text-sm font-semibold text-textDark mb-4">Emisi CO2e per Tahapan</h3>
+                    <div id="analyticsPhaseBreakdown" class="space-y-3">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Breakdown by Category -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border mb-5">
+                    <h3 class="text-sm font-semibold text-textDark mb-4">Emisi per Kategori</h3>
+                    <div id="analyticsCategoryBreakdown" class="space-y-3">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Comparison -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-border">
+                    <h3 class="text-sm font-semibold text-textDark mb-3">Perbandingan</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between py-2 border-b border-border">
+                            <div>
+                                <p class="text-sm text-textDark font-medium">Emisi CO2e Anda</p>
+                                <p class="text-xs text-textMuted">Total perjalanan haji</p>
+                            </div>
+                            <p id="analyticsYourEmission" class="text-base font-bold text-primary">0 Ton CO2e</p>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-border">
+                            <div>
+                                <p class="text-sm text-textDark font-medium">Rata-rata Jamaah</p>
+                                <p class="text-xs text-textMuted">Estimasi nasional</p>
+                            </div>
+                            <p class="text-base font-bold text-textMuted">3.5 Ton CO2e</p>
+                        </div>
+                        <div class="flex items-center justify-between py-2">
+                            <div>
+                                <p class="text-sm text-textDark font-medium">Selisih</p>
+                                <p class="text-xs text-textMuted">Dibanding rata-rata</p>
+                            </div>
+                            <p id="analyticsDifference" class="text-base font-bold text-accent">- kg</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="bg-primaryLight rounded-xl p-4 mt-5">
+                    <div class="flex items-start gap-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0D6E4F" stroke-width="2" class="shrink-0 mt-0.5">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                        <div>
+                            <p class="text-sm font-semibold text-primary mb-1">Rekomendasi</p>
+                            <p class="text-xs text-primary">Lakukan offset karbon melalui IDX Carbon untuk menetralkan jejak karbon perjalanan haji Anda.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== BOTTOM NAVIGATION ==================== -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-border z-50 shadow-lg">
+            <div class="max-w-[430px] mx-auto px-5 py-2 flex justify-around">
+                <button onclick="showPage('dashboardPage')" class="nav-item active flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span class="text-xs font-medium text-textMuted">Home</span>
+                </button>
+                <button onclick="showPage('phaseNavigationPage')" class="nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M2 12h20" />
+                    </svg>
+                    <span class="text-xs font-medium text-textMuted">Haji</span>
+                </button>
+                <button onclick="showPage('pasarKarbonPage')" class="nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18" />
+                        <path d="m19 9-5 5-4-4-3 3" />
+                    </svg>
+                    <span class="text-xs font-medium text-textMuted">Offset</span>
+                </button>
+                <button onclick="showAnalytics()" class="nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M3 9h18M9 21V9" />
+                    </svg>
+                    <span class="text-xs font-medium text-textMuted">Analitik</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // ==================== STORAGE KEYS ====================
+        const STORAGE_KEY = 'greenHajPhases';
+        const TARGET_EMISSION = 4000;
+
+        // ==================== PHASE DEFINITION ====================
+        const PHASE_DEFINITIONS = [
+            {
+                id: 'pra-keberangkatan',
+                name: 'Pra-keberangkatan (Asrama)',
+                icon: '🏠',
+                description: 'Persiapan di asrama sebelum keberangkatan',
+                categories: ['transport', 'energy', 'food', 'waste']
+            },
+            {
+                id: 'penerbangan-pergi',
+                name: 'Penerbangan ID → KSA',
+                icon: '✈️',
+                description: 'Penerbangan dari Indonesia ke Arab Saudi',
+                categories: ['transport']
+            },
+            {
+                id: 'madinah',
+                name: 'Madinah (8 hari)',
+                icon: '🕌',
+                description: 'Tinggal dan beribadah di Madinah',
+                categories: ['transport', 'energy', 'food', 'waste']
+            },
+            {
+                id: 'makkah',
+                name: 'Makkah',
+                icon: '🕋',
+                description: 'Di Makkah',
+                categories: ['transport', 'energy', 'food', 'waste']
+            },
+            {
+                id: 'arafah',
+                name: 'Arafah',
+                icon: '⛰️',
+                description: 'Wukuf di Arafah',
+                categories: ['transport', 'energy', 'food', 'waste']
+            },
+            {
+                id: 'muzdalifah',
+                name: 'Muzdalifah',
+                icon: '🌙',
+                description: 'Bermalam di Muzdalifah',
+                categories: ['transport', 'food', 'waste']
+            },
+            {
+                id: 'mina',
+                name: 'Mina (Tasyrik)',
+                icon: '🎯',
+                description: 'Hari Tasyrik di Mina',
+                categories: ['transport', 'energy', 'food', 'waste']
+            },
+            {
+                id: 'pulang',
+                name: 'Pulang (KSA → ID)',
+                icon: '🏠',
+                description: 'Penerbangan kembali ke Indonesia',
+                categories: ['transport']
+            }
+        ];
+
+        const CATEGORY_DEFINITIONS = {
+            transport: {
+                name: 'Transportasi',
+                icon: '🚌',
+                color: 'blue',
+                description: 'Bus, shuttle, atau kendaraan lainnya'
+            },
+            energy: {
+                name: 'Energi & Akomodasi',
+                icon: '🏨',
+                color: 'purple',
+                description: 'Hotel, listrik, AC, dan pendingin'
+            },
+            food: {
+                name: 'Konsumsi',
+                icon: '🍽️',
+                color: 'orange',
+                description: 'Makan dan minum'
+            },
+            waste: {
+                name: 'Limbah',
+                icon: '♻️',
+                color: 'green',
+                description: 'Sampah dan limbah lainnya'
+            }
+        };
+
+        // ==================== STATE VARIABLES ====================
+        let hajiJourney = {
+            currentPhase: 0,
+            phases: {}
+        };
+
+        let currentPhaseId = null;
+        let currentCategory = null;
+
+        // ==================== INITIALIZATION ====================
+        function initApp() {
+            loadDataFromStorage();
+            updateDashboardUI();
+            updateTime();
+            updateGreeting();
+            setInterval(updateTime, 60000);
+            setInterval(updateGreeting, 60000);
+        }
+
+        // ==================== GREETING UPDATE ====================
+        function updateGreeting() {
+            const now = new Date();
+            const hours = now.getHours();
+            let greeting = 'Selamat malam';
+            
+            if (hours >= 5 && hours < 11) {
+                greeting = 'Selamat pagi';
+            } else if (hours >= 11 && hours < 15) {
+                greeting = 'Selamat siang';
+            } else if (hours >= 15 && hours < 18) {
+                greeting = 'Selamat sore';
+            }
+            
+            document.getElementById('greetingText').textContent = greeting + ', Brian Pramudita';
+        }
+
+        // ==================== TIME UPDATE ====================
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = hours + ':' + minutes;
+        }
+
+        // ==================== STORAGE FUNCTIONS ====================
+        function loadDataFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    hajiJourney = JSON.parse(stored);
+                    // Validate data structure
+                    let needsReset = false;
+                    PHASE_DEFINITIONS.forEach(phase => {
+                        if (!hajiJourney.phases[phase.id] || !hajiJourney.phases[phase.id].categories) {
+                            needsReset = true;
+                        }
+                    });
+                    if (needsReset) {
+                        initializePhases();
+                    }
+                } else {
+                    initializePhases();
+                }
+            } catch (e) {
+                initializePhases();
+            }
+        }
+
+        function saveDataToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(hajiJourney));
+            } catch (e) {
+                showToast('Gagal menyimpan data');
+            }
+        }
+
+        function initializePhases() {
+            hajiJourney.phases = {};
+            PHASE_DEFINITIONS.forEach(phase => {
+                hajiJourney.phases[phase.id] = {
+                    completed: false,
+                    categories: {}
+                };
+                phase.categories.forEach(cat => {
+                    hajiJourney.phases[phase.id].categories[cat] = {
+                        completed: false,
+                        emission: 0,
+                        details: {}
+                    };
+                });
+            });
+            saveDataToStorage();
+        }
+
+        // ==================== DASHBOARD UI UPDATE ====================
+        function updateDashboardUI() {
+            const totalEmission = calculateTotalEmission();
+            const progressPercent = Math.min((totalEmission / TARGET_EMISSION) * 100, 100);
+
+            // Update total emission (convert to Ton)
+            const totalEmissionTon = (totalEmission / 1000).toFixed(2);
+            document.getElementById('totalEmissionDisplay').textContent = totalEmissionTon.toLocaleString('id-ID') + ' Ton CO2e';
+            document.getElementById('totalProgressFill').style.width = progressPercent + '%';
+
+            // Update phase completion badge
+            const completedPhases = PHASE_DEFINITIONS.filter(p => hajiJourney.phases[p.id]?.completed).length;
+            document.getElementById('phaseCompletionBadge').textContent = completedPhases + '/8 Tahapan';
+
+            // Update phase progress list
+            updatePhaseProgressList();
+
+            // Update top emissions
+            updateTopEmissions();
+
+            // Update carbon market
+            updateCarbonMarket(totalEmission);
+        }
+
+        function calculateTotalEmission() {
+            let total = 0;
+            Object.values(hajiJourney.phases).forEach(phase => {
+                Object.values(phase.categories).forEach(cat => {
+                    total += cat.emission || 0;
+                });
+            });
+            return Math.round(total);
+        }
+
+        function updatePhaseProgressList() {
+            const container = document.getElementById('phaseProgressList');
+            let html = '';
+
+            PHASE_DEFINITIONS.slice(0, 4).forEach(phase => {
+                const phaseData = hajiJourney.phases[phase.id];
+                if (!phaseData) return;
+                const phaseEmission = calculatePhaseEmission(phase.id);
+                const status = phaseData.completed ? 'completed' : (phaseEmission > 0 ? 'in-progress' : 'pending');
+                const statusText = status === 'completed' ? 'Selesai' : (status === 'in-progress' ? 'Proses' : 'Belum');
+
+                html += `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">${phase.icon}</span>
+                            <div>
+                                <p class="text-sm font-medium text-textDark">${phase.name}</p>
+                                <p class="text-xs text-textMuted">${(phaseEmission / 1000).toFixed(2)} Ton CO2e</p>
+                            </div>
+                        </div>
+                        <span class="phase-badge ${status}">${statusText}</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function calculatePhaseEmission(phaseId) {
+            const phase = hajiJourney.phases[phaseId];
+            if (!phase || !phase.categories) return 0;
+            let total = 0;
+            Object.values(phase.categories).forEach(cat => {
+                total += cat.emission || 0;
+            });
+            return Math.round(total);
+        }
+
+        function updateTopEmissions() {
+            const container = document.getElementById('topEmissionsPhase');
+            const emissions = PHASE_DEFINITIONS.map(phase => ({
+                name: phase.name,
+                icon: phase.icon,
+                emission: calculatePhaseEmission(phase.id)
+            })).filter(p => p.emission > 0).sort((a, b) => b.emission - a.emission);
+
+            if (emissions.length === 0) {
+                container.innerHTML = '<p class="text-sm text-textMuted">Belum ada data emisi</p>';
+                return;
+            }
+
+            let html = '';
+            emissions.slice(0, 3).forEach((item, index) => {
+                const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : '🥉');
+                html += `
+                    <div class="flex items-center justify-between py-2 ${index !== emissions.length - 1 ? 'border-b border-border' : ''}">
+                        <div class="flex items-center gap-2">
+                            <span>${medal}</span>
+                            <span class="text-xl">${item.icon}</span>
+                            <span class="text-sm text-textDark">${item.name}</span>
+                        </div>
+                        <span class="text-sm font-bold text-primary">${(item.emission / 1000).toFixed(2)} Ton CO2e</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function updateCarbonMarket(totalEmission) {
+            const totalTon = (totalEmission / 1000).toFixed(2);
+            document.getElementById('carbonMarketTotalEmission').textContent = totalTon + ' Ton CO2e';
+            const estimatedCost = Math.ceil(totalEmission / 1000) * 58800;
+            document.getElementById('carbonMarketCost').textContent = 'Rp ' + estimatedCost.toLocaleString('id-ID');
+        }
+
+        // ==================== PHASE NAVIGATION ====================
+        function populatePhaseNavigation() {
+            const container = document.getElementById('phaseList');
+            let html = '';
+
+            PHASE_DEFINITIONS.forEach((phase, index) => {
+                const phaseData = hajiJourney.phases[phase.id];
+                if (!phaseData || !phaseData.categories) return;
+                const phaseEmission = calculatePhaseEmission(phase.id);
+                const completedCategories = phase.categories.filter(cat => phaseData.categories[cat]?.completed).length;
+                const totalCategories = phase.categories.length;
+                const status = phaseData.completed ? 'completed' : (phaseEmission > 0 ? 'in-progress' : '');
+                const delay = index * 0.05;
+
+                html += `
+                    <div class="phase-card bg-white rounded-2xl p-4 shadow-sm border-2 border-border ${status} fade-in-item" style="animation-delay: ${delay}s;" onclick="openPhaseDetail('${phase.id}')">
+                        <div class="flex items-start gap-4">
+                            <div class="text-3xl">${phase.icon}</div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h3 class="font-semibold text-textDark">${phase.name}</h3>
+                                    <span class="text-sm font-bold text-primary">${(completedCategories / phase.categories.length * 100).toFixed(0)}%</span>
+                                </div>
+                                <p class="text-xs text-textMuted mb-2">${phase.description}</p>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-textMuted">Emisi CO2e:</span>
+                                    <span class="text-sm font-bold text-primary">${(phaseEmission / 1000).toFixed(2)} Ton CO2e</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function openPhaseDetail(phaseId) {
+            currentPhaseId = phaseId;
+            const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+            const phaseData = hajiJourney.phases[phaseId];
+            
+            // Validate phase data
+            if (!phaseData || !phaseData.categories) {
+                initializePhases();
+                return;
+            }
+            
+            const phaseEmission = calculatePhaseEmission(phaseId);
+
+            document.getElementById('phaseDetailTitle').textContent = phase.name;
+            document.getElementById('phaseDetailEmission').textContent = (phaseEmission / 1000).toFixed(2) + ' Ton CO2e';
+
+            const completedCategories = phase.categories.filter(cat => phaseData.categories[cat]?.completed).length;
+            const progress = (completedCategories / phase.categories.length) * 100;
+            document.getElementById('phaseDetailProgress').style.width = progress + '%';
+
+            // Populate categories
+            const container = document.getElementById('phaseCategoryList');
+            let html = '';
+
+            phase.categories.forEach((catId, index) => {
+                const catDef = CATEGORY_DEFINITIONS[catId];
+                const catData = phaseData.categories[catId];
+                const status = catData.completed ? 'completed' : (catData.emission > 0 ? 'in-progress' : 'pending');
+                const statusText = status === 'completed' ? 'Selesai' : (status === 'in-progress' ? 'Diisi' : 'Belum');
+
+                html += `
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-border hover:shadow-lg transition-all cursor-pointer fade-in-item" style="animation-delay: ${index * 0.05}s;" onclick="openCategoryInput('${phaseId}', '${catId}')">
+                        <div class="flex items-center gap-3">
+                            <div class="category-icon bg-${catDef.color}-50">
+                                <span>${catDef.icon}</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <h4 class="text-sm font-semibold text-textDark">${catDef.name}</h4>
+                                    <span class="phase-badge ${status}">${statusText}</span>
+                                </div>
+                                <p class="text-xs text-textMuted mb-1">${catDef.description}</p>
+                                <p class="text-xs font-medium text-primary">${(catData.emission / 1000).toFixed(3)} Ton CO2e</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            showPage('phaseDetailPage');
+        }
+
+        // ==================== CATEGORY INPUT ====================
+        function openCategoryInput(phaseId, categoryId) {
+            currentPhaseId = phaseId;
+            currentCategory = categoryId;
+
+            const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+            const catDef = CATEGORY_DEFINITIONS[categoryId];
+
+            document.getElementById('categoryInputPhaseName').textContent = phase.name;
+            document.getElementById('categoryInputTitle').textContent = catDef.name;
+
+            // Load form based on category
+            const formContainer = document.getElementById('categoryInputForm');
+            formContainer.innerHTML = generateCategoryForm(phaseId, categoryId);
+
+            showPage('categoryInputPage');
+        }
+
+        function generateCategoryForm(phaseId, categoryId) {
+            const catData = hajiJourney.phases[phaseId].categories[categoryId];
+            const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+
+            let html = '<div class="space-y-4">';
+
+            // Different forms based on category
+            if (categoryId === 'transport') {
+                const vehicleType = catData.details.vehicleType || '';
+                const distance = catData.details.distance || 50;
+
+                if (phaseId === 'penerbangan-pergi' || phaseId === 'pulang') {
+                    // Flight form
+                    html += `
+                        <div class="bg-primaryLight rounded-xl p-4">
+                            <p class="text-sm text-primary"><strong>Info:</strong> Penerbangan Jakarta-Jeddah untuk rute keberangkatan haji.</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 border border-border">
+                            <h4 class="text-sm font-semibold text-textDark mb-2">Rute Penerbangan</h4>
+                            <p class="text-sm text-textMuted mb-3">Jakarta (CGK) → Jeddah (JED)</p>
+                            <p class="text-xs text-textMuted">Jarak: 8,275 km</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 border border-border">
+                            <h4 class="text-sm font-semibold text-textDark mb-3">Estimasi Emisi CO2e</h4>
+                            <p class="text-2xl font-bold text-primary mb-1">1.14 Ton</p>
+                            <p class="text-xs text-textMuted">Per penumpang untuk rute ini</p>
+                        </div>
+                        <button onclick="saveCategoryData(1144)" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">
+                            Simpan Data
+                        </button>
+                    `;
+                } else {
+                    // Ground transport
+                    html += `
+                        <div class="bg-white rounded-xl p-4 border border-border">
+                            <h4 class="text-sm font-semibold text-textDark mb-3">Jenis Kendaraan</h4>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="selectVehicle('bus')" class="p-3 border-2 border-border rounded-xl text-center ${vehicleType === 'bus' ? 'selected' : ''}" id="vehicle-bus">
+                                    <div class="text-2xl">🚌</div>
+                                    <p class="text-xs mt-1">Bus</p>
+                                </button>
+                                <button onclick="selectVehicle('mobil')" class="p-3 border-2 border-border rounded-xl text-center ${vehicleType === 'mobil' ? 'selected' : ''}" id="vehicle-mobil">
+                                    <div class="text-2xl">🚗</div>
+                                    <p class="text-xs mt-1">Mobil</p>
+                                </button>
+                                <button onclick="selectVehicle('kereta')" class="p-3 border-2 border-border rounded-xl text-center ${vehicleType === 'kereta' ? 'selected' : ''}" id="vehicle-kereta">
+                                    <div class="text-2xl">🚆</div>
+                                    <p class="text-xs mt-1">Kereta</p>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 border border-border slider-container">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="text-sm font-semibold text-textDark">Jarak Tempuh</label>
+                                <span id="distanceValue" class="text-lg font-bold text-primary">${distance} km</span>
+                            </div>
+                            <input type="range" id="distanceSlider" min="1" max="500" value="${distance}" oninput="updateDistance(this.value)" class="w-full">
+                            <div class="flex justify-between text-xs text-textMuted mt-2">
+                                <span>1 km</span>
+                                <span>500 km</span>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 border border-border">
+                            <h4 class="text-sm font-semibold text-textDark mb-2">Estimasi Emisi CO2e</h4>
+                            <p id="transportEmission" class="text-2xl font-bold text-primary">0 Ton CO2e</p>
+                        </div>
+                        <button onclick="saveTransportData()" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">
+                            Simpan Data
+                        </button>
+                    `;
+                }
+            } else if (categoryId === 'energy') {
+                const days = catData.details.days || 1;
+                const hotelStars = catData.details.hotelStars || 4;
+
+                html += `
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <h4 class="text-sm font-semibold text-textDark mb-3">Jenis Akomodasi</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="selectHotelStars(3)" class="p-3 border-2 border-border rounded-xl text-center ${hotelStars === 3 ? 'selected' : ''}" id="hotel-3">
+                                <div class="text-xl">⭐⭐⭐</div>
+                                <p class="text-xs mt-1">Bintang 3</p>
+                            </button>
+                            <button onclick="selectHotelStars(4)" class="p-3 border-2 border-border rounded-xl text-center ${hotelStars === 4 ? 'selected' : ''}" id="hotel-4">
+                                <div class="text-xl">⭐⭐⭐⭐</div>
+                                <p class="text-xs mt-1">Bintang 4</p>
+                            </button>
+                            <button onclick="selectHotelStars(5)" class="p-3 border-2 border-border rounded-xl text-center ${hotelStars === 5 ? 'selected' : ''}" id="hotel-5">
+                                <div class="text-xl">⭐⭐⭐⭐⭐</div>
+                                <p class="text-xs mt-1">Bintang 5</p>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <label class="text-sm font-semibold text-textDark block mb-3">Jumlah Hari</label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="adjustDays(-1)" class="w-12 h-12 rounded-xl bg-bgMain flex items-center justify-center text-xl font-bold">-</button>
+                            <input type="number" id="daysInput" value="${days}" class="flex-1 text-center text-2xl font-bold text-textDark border-2 border-border rounded-xl py-2" readonly>
+                            <button onclick="adjustDays(1)" class="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center text-xl font-bold text-primary">+</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <h4 class="text-sm font-semibold text-textDark mb-2">Estimasi Emisi CO2e</h4>
+                        <p id="energyEmission" class="text-2xl font-bold text-primary">0 Ton CO2e</p>
+                        <p class="text-xs text-textMuted mt-1">Termasuk listrik, AC, dan pendingin</p>
+                    </div>
+                    <button onclick="saveEnergyData()" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">
+                        Simpan Data
+                    </button>
+                `;
+            } else if (categoryId === 'food') {
+                const foodType = catData.details.foodType || '';
+                const meals = catData.details.meals || 3;
+                const days = catData.details.days || 1;
+
+                html += `
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <h4 class="text-sm font-semibold text-textDark mb-3">Jenis Makanan</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="selectFood('nasi-ayam')" class="p-3 border-2 border-border rounded-xl text-center ${foodType === 'nasi-ayam' ? 'selected' : ''}" id="food-nasi-ayam">
+                                <div class="text-2xl">🍚</div>
+                                <p class="text-xs mt-1">Nasi Ayam</p>
+                            </button>
+                            <button onclick="selectFood('daging-sapi')" class="p-3 border-2 border-border rounded-xl text-center ${foodType === 'daging-sapi' ? 'selected' : ''}" id="food-daging-sapi">
+                                <div class="text-2xl">🥩</div>
+                                <p class="text-xs mt-1">Daging Sapi</p>
+                            </button>
+                            <button onclick="selectFood('ikan')" class="p-3 border-2 border-border rounded-xl text-center ${foodType === 'ikan' ? 'selected' : ''}" id="food-ikan">
+                                <div class="text-2xl">🐟</div>
+                                <p class="text-xs mt-1">Ikan</p>
+                            </button>
+                            <button onclick="selectFood('vegetarian')" class="p-3 border-2 border-border rounded-xl text-center ${foodType === 'vegetarian' ? 'selected' : ''}" id="food-vegetarian">
+                                <div class="text-2xl">🥗</div>
+                                <p class="text-xs mt-1">Vegetarian</p>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <label class="text-sm font-semibold text-textDark block mb-3">Porsi per Hari</label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="adjustMeals(-1)" class="w-12 h-12 rounded-xl bg-bgMain flex items-center justify-center text-xl font-bold">-</button>
+                            <input type="number" id="mealsInput" value="${meals}" class="flex-1 text-center text-2xl font-bold text-textDark border-2 border-border rounded-xl py-2" readonly>
+                            <button onclick="adjustMeals(1)" class="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center text-xl font-bold text-primary">+</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <label class="text-sm font-semibold text-textDark block mb-3">Jumlah Hari</label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="adjustFoodDays(-1)" class="w-12 h-12 rounded-xl bg-bgMain flex items-center justify-center text-xl font-bold">-</button>
+                            <input type="number" id="foodDaysInput" value="${days}" class="flex-1 text-center text-2xl font-bold text-textDark border-2 border-border rounded-xl py-2" readonly>
+                            <button onclick="adjustFoodDays(1)" class="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center text-xl font-bold text-primary">+</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <h4 class="text-sm font-semibold text-textDark mb-2">Estimasi Emisi CO2e</h4>
+                        <p id="foodEmission" class="text-2xl font-bold text-primary">0 Ton CO2e</p>
+                    </div>
+                    <button onclick="saveFoodData()" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">
+                        Simpan Data
+                    </button>
+                `;
+            } else if (categoryId === 'waste') {
+                const weight = catData.details.weight || 5;
+
+                html += `
+                    <div class="bg-primaryLight rounded-xl p-4">
+                        <p class="text-sm text-primary"><strong>Info:</strong> Rata-rata jamaah haji menghasilkan 3-8 kg sampah per hari selama perjalanan.</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border slider-container">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-sm font-semibold text-textDark">Berat Sampah (Total)</label>
+                            <span id="wasteValue" class="text-lg font-bold text-primary">${weight} kg</span>
+                        </div>
+                        <input type="range" id="wasteSlider" min="1" max="50" value="${weight}" oninput="updateWaste(this.value)" class="w-full">
+                        <div class="flex justify-between text-xs text-textMuted mt-2">
+                            <span>1 kg</span>
+                            <span>50 kg</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 border border-border">
+                        <h4 class="text-sm font-semibold text-textDark mb-2">Estimasi Emisi CO2e</h4>
+                        <p id="wasteEmission" class="text-2xl font-bold text-primary">0 Ton CO2e</p>
+                    </div>
+                    <button onclick="saveWasteData()" class="btn-primary w-full py-3 rounded-xl text-white font-semibold">
+                        Simpan Data
+                    </button>
+                `;
+            }
+
+            html += '</div>';
+
+            // Initialize calculations
+            setTimeout(() => {
+                if (categoryId === 'transport' && phaseId !== 'penerbangan-pergi' && phaseId !== 'pulang') {
+                    updateTransportCalculation();
+                } else if (categoryId === 'energy') {
+                    updateEnergyCalculation();
+                } else if (categoryId === 'food') {
+                    updateFoodCalculation();
+                } else if (categoryId === 'waste') {
+                    updateWasteCalculation();
+                }
+            }, 100);
+
+            return html;
+        }
+
+        // ==================== CATEGORY DATA SAVE FUNCTIONS ====================
+        let tempVehicleType = '';
+        let tempHotelStars = 0;
+        let tempFoodType = '';
+
+        function selectVehicle(type) {
+            tempVehicleType = type;
+            document.querySelectorAll('[id^="vehicle-"]').forEach(el => el.classList.remove('selected'));
+            document.getElementById('vehicle-' + type).classList.add('selected');
+            updateTransportCalculation();
+        }
+
+        function updateDistance(value) {
+            document.getElementById('distanceValue').textContent = value + ' km';
+            updateTransportCalculation();
+        }
+
+        function updateTransportCalculation() {
+            const distance = parseInt(document.getElementById('distanceSlider')?.value || 50);
+            const factors = { bus: 0.089, mobil: 0.171, kereta: 0.041 };
+            const emission = Math.round(distance * (factors[tempVehicleType] || 0.089));
+            if (document.getElementById('transportEmission')) {
+                document.getElementById('transportEmission').textContent = (emission / 1000).toFixed(3) + ' Ton CO2e';
+            }
+        }
+
+        function saveTransportData() {
+            const distance = parseInt(document.getElementById('distanceSlider').value);
+            const factors = { bus: 0.089, mobil: 0.171, kereta: 0.041 };
+            const emission = Math.round(distance * (factors[tempVehicleType] || 0.089));
+
+            hajiJourney.phases[currentPhaseId].categories[currentCategory] = {
+                completed: true,
+                emission: emission,
+                details: {
+                    vehicleType: tempVehicleType,
+                    distance: distance
+                }
+            };
+
+            saveDataToStorage();
+            showToast('Data transportasi berhasil disimpan!');
+            backToPhaseDetail();
+        }
+
+        function saveCategoryData(emission) {
+            hajiJourney.phases[currentPhaseId].categories[currentCategory] = {
+                completed: true,
+                emission: emission,
+                details: { autoCalculated: true }
+            };
+
+            saveDataToStorage();
+            showToast('Data berhasil disimpan!');
+            backToPhaseDetail();
+        }
+
+        function selectHotelStars(stars) {
+            tempHotelStars = stars;
+            document.querySelectorAll('[id^="hotel-"]').forEach(el => el.classList.remove('selected'));
+            document.getElementById('hotel-' + stars).classList.add('selected');
+            updateEnergyCalculation();
+        }
+
+        function adjustDays(delta) {
+            const input = document.getElementById('daysInput');
+            const current = parseInt(input.value);
+            input.value = Math.max(1, Math.min(30, current + delta));
+            updateEnergyCalculation();
+        }
+
+        function updateEnergyCalculation() {
+            const days = parseInt(document.getElementById('daysInput')?.value || 1);
+            const factors = { 3: 15, 4: 22, 5: 35 };
+            const emission = Math.round(days * (factors[tempHotelStars] || 22));
+            if (document.getElementById('energyEmission')) {
+                document.getElementById('energyEmission').textContent = (emission / 1000).toFixed(3) + ' Ton CO2e';
+            }
+        }
+
+        function saveEnergyData() {
+            const days = parseInt(document.getElementById('daysInput').value);
+            const factors = { 3: 15, 4: 22, 5: 35 };
+            const emission = Math.round(days * (factors[tempHotelStars] || 22));
+
+            hajiJourney.phases[currentPhaseId].categories[currentCategory] = {
+                completed: true,
+                emission: emission,
+                details: {
+                    hotelStars: tempHotelStars,
+                    days: days
+                }
+            };
+
+            saveDataToStorage();
+            showToast('Data akomodasi berhasil disimpan!');
+            backToPhaseDetail();
+        }
+
+        function selectFood(type) {
+            tempFoodType = type;
+            document.querySelectorAll('[id^="food-"]').forEach(el => el.classList.remove('selected'));
+            document.getElementById('food-' + type).classList.add('selected');
+            updateFoodCalculation();
+        }
+
+        function adjustMeals(delta) {
+            const input = document.getElementById('mealsInput');
+            const current = parseInt(input.value);
+            input.value = Math.max(1, Math.min(5, current + delta));
+            updateFoodCalculation();
+        }
+
+        function adjustFoodDays(delta) {
+            const input = document.getElementById('foodDaysInput');
+            const current = parseInt(input.value);
+            input.value = Math.max(1, Math.min(30, current + delta));
+            updateFoodCalculation();
+        }
+
+        function updateFoodCalculation() {
+            const meals = parseInt(document.getElementById('mealsInput')?.value || 3);
+            const days = parseInt(document.getElementById('foodDaysInput')?.value || 1);
+            const factors = { 'nasi-ayam': 1.2, 'daging-sapi': 6.0, 'ikan': 1.5, 'vegetarian': 0.5 };
+            const emission = Math.round(meals * days * (factors[tempFoodType] || 1.2));
+            if (document.getElementById('foodEmission')) {
+                document.getElementById('foodEmission').textContent = (emission / 1000).toFixed(3) + ' Ton CO2e';
+            }
+        }
+
+        function saveFoodData() {
+            const meals = parseInt(document.getElementById('mealsInput').value);
+            const days = parseInt(document.getElementById('foodDaysInput').value);
+            const factors = { 'nasi-ayam': 1.2, 'daging-sapi': 6.0, 'ikan': 1.5, 'vegetarian': 0.5 };
+            const emission = Math.round(meals * days * (factors[tempFoodType] || 1.2));
+
+            hajiJourney.phases[currentPhaseId].categories[currentCategory] = {
+                completed: true,
+                emission: emission,
+                details: {
+                    foodType: tempFoodType,
+                    meals: meals,
+                    days: days
+                }
+            };
+
+            saveDataToStorage();
+            showToast('Data konsumsi berhasil disimpan!');
+            backToPhaseDetail();
+        }
+
+        function updateWaste(value) {
+            document.getElementById('wasteValue').textContent = value + ' kg';
+            updateWasteCalculation();
+        }
+
+        function updateWasteCalculation() {
+            const weight = parseInt(document.getElementById('wasteSlider')?.value || 5);
+            const emission = Math.round(weight * 0.5);
+            if (document.getElementById('wasteEmission')) {
+                document.getElementById('wasteEmission').textContent = (emission / 1000).toFixed(3) + ' Ton CO2e';
+            }
+        }
+
+        function saveWasteData() {
+            const weight = parseInt(document.getElementById('wasteSlider').value);
+            const emission = Math.round(weight * 0.5);
+
+            hajiJourney.phases[currentPhaseId].categories[currentCategory] = {
+                completed: true,
+                emission: emission,
+                details: {
+                    weight: weight
+                }
+            };
+
+            saveDataToStorage();
+            showToast('Data limbah berhasil disimpan!');
+            backToPhaseDetail();
+        }
+
+        function backToPhaseDetail() {
+            updateDashboardUI();
+            openPhaseDetail(currentPhaseId);
+        }
+
+        // ==================== TOAST NOTIFICATION ====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // ==================== PAGE NAVIGATION ====================
+        function showPage(pageId) {
+            // Fade out current page
+            const currentPage = document.querySelector('.page.active');
+            if (currentPage) {
+                currentPage.style.opacity = '0';
+                currentPage.style.transform = 'translateY(10px)';
+            }
+
+            setTimeout(() => {
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                    page.style.opacity = '';
+                    page.style.transform = '';
+                });
+
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                }
+
+                // Update bottom nav
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // Set active state based on page
+                const navMapping = {
+                    'dashboardPage': 0,
+                    'phaseNavigationPage': 1,
+                    'phaseDetailPage': 1,
+                    'categoryInputPage': 1,
+                    'pasarKarbonPage': 2,
+                    'checkoutPage': 2,
+                    'successPage': 2,
+                    'certificatePage': 2,
+                    'analyticsPage': 3
+                };
+
+                const navIndex = navMapping[pageId];
+                if (navIndex !== undefined) {
+                    const navItems = document.querySelectorAll('.nav-item');
+                    if (navItems[navIndex]) {
+                        navItems[navIndex].classList.add('active');
+                    }
+                }
+
+                // Populate pages when opened
+                if (pageId === 'phaseNavigationPage') {
+                    populatePhaseNavigation();
+                }
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 150);
+        }
+
+        // ==================== RESET FUNCTION ====================
+        function resetAllData() {
+            if (confirm('Apakah Anda yakin ingin menghapus semua data? Tindakan ini tidak dapat dibatalkan.')) {
+                initializePhases();
+                updateDashboardUI();
+                showToast('Semua data telah dihapus');
+                showPage('dashboardPage');
+            }
+        }
+
+        // ==================== CARBON MARKET FUNCTIONS ====================
+        let selectedCarbonProduct = '';
+        let carbonUnits = 1;
+        let selectedPaymentMethod = '';
+
+        const carbonProducts = {
+            'IDTBS': { name: 'Technology Based Solution', price: 58800, project: 'Restorasi Gambut' },
+            'IDTBS-RE': { name: 'TBS Renewable Energy', price: 73200, project: 'PLTS & PLTB' },
+            'IDTBSA': { name: 'TBS Authorized', price: 95000, project: 'Konservasi Hutan' },
+            'IDTBSA-RE': { name: 'TBSA Renewable Energy', price: 144000, project: 'Energi Hijau Premium' }
+        };
+
+        function selectCarbonProduct(code) {
+            selectedCarbonProduct = code;
+            carbonUnits = 1;
+            const product = carbonProducts[code];
+
+            // Set product image based on code
+            let imageUrl;
+            if (code === 'IDTBS') {
+                imageUrl = 'IDTBS.jpg';
+            } else if (code === 'IDTBS-RE') {
+                imageUrl = 'IDTBS-RE.jpg';
+            } else if (code === 'IDTBSA') {
+                imageUrl = 'IDTBSA.jpg';
+            } else {
+                imageUrl = 'IDTBSA-RE.jpg';
+            }
+            document.getElementById('checkoutProductImage').src = imageUrl;
+            
+            // Update badge styling based on product code
+            const badge = document.getElementById('checkoutProductCode');
+            badge.textContent = code;
+            badge.className = 'text-xs font-bold px-2 py-0.5 rounded';
+            if (code === 'IDTBS') {
+                badge.className += ' text-primary bg-primaryLight';
+            } else if (code === 'IDTBS-RE') {
+                badge.className += ' text-blue-600 bg-blue-50';
+            } else if (code === 'IDTBSA') {
+                badge.className += ' text-green-600 bg-green-50';
+            } else {
+                badge.className += ' text-purple-600 bg-purple-50';
+            }
+            
+            document.getElementById('checkoutProductName').textContent = product.name;
+            document.getElementById('checkoutProductProject').textContent = 'Proyek: ' + product.project;
+            document.getElementById('checkoutProductPrice').textContent = 'Rp ' + product.price.toLocaleString('id-ID');
+            document.getElementById('carbonUnits').value = 1;
+            updateCarbonPayment();
+
+            // Reset payment selection
+            selectedPaymentMethod = '';
+            document.querySelectorAll('.payment-method').forEach(m => {
+                m.classList.remove('selected');
+                m.style.borderColor = '#E2E8E5';
+            });
+            const payBtn = document.getElementById('carbonPayBtn');
+            payBtn.disabled = true;
+            payBtn.classList.add('opacity-50');
+
+            showPage('checkoutPage');
+        }
+
+        function adjustCarbonUnit(delta) {
+            carbonUnits = Math.max(1, Math.min(100, carbonUnits + delta));
+            document.getElementById('carbonUnits').value = carbonUnits;
+            updateCarbonPayment();
+        }
+
+        function updateCarbonPayment() {
+            const product = carbonProducts[selectedCarbonProduct];
+            const total = product.price * carbonUnits;
+            document.getElementById('totalPaymentAmount').textContent = 'Rp ' + total.toLocaleString('id-ID');
+            document.getElementById('co2OffsetDisplay').textContent = carbonUnits + ' ton CO2';
+        }
+
+        function selectPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            document.querySelectorAll('.payment-method').forEach(m => {
+                m.classList.remove('selected');
+                m.style.borderColor = '#E2E8E5';
+            });
+            event.currentTarget.classList.add('selected');
+            event.currentTarget.style.borderColor = '#0D6E4F';
+
+            const payBtn = document.getElementById('carbonPayBtn');
+            payBtn.disabled = false;
+            payBtn.classList.remove('opacity-50');
+        }
+
+        function processCarbonPayment() {
+            const payBtn = document.getElementById('carbonPayBtn');
+            payBtn.textContent = 'Memproses...';
+            payBtn.disabled = true;
+
+            setTimeout(() => {
+                const product = carbonProducts[selectedCarbonProduct];
+                const total = product.price * carbonUnits;
+                const trxId = 'BPKH-GH-2026-' + String(Math.floor(Math.random() * 900000) + 100000);
+
+                document.getElementById('successProductCode').textContent = selectedCarbonProduct + ' - ' + product.name;
+                document.getElementById('successUnits').textContent = carbonUnits + ' tCO2e';
+                document.getElementById('successTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+                document.getElementById('successTrxId').textContent = trxId;
+
+                // Update certificate
+                document.getElementById('certDetail').textContent = selectedCarbonProduct + ' - ' + carbonUnits + ' tCO2e';
+                document.getElementById('certNumberDisplay').textContent = trxId;
+                document.getElementById('idxCertProduct').textContent = selectedCarbonProduct + ' - ' + carbonUnits + ' tCO2e';
+
+                showPage('successPage');
+                payBtn.textContent = 'Beli Sekarang';
+                showToast('Pembayaran berhasil!');
+            }, 1500);
+        }
+
+        // ==================== ANALYTICS ====================
+        function showAnalytics() {
+            populateAnalytics();
+            showPage('analyticsPage');
+        }
+
+        function populateAnalytics() {
+            const totalEmission = calculateTotalEmission();
+            const completedPhases = PHASE_DEFINITIONS.filter(p => hajiJourney.phases[p.id]?.completed).length;
+            const progressPercent = Math.min((totalEmission / TARGET_EMISSION) * 100, 100);
+
+            // Update summary
+            document.getElementById('analyticsTotalEmission').textContent = (totalEmission / 1000).toFixed(2) + ' Ton CO2e';
+            document.getElementById('analyticsCompletedPhases').textContent = completedPhases + '/8';
+            document.getElementById('analyticsProgress').textContent = Math.round(progressPercent) + '%';
+            document.getElementById('analyticsYourEmission').textContent = (totalEmission / 1000).toFixed(2) + ' Ton CO2e';
+
+            // Calculate difference
+            const avgEmission = 3500;
+            const difference = totalEmission - avgEmission;
+            const diffElement = document.getElementById('analyticsDifference');
+            if (difference > 0) {
+                diffElement.textContent = '+' + (difference / 1000).toFixed(2) + ' Ton CO2e';
+                diffElement.className = 'text-base font-bold text-loss';
+            } else if (difference < 0) {
+                diffElement.textContent = (difference / 1000).toFixed(2) + ' Ton CO2e';
+                diffElement.className = 'text-base font-bold text-gain';
+            } else {
+                diffElement.textContent = '0 Ton CO2e';
+                diffElement.className = 'text-base font-bold text-textMuted';
+            }
+
+            // Populate phase breakdown
+            const phaseContainer = document.getElementById('analyticsPhaseBreakdown');
+            let phaseHtml = '';
+            const phaseEmissions = PHASE_DEFINITIONS.map(phase => ({
+                name: phase.name,
+                icon: phase.icon,
+                emission: calculatePhaseEmission(phase.id)
+            })).filter(p => p.emission > 0).sort((a, b) => b.emission - a.emission);
+
+            if (phaseEmissions.length === 0) {
+                phaseHtml = '<p class="text-sm text-textMuted">Belum ada data emisi</p>';
+            } else {
+                const maxEmission = Math.max(...phaseEmissions.map(p => p.emission));
+                phaseEmissions.forEach(item => {
+                    const percentage = (item.emission / maxEmission) * 100;
+                    phaseHtml += `
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">${item.icon}</span>
+                                    <span class="text-sm text-textDark">${item.name}</span>
+                                </div>
+                                <span class="text-sm font-bold text-primary">${(item.emission / 1000).toFixed(2)} Ton CO2e</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            phaseContainer.innerHTML = phaseHtml;
+
+            // Populate category breakdown
+            const categoryContainer = document.getElementById('analyticsCategoryBreakdown');
+            let categoryHtml = '';
+            const categoryEmissions = {};
+            
+            PHASE_DEFINITIONS.forEach(phase => {
+                const phaseData = hajiJourney.phases[phase.id];
+                if (!phaseData || !phaseData.categories) return;
+                phase.categories.forEach(catId => {
+                    const catData = phaseData.categories[catId];
+                    if (!catData) return;
+                    if (!categoryEmissions[catId]) {
+                        categoryEmissions[catId] = 0;
+                    }
+                    categoryEmissions[catId] += catData.emission || 0;
+                });
+            });
+
+            const sortedCategories = Object.entries(categoryEmissions)
+                .filter(([_, emission]) => emission > 0)
+                .sort((a, b) => b[1] - a[1]);
+
+            if (sortedCategories.length === 0) {
+                categoryHtml = '<p class="text-sm text-textMuted">Belum ada data emisi</p>';
+            } else {
+                const maxCatEmission = Math.max(...sortedCategories.map(([_, e]) => e));
+                sortedCategories.forEach(([catId, emission]) => {
+                    const catDef = CATEGORY_DEFINITIONS[catId];
+                    const percentage = (emission / maxCatEmission) * 100;
+                    categoryHtml += `
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">${catDef.icon}</span>
+                                    <span class="text-sm text-textDark">${catDef.name}</span>
+                                </div>
+                                <span class="text-sm font-bold text-primary">${(Math.round(emission) / 1000).toFixed(3)} Ton CO2e</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            categoryContainer.innerHTML = categoryHtml;
+        }
+
+        // ==================== INITIALIZE APP ====================
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+
+</html>
