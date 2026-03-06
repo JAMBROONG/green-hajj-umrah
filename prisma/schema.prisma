@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Tenant (Organization/Client)
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  settings  Json     @default("{}")
+  branding  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profiles  Profile[]
+  journeys  Journey[]
+
+  @@map("tenants")
+}
+
+// User Profile
+model Profile {
+  id           String   @id @default(uuid())
+  tenantId     String?  @map("tenant_id")
+  fullName     String?  @map("full_name")
+  email        String   @unique
+  password     String
+  authProvider String   @default("credentials") @map("auth_provider")
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  journeys Journey[]
+
+  @@index([tenantId])
+  @@map("profiles")
+}
+
+// Journey Data
+model Journey {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  tenantId      String   @map("tenant_id")
+  phases        Json     @default("{}")
+  totalEmission Decimal  @default(0) @map("total_emission") @db.Decimal(10, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("journeys")
+}

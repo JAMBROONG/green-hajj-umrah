@@ -5,8 +5,9 @@ import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { formatCurrency, generateTransactionId } from '@/lib/utils';
+import { Suspense } from 'react';
 
-export default function SuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   
   const productId = searchParams.get('productId') || '';
@@ -89,5 +90,13 @@ export default function SuccessPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }

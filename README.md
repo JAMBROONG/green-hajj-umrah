@@ -30,24 +30,50 @@ Aplikasi mobile-first untuk menghitung dan mengelola jejak karbon (emisi CO2e) d
 
 - **Framework**: Next.js 16.1.6 (App Router)
 - **Language**: TypeScript 5
+- **Database**: PostgreSQL 16 (Docker)
+- **ORM**: Prisma 7
+- **Auth**: NextAuth.js v5
 - **Styling**: Tailwind CSS 4
 - **UI/UX**: Mobile-first (max-width: 430px)
 - **Font**: Plus Jakarta Sans
 - **PWA**: @serwist/next untuk Progressive Web App
-- **State Management**: LocalStorage + React Hooks
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 20+
-- npm, yarn, pnpm, atau bun
+- Docker & Docker Compose
+- npm/yarn/pnpm/bun
 
 ### Installation
 
 ```bash
 # Clone repository
 git clone <repository-url>
+cd green-hajj-umrah
+
+# Install dependencies
+npm install
+
+# Start development (auto-starts PostgreSQL + migrations)
+./start-dev.sh
+```
+
+Or manually:
+
+```bash
+# Install dependencies
+npm install
+
+# Start PostgreSQL
+docker compose up -d
+
+# Run migrations
+npx prisma migrate dev
+
+# Start dev server
+npm run dev
 cd green-hajj-umrah
 
 # Install dependencies
