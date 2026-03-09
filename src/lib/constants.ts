@@ -193,11 +193,27 @@ export const HOTEL_FACTORS = {
 } as const;
 
 export const FOOD_FACTORS = {
-  'nasi-ayam': 1.2,
-  'daging-sapi': 6.0,
-  'ikan': 1.5,
-  'vegetarian': 0.5
+  'vegan': 0.39,           // Vegan meal
+  'vegetarian': 0.51,      // Vegetarian meal
+  'ikan-berlemak': 1.11,   // Meal with fatty fish
+  'ayam': 1.58,            // Meal with chicken
+  'ikan-putih': 1.98,      // Meal with white fish
+  'daging-sapi': 7.26,     // Meal with beef
+  
+  // Legacy/Backward compatibility
+  'nasi-ayam': 1.58,       // Same as ayam
+  'ikan': 1.11             // Default to fatty fish
 } as const;
+
+// Food Items Reference (for UI dropdowns)
+export const FOOD_ITEMS = [
+  { id: 'vegan', name: 'Vegan Meal', icon: '🥗', emission: 0.39, description: 'Makanan berbasis nabati tanpa produk hewani' },
+  { id: 'vegetarian', name: 'Vegetarian Meal', icon: '🧀', emission: 0.51, description: 'Makanan vegetarian dengan produk susu/telur' },
+  { id: 'ikan-berlemak', name: 'Ikan Berlemak', icon: '🐟', emission: 1.11, description: 'Salmon, tuna, makarel' },
+  { id: 'ayam', name: 'Ayam', icon: '🍗', emission: 1.58, description: 'Daging ayam (goreng, bakar, rebus)' },
+  { id: 'ikan-putih', name: 'Ikan Putih', icon: '🐠', emission: 1.98, description: 'Kakap, dori, nila' },
+  { id: 'daging-sapi', name: 'Daging Sapi', icon: '🥩', emission: 7.26, description: 'Daging sapi (rendang, steak, sate)' },
+] as const;
 
 export const WASTE_FACTOR = 0.5;
 

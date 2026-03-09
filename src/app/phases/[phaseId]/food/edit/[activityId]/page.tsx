@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
@@ -21,26 +21,14 @@ export default function EditFoodPage() {
   const activities = (categoryData?.activities as FoodActivity[]) || [];
   const activity = activities.find(a => a.id === activityId);
 
+  const food = activity ? FOODS_DATA.find(f => f.id === activity.foodId) : undefined;
   const [formData, setFormData] = useState({
-    foodId: '',
-    foodName: '',
-    factor: 0,
-    servings: 1,
-    date: ''
+    foodId: activity?.foodId || '',
+    foodName: activity?.foodName || '',
+    factor: food?.factor || 0,
+    servings: activity?.servings || 1,
+    date: activity?.date || ''
   });
-
-  useEffect(() => {
-    if (activity) {
-      const food = FOODS_DATA.find(f => f.id === activity.foodId);
-      setFormData({
-        foodId: activity.foodId,
-        foodName: activity.foodName,
-        factor: food?.factor || 0,
-        servings: activity.servings,
-        date: activity.date || new Date().toISOString().split('T')[0]
-      });
-    }
-  }, [activity]);
 
   const foodOptions = FOODS_DATA.map(food => ({
     value: food.id,
@@ -48,7 +36,9 @@ export default function EditFoodPage() {
     food: food
   }));
 
-  const handleFoodChange = (option: any) => {
+  type FoodOption = typeof foodOptions[number];
+
+  const handleFoodChange = (option: FoodOption | null) => {
     if (option) {
       setFormData({
         ...formData,

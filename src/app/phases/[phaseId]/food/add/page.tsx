@@ -33,7 +33,9 @@ export default function AddFoodPage() {
     food: food
   }));
 
-  const handleFoodChange = (option: any) => {
+  type FoodOption = typeof foodOptions[number];
+
+  const handleFoodChange = (option: FoodOption | null) => {
     if (option) {
       setFormData({
         ...formData,

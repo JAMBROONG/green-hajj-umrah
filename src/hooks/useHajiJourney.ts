@@ -7,10 +7,15 @@ import {
   loadDataFromStorage, 
   saveDataToStorage, 
   calculateTotalEmission,
-  calculatePhaseEmission 
+  initializePhases
 } from '@/lib/utils';
 
-export function useHajiJourney() {
+interface UseHajiJourneyOptions {
+  tripId?: string; // If provided, fetch journey data for this trip
+}
+
+export function useHajiJourney(options: UseHajiJourneyOptions = {}) {
+  const { tripId } = options;
   const { data: session, status } = useSession();
   const [journey, setJourney] = useState<HajiJourney | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,13 +25,21 @@ export function useHajiJourney() {
     const loadData = async () => {
       if (status === 'loading') return;
 
-      if (session) {
-        // User logged in - fetch from API
+      if (session && tripId) {
+        // User logged in with tripId - fetch from API
         try {
-          const response = await fetch('/api/journey');
+          const response = await fetch(`/api/trips/${tripId}/journey`);
           if (response.ok) {
             const data = await response.json();
-            setJourney(data.journey);
+            // data.journey.phases contains the HajiJourney structure
+            const phases = data.journey?.phases;
+            if (phases && phases.phases && typeof phases.phases === 'object' && Object.keys(phases.phases).length > 0) {
+              // phases is a proper HajiJourney object with currentPhase and phases
+              setJourney(phases);
+            } else {
+              // Initialize with default structure
+              setJourney(initializePhases());
+            }
           } else {
             // API error, fallback to localStorage
             const localData = loadDataFromStorage();
@@ -35,6 +48,22 @@ export function useHajiJourney() {
         } catch (error) {
           console.error('Failed to load journey from API:', error);
           // Fallback to localStorage
+          const localData = loadDataFromStorage();
+          setJourney(localData);
+        }
+      } else if (session && !tripId) {
+        // Backward compatibility - old API endpoint
+        try {
+          const response = await fetch('/api/journey');
+          if (response.ok) {
+            const data = await response.json();
+            setJourney(data.journey);
+          } else {
+            const localData = loadDataFromStorage();
+            setJourney(localData);
+          }
+        } catch (error) {
+          console.error('Failed to load journey from API:', error);
           const localData = loadDataFromStorage();
           setJourney(localData);
         }
@@ -48,13 +77,29 @@ export function useHajiJourney() {
     };
 
     loadData();
-  }, [session, status]);
+  }, [session, status, tripId]);
 
   const updateJourney = useCallback(async (newJourney: HajiJourney) => {
     setJourney(newJourney);
     
-    if (session) {
-      // Save to API
+    if (session && tripId) {
+      // Save to trip-specific API
+      try {
+        await fetch(`/api/trips/${tripId}/journey`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phases: newJourney,
+            totalEmission: calculateTotalEmission(newJourney)
+          })
+        });
+      } catch (error) {
+        console.error('Failed to save to API:', error);
+        // Fallback to localStorage
+        saveDataToStorage(newJourney);
+      }
+    } else if (session && !tripId) {
+      // Backward compatibility - old API endpoint
       try {
         await fetch('/api/journey', {
           method: 'POST',
@@ -66,14 +111,13 @@ export function useHajiJourney() {
         });
       } catch (error) {
         console.error('Failed to save to API:', error);
-        // Fallback to localStorage
         saveDataToStorage(newJourney);
       }
     } else {
       // Save to localStorage
       saveDataToStorage(newJourney);
     }
-  }, [session]);
+  }, [session, tripId]);
 
   const updateCategory = useCallback((
     phaseId: PhaseId,
@@ -102,7 +146,6 @@ export function useHajiJourney() {
   }, [journey, updateJourney]);
 
   const resetAllData = useCallback(() => {
-    const { initializePhases } = require('@/lib/utils');
     const newJourney = initializePhases();
     updateJourney(newJourney);
   }, [updateJourney]);

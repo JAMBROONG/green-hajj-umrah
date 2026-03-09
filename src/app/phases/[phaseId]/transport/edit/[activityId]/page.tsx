@@ -6,9 +6,7 @@ import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
-import { FaCar, FaBus, FaTrain } from 'react-icons/fa';
-import { MdElectricCar } from 'react-icons/md';
-import { RiBusFill } from 'react-icons/ri';
+import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
 
 export default function EditTransportPage() {
@@ -24,51 +22,36 @@ export default function EditTransportPage() {
   const activity = activities.find(a => a.id === activityId);
 
   const [formData, setFormData] = useState({
-    type: '',
-    date: ''
+    type: activity?.type || '',
+    date: activity?.date || ''
   });
 
   // Location search states
-  const [originQuery, setOriginQuery] = useState('');
-  const [destinationQuery, setDestinationQuery] = useState('');
+  const [originQuery, setOriginQuery] = useState(activity?.origin?.name || '');
+  const [destinationQuery, setDestinationQuery] = useState(activity?.destination?.name || '');
   const [originSuggestions, setOriginSuggestions] = useState<Location[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<Location[]>([]);
-  const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(null);
-  const [selectedDestination, setSelectedDestination] = useState<Location | null>(null);
-  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+  const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(
+    activity?.origin ? {
+      displayName: activity.origin.name,
+      lat: activity.origin.lat,
+      lon: activity.origin.lon,
+      placeId: 0
+    } : null
+  );
+  const [selectedDestination, setSelectedDestination] = useState<Location | null>(
+    activity?.destination ? {
+      displayName: activity.destination.name,
+      lat: activity.destination.lat,
+      lon: activity.destination.lon,
+      placeId: 0
+    } : null
+  );
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(activity?.distance || null);
   const [isSearching, setIsSearching] = useState(false);
 
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (activity) {
-      setFormData({
-        type: activity.type,
-        date: activity.date || new Date().toISOString().split('T')[0]
-      });
-
-      // Load existing origin/destination if available
-      if (activity.origin) {
-        setOriginQuery(activity.origin.name);
-        setSelectedOrigin({
-          displayName: activity.origin.name,
-          lat: activity.origin.lat,
-          lon: activity.origin.lon,
-          placeId: 0
-        });
-      }
-      if (activity.destination) {
-        setDestinationQuery(activity.destination.name);
-        setSelectedDestination({
-          displayName: activity.destination.name,
-          lat: activity.destination.lat,
-          lon: activity.destination.lon,
-          placeId: 0
-        });
-      }
-    }
-  }, [activity]);
 
   // Search origin locations
   useEffect(() => {
