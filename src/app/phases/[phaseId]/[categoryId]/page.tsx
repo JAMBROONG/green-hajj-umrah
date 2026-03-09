@@ -1,7 +1,7 @@
 'use client';
 
-import { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { use, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
@@ -20,10 +20,31 @@ export default function CategoryInputPage({
   params: Promise<{ phaseId: PhaseId; categoryId: CategoryId }> 
 }) {
   const resolvedParams = use(params);
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const { journey, isLoading, updateCategory } = useHajiJourney();
+  const tripId = searchParams.get('tripId');
+
+  // Redirect to journeys if no tripId
+  useEffect(() => {
+    if (!tripId) {
+      router.replace('/journeys');
+    }
+  }, [tripId, router]);
+
+  const { journey, isLoading, updateCategory } = useHajiJourney({ tripId: tripId || undefined });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  if (!tripId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Mengalihkan...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading || !journey) {
     return (
@@ -46,8 +67,8 @@ export default function CategoryInputPage({
         <StatusBar />
         <div className="p-5 text-center">
           <p className="text-textMuted">Data tidak ditemukan</p>
-          <Link href="/phases" className="text-primary text-sm underline mt-2 inline-block">
-            Kembali ke daftar tahapan
+          <Link href={`/journeys/${tripId}`} className="text-primary text-sm underline mt-2 inline-block">
+            Kembali ke detail perjalanan
           </Link>
         </div>
       </div>
@@ -68,7 +89,7 @@ export default function CategoryInputPage({
     setShowToast(true);
     
     setTimeout(() => {
-      router.push(`/phases/${resolvedParams.phaseId}`);
+      router.push(`/phases/${resolvedParams.phaseId}?tripId=${tripId}`);
     }, 1000);
   };
 
@@ -101,7 +122,7 @@ export default function CategoryInputPage({
         {/* Header */}
         <div className="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
           <Link 
-            href={`/phases/${resolvedParams.phaseId}`} 
+            href={`/phases/${resolvedParams.phaseId}?tripId=${tripId}`} 
             className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

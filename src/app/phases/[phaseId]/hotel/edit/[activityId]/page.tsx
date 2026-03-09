@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, HOTELS_DATA, HOTEL_FACTORS } from '@/lib/constants';
 import { HotelActivity, PhaseId, HotelStars } from '@/lib/types';
 import { MdHotel } from 'react-icons/md';
@@ -12,6 +13,7 @@ import { IoArrowBack } from 'react-icons/io5';
 export default function EditHotelPage() {
   const params = useParams();
   const router = useRouter();
+  const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const activityId = params.activityId as string;
   const { journey, updateCategory } = useHajiJourney();
@@ -67,7 +69,7 @@ export default function EditHotelPage() {
     e.preventDefault();
 
     if (!formData.hotelId) {
-      alert('Pilih hotel terlebih dahulu');
+      showWarning('Pilih hotel terlebih dahulu', { title: 'Data Belum Lengkap' });
       return;
     }
 

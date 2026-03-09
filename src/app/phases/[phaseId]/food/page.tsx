@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
 import { FoodActivity, PhaseId } from '@/lib/types';
@@ -11,6 +12,7 @@ import { MdRestaurant, MdEdit, MdDelete } from 'react-icons/md';
 export default function FoodListPage() {
   const params = useParams();
   const router = useRouter();
+  const { showConfirm } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const { journey, updateCategory } = useHajiJourney();
 
@@ -33,19 +35,25 @@ export default function FoodListPage() {
   };
 
   const handleDeleteClick = (activityId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data konsumsi ini?')) {
-      return;
-    }
+    showConfirm(
+      'Apakah Anda yakin ingin menghapus data konsumsi ini?',
+      () => {
+        const updatedActivities = activities.filter(a => a.id !== activityId);
+        const totalEmission = updatedActivities.reduce((sum, act) => sum + act.emission, 0);
 
-    const updatedActivities = activities.filter(a => a.id !== activityId);
-    const totalEmission = updatedActivities.reduce((sum, act) => sum + act.emission, 0);
-
-    updateCategory(phaseId, 'food', {
-      completed: false,
-      activities: updatedActivities,
-      totalEmission,
-      emission: totalEmission
-    });
+        updateCategory(phaseId, 'food', {
+          completed: false,
+          activities: updatedActivities,
+          totalEmission,
+          emission: totalEmission
+        });
+      },
+      {
+        title: 'Hapus Data Konsumsi',
+        confirmText: 'Hapus',
+        cancelText: 'Batal'
+      }
+    );
   };
 
   const handleBackClick = () => {

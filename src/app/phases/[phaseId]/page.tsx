@@ -1,6 +1,7 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
@@ -39,7 +40,29 @@ function getCategoryIcon(categoryId: string) {
 
 export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId: PhaseId }> }) {
   const resolvedParams = use(params);
-  const { journey, isLoading } = useHajiJourney();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tripId = searchParams.get('tripId');
+
+  // Redirect to journeys if no tripId
+  useEffect(() => {
+    if (!tripId) {
+      router.replace('/journeys');
+    }
+  }, [tripId, router]);
+
+  const { journey, isLoading } = useHajiJourney({ tripId: tripId || undefined });
+
+  if (!tripId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Mengalihkan...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading || !journey) {
     return (
@@ -61,8 +84,8 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
         <StatusBar />
         <div className="p-5 text-center">
           <p className="text-textMuted">Fase tidak ditemukan</p>
-          <Link href="/phases" className="text-primary text-sm underline mt-2 inline-block">
-            Kembali ke daftar tahapan
+          <Link href={`/journeys/${tripId}`} className="text-primary text-sm underline mt-2 inline-block">
+            Kembali ke detail perjalanan
           </Link>
         </div>
       </div>
@@ -86,7 +109,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
       <div className="page pb-24">
         {/* Header */}
         <div className="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
-          <Link href="/phases" className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
+          <Link href={`/journeys/${tripId}`} className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
             <IoArrowBack className="text-xl" />
           </Link>
           <div className="flex-1">
@@ -132,7 +155,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
               return (
                 <Link
                   key={catId}
-                  href={`/phases/${resolvedParams.phaseId}/${catId}`}
+                  href={`/phases/${resolvedParams.phaseId}/${catId}?tripId=${tripId}`}
                   className="block bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >

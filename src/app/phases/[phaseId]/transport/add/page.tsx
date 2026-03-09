@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useHajiJourney } from '@/hooks/useHajiJourney';
-import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
+import { useHajiJourney } from '@/hooks/useHajiJourney';import { useDialog } from '@/contexts/DialogContext';import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,6 +12,7 @@ import { IoArrowBack } from 'react-icons/io5';
 export default function AddTransportPage() {
   const params = useParams();
   const router = useRouter();
+  const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const { journey, updateCategory } = useHajiJourney();
 
@@ -122,7 +122,7 @@ export default function AddTransportPage() {
     e.preventDefault();
 
     if (!selectedOrigin || !selectedDestination || !calculatedDistance) {
-      alert('Mohon pilih lokasi asal dan tujuan yang valid');
+      showWarning('Mohon pilih lokasi asal dan tujuan yang valid', { title: 'Data Belum Lengkap' });
       return;
     }
 

@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaKaaba, FaMosque, FaArrowLeft } from 'react-icons/fa';
+import { useDialog } from '@/contexts/DialogContext';
 
 export default function NewJourneyPage() {
   const router = useRouter();
+  const { showError } = useDialog();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -53,12 +55,12 @@ export default function NewJourneyPage() {
         router.push(`/journeys/${data.trip.id}`);
       } else {
         const error = await response.json();
-        alert(error.error || 'Gagal membuat perjalanan');
+        showError(error.error || 'Gagal membuat perjalanan');
         setIsSubmitting(false);
       }
     } catch (error) {
       console.error('Failed to create trip:', error);
-      alert('Gagal membuat perjalanan. Silakan coba lagi.');
+      showError('Gagal membuat perjalanan. Silakan coba lagi.');
       setIsSubmitting(false);
     }
   };

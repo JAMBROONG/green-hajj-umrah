@@ -5,63 +5,72 @@ export const PHASE_DEFINITIONS = [
     name: 'Pra-keberangkatan (Asrama)',
     icon: '🏠',
     description: 'Persiapan di asrama sebelum keberangkatan',
-    categories: ['transport', 'hotel', 'food', 'waste']
+    categories: ['transport', 'hotel', 'food', 'waste'],
+    type: ['haji'] as const
   },
   {
     id: 'penerbangan-pergi',
     name: 'Penerbangan ID → KSA',
     icon: '✈️',
     description: 'Penerbangan dari Indonesia ke Arab Saudi',
-    categories: ['transport']
+    categories: ['transport'],
+    type: ['haji', 'umrah'] as const
   },
   {
     id: 'madinah',
     name: 'Madinah (8 hari)',
     icon: '🕌',
     description: 'Tinggal dan beribadah di Madinah',
-    categories: ['transport', 'hotel', 'food', 'waste']
+    categories: ['transport', 'hotel', 'food', 'waste'],
+    type: ['haji', 'umrah'] as const
   },
   {
     id: 'makkah',
     name: 'Makkah',
     icon: '🕋',
     description: 'Di Makkah',
-    categories: ['transport', 'hotel', 'food', 'waste']
+    categories: ['transport', 'hotel', 'food', 'waste'],
+    type: ['haji', 'umrah'] as const
   },
   {
     id: 'arafah',
     name: 'Arafah',
     icon: '⛰️',
     description: 'Wukuf di Arafah',
-    categories: ['transport', 'hotel', 'food', 'waste']
+    categories: ['transport', 'hotel', 'food', 'waste'],
+    type: ['haji'] as const
   },
   {
     id: 'muzdalifah',
     name: 'Muzdalifah',
     icon: '🌙',
     description: 'Bermalam di Muzdalifah',
-    categories: ['transport', 'food', 'waste']
+    categories: ['transport', 'food', 'waste'],
+    type: ['haji'] as const
   },
   {
     id: 'mina',
     name: 'Mina (Tasyrik)',
     icon: '🎯',
     description: 'Hari Tasyrik di Mina',
-    categories: ['transport', 'hotel', 'food', 'waste']
+    categories: ['transport', 'hotel', 'food', 'waste'],
+    type: ['haji'] as const
   },
   {
     id: 'rekreasi',
     name: 'Rekreasi',
     icon: '🎡',
     description: 'Wisata dan rekreasi sebelum kepulangan',
-    categories: ['transport', 'hotel', 'food', 'waste']
+    categories: ['transport', 'hotel', 'food', 'waste'],
+    type: ['haji', 'umrah'] as const
   },
   {
     id: 'pulang',
     name: 'Pulang (KSA → ID)',
     icon: '🏠',
     description: 'Penerbangan kembali ke Indonesia',
-    categories: ['transport']
+    categories: ['transport'],
+    type: ['haji', 'umrah'] as const
   }
 ] as const;
 

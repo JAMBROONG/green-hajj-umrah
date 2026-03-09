@@ -3,6 +3,7 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
 import { TransportActivity, PhaseId } from '@/lib/types';
@@ -15,6 +16,7 @@ import { MdEdit, MdDelete } from 'react-icons/md';
 export default function TransportListPage() {
   const params = useParams();
   const router = useRouter();
+  const { showConfirm } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const { journey, updateCategory } = useHajiJourney();
 
@@ -37,19 +39,25 @@ export default function TransportListPage() {
   };
 
   const handleDeleteClick = (activityId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus aktivitas ini?')) {
-      return;
-    }
+    showConfirm(
+      'Apakah Anda yakin ingin menghapus aktivitas ini?',
+      () => {
+        const updatedActivities = activities.filter(a => a.id !== activityId);
+        const totalEmission = updatedActivities.reduce((sum, act) => sum + act.emission, 0);
 
-    const updatedActivities = activities.filter(a => a.id !== activityId);
-    const totalEmission = updatedActivities.reduce((sum, act) => sum + act.emission, 0);
-
-    updateCategory(phaseId, 'transport', {
-      completed: false,
-      activities: updatedActivities,
-      totalEmission,
-      emission: totalEmission
-    });
+        updateCategory(phaseId, 'transport', {
+          completed: false,
+          activities: updatedActivities,
+          totalEmission,
+          emission: totalEmission
+        });
+      },
+      {
+        title: 'Hapus Aktivitas',
+        confirmText: 'Hapus',
+        cancelText: 'Batal'
+      }
+    );
   };
 
   const handleBackClick = () => {
