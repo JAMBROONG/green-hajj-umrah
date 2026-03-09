@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, FOODS_DATA } from '@/lib/constants';
 import { FoodActivity, PhaseId } from '@/lib/types';
 import { MdRestaurant } from 'react-icons/md';
@@ -12,6 +13,7 @@ import { IoArrowBack } from 'react-icons/io5';
 export default function EditFoodPage() {
   const params = useParams();
   const router = useRouter();
+  const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const activityId = params.activityId as string;
   const { journey, updateCategory } = useHajiJourney();
@@ -53,7 +55,7 @@ export default function EditFoodPage() {
     e.preventDefault();
 
     if (!formData.foodId) {
-      alert('Pilih jenis makanan terlebih dahulu');
+      showWarning('Pilih jenis makanan terlebih dahulu', { title: 'Data Belum Lengkap' });
       return;
     }
 

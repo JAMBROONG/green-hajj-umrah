@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaKaaba, FaMosque, FaLeaf, FaCalendarAlt, FaArrowLeft } from 'react-icons/fa';
+import StatusBar from '@/components/StatusBar';
+import BottomNav from '@/components/BottomNav';
 
 interface Trip {
   id: string;
@@ -75,42 +77,43 @@ export default function JourneysPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
+      <div className="app-container flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memuat perjalanan...</p>
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-textMuted">Memuat perjalanan...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 pb-20">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-6 py-4">
+    <div className="app-container">
+      <StatusBar />
+      
+      <div className="page pb-24">
+        {/* Header */}
+        <div className="bg-white px-5 py-4 border-b border-border shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-800 transition-colors"
+                className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center hover:bg-primary/20 transition-colors"
               >
-                <FaArrowLeft className="text-xl" />
+                <FaArrowLeft className="text-lg text-textDark" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-800">Perjalanan Saya</h1>
+              <h1 className="text-lg font-bold text-textDark">Perjalanan Saya</h1>
             </div>
             <button
               onClick={() => router.push('/journeys/new')}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-full shadow-lg transition-all"
+              className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm"
             >
-              <FaPlus className="text-xl" />
+              <FaPlus className="text-lg" />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-md mx-auto px-6 py-6">
+        {/* Content */}
+        <div className="p-5">
         {trips.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
             <div className="text-gray-400 mb-4">
@@ -148,10 +151,10 @@ export default function JourneysPage() {
                     {/* Header */}
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="font-semibold text-gray-800 text-lg truncate">
+                        <h3 className="font-semibold text-gray-800 text-base truncate">
                           {trip.name}
                         </h3>
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs rounded font-medium uppercase">
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded font-medium uppercase">
                           {trip.type}
                         </span>
                       </div>
@@ -159,7 +162,7 @@ export default function JourneysPage() {
                     </div>
 
                     {/* Date Range */}
-                    <div className="flex items-center text-sm text-gray-600 mb-3">
+                    <div className="flex items-center text-xs text-gray-600 mb-3">
                       <FaCalendarAlt className="mr-2" />
                       <span>
                         {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
@@ -168,11 +171,11 @@ export default function JourneysPage() {
 
                     {/* Emission */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center text-sm">
+                      <div className="flex items-center text-xs">
                         <FaLeaf className="text-emerald-600 mr-2" />
                         <span className="text-gray-600">Total Emisi:</span>
                       </div>
-                      <span className="font-semibold text-emerald-600">
+                      <span className="font-semibold text-emerald-600 text-xs">
                         {parseFloat(trip.totalEmission.toString()).toFixed(2)} kg CO₂
                       </span>
                     </div>
@@ -182,7 +185,10 @@ export default function JourneysPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
