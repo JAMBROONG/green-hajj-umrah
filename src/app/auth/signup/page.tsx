@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { IoMail, IoLockClosed, IoPerson } from 'react-icons/io5';
+import { IoMail, IoLockClosed, IoPerson, IoEye, IoEyeOff } from 'react-icons/io5';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -12,6 +12,8 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -136,14 +138,21 @@ export default function SignUpPage() {
               <IoLockClosed className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showPassword ? <IoEyeOff size={20} /> : <IoEye size={20} />}
+              </button>
             </div>
             <p className="mt-1 text-xs text-gray-500">Minimal 8 karakter</p>
           </div>
@@ -156,13 +165,20 @@ export default function SignUpPage() {
               <IoLockClosed className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 id="confirmPassword"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showConfirmPassword ? <IoEyeOff size={20} /> : <IoEye size={20} />}
+              </button>
             </div>
           </div>
 
