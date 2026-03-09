@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TRANSPORT_FACTORS, FLIGHT_EMISSION_PERGI, FLIGHT_EMISSION_PULANG } from '@/lib/constants';
 import { VehicleType, CategoryData } from '@/lib/types';
 import { MdFlight, MdDirectionsBus, MdDirectionsCar, MdTrain } from 'react-icons/md';
@@ -18,17 +18,11 @@ export default function TransportForm({ phaseId, initialData, onSave }: Transpor
     (initialData.details?.vehicleType || 'bus') as VehicleType
   );
   const [distance, setDistance] = useState(initialData.details?.distance || 50);
-  const [emission, setEmission] = useState(0);
 
-  useEffect(() => {
-    if (isFlight) {
-      const flightEmission = phaseId === 'penerbangan-pergi' ? FLIGHT_EMISSION_PERGI : FLIGHT_EMISSION_PULANG;
-      setEmission(flightEmission);
-    } else {
-      const factor = TRANSPORT_FACTORS[vehicleType];
-      setEmission(Math.round(distance * factor));
-    }
-  }, [vehicleType, distance, isFlight, phaseId]);
+  // Calculate emission directly without useEffect
+  const emission = isFlight
+    ? (phaseId === 'penerbangan-pergi' ? FLIGHT_EMISSION_PERGI : FLIGHT_EMISSION_PULANG)
+    : Math.round(distance * TRANSPORT_FACTORS[vehicleType]);
 
   const handleSave = () => {
     onSave({

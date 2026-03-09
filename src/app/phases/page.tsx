@@ -29,12 +29,22 @@ function getPhaseIcon(phaseId: string) {
 export default function PhasesPage() {
   const { journey, isLoading } = useHajiJourney();
 
-  if (isLoading || !journey) {
+  if (isLoading) {
     return (
       <div className="app-container flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-textMuted">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!journey || !journey.phases) {
+    return (
+      <div className="app-container flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-textMuted">Data perjalanan tidak tersedia</p>
         </div>
       </div>
     );
@@ -64,11 +74,11 @@ export default function PhasesPage() {
           {/* Phase List */}
           <div className="space-y-3">
             {PHASE_DEFINITIONS.map((phase, index) => {
-              const phaseData = journey.phases[phase.id as PhaseId];
+              const phaseData = journey?.phases?.[phase.id as PhaseId];
               if (!phaseData || !phaseData.categories) return null;
 
               const phaseEmission = Object.values(phaseData.categories).reduce(
-                (sum, cat) => sum + (cat?.emission || 0), 
+                (sum, cat) => sum + (cat?.emission || cat?.totalEmission || 0), 
                 0
               );
               

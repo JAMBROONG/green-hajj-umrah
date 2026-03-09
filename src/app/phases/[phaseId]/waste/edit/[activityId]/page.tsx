@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { PHASE_DEFINITIONS, WASTE_FACTOR } from '@/lib/constants';
@@ -21,20 +21,10 @@ export default function EditWastePage() {
   const activity = activities.find(a => a.id === activityId);
 
   const [formData, setFormData] = useState({
-    type: 'plastic',
-    amount: '',
-    date: ''
+    type: activity?.type || 'plastic',
+    amount: activity?.amount.toString() || '',
+    date: activity?.date || ''
   });
-
-  useEffect(() => {
-    if (activity) {
-      setFormData({
-        type: activity.type,
-        amount: activity.amount.toString(),
-        date: activity.date || new Date().toISOString().split('T')[0]
-      });
-    }
-  }, [activity]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

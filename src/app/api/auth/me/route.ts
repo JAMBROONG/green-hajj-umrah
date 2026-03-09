@@ -13,7 +13,7 @@ export async function GET() {
 
   // Get user profile with tenant info
   const profile = await prisma.profile.findUnique({
-    where: { id: (session.user as any).id },
+    where: { id: session.user.id },
     include: { tenant: true }
   });
 

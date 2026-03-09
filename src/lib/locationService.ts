@@ -9,6 +9,13 @@ export interface Location {
   placeId: number;
 }
 
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  place_id: string;
+}
+
 /**
  * Search for locations using Nominatim API
  */
@@ -37,9 +44,9 @@ export async function searchLocations(query: string): Promise<Location[]> {
       throw new Error('Failed to fetch locations');
     }
 
-    const data = await response.json();
+    const data: NominatimResult[] = await response.json();
     
-    return data.map((item: any) => ({
+    return data.map((item) => ({
       displayName: item.display_name,
       lat: parseFloat(item.lat),
       lon: parseFloat(item.lon),

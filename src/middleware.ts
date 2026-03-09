@@ -1,14 +1,32 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-export function middleware(req: NextRequest) {
-  const url = req.nextUrl;
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const { pathname } = req.nextUrl;
+
+  // Allow auth routes without login
+  if (pathname.startsWith('/auth')) {
+    // Redirect to home if already logged in
+    if (token && (pathname === '/auth/signin' || pathname === '/auth/signup')) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Require login for all other routes
+  if (!token) {
+    const signInUrl = new URL('/auth/signin', req.url);
+    signInUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(signInUrl);
+  }
 
   // Handle tenant from query params
-  const tenant = url.searchParams.get('tenant') || 'default';
+  const tenant = req.nextUrl.searchParams.get('tenant') || 'default';
   
   // Check for embedded mode
-  const isEmbedded = url.searchParams.get('embed') === 'true';
+  const isEmbedded = req.nextUrl.searchParams.get('embed') === 'true';
 
   // Add headers for access in components
   const requestHeaders = new Headers(req.headers);
@@ -30,8 +48,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
-     * - auth/api routes
+     * - api routes
      */
-    '/((?!_next/static|_next/image|favicon.ico|auth|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

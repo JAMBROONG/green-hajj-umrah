@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
@@ -22,26 +22,13 @@ export default function EditHotelPage() {
   const activity = activities.find(a => a.id === activityId);
 
   const [formData, setFormData] = useState({
-    hotelId: '',
-    hotelName: '',
-    stars: 3,
-    checkIn: '',
-    checkOut: '',
-    nights: 1
+    hotelId: activity?.hotelId || '',
+    hotelName: activity?.hotelName || '',
+    stars: activity?.stars || 3,
+    checkIn: activity?.checkIn || '',
+    checkOut: activity?.checkOut || '',
+    nights: activity?.nights || 1
   });
-
-  useEffect(() => {
-    if (activity) {
-      setFormData({
-        hotelId: activity.hotelId,
-        hotelName: activity.hotelName,
-        stars: activity.stars,
-        checkIn: activity.checkIn || '',
-        checkOut: activity.checkOut || '',
-        nights: activity.nights
-      });
-    }
-  }, [activity]);
 
   const hotelOptions = HOTELS_DATA.map(hotel => ({
     value: hotel.id,
@@ -49,7 +36,9 @@ export default function EditHotelPage() {
     hotel: hotel
   }));
 
-  const handleHotelChange = (option: any) => {
+  type HotelOption = typeof hotelOptions[number];
+
+  const handleHotelChange = (option: HotelOption | null) => {
     if (option) {
       setFormData({
         ...formData,

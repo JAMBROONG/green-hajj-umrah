@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { HOTEL_FACTORS } from '@/lib/constants';
 import { HotelStars, CategoryData } from '@/lib/types';
 import { FaStar } from 'react-icons/fa';
@@ -15,12 +15,9 @@ export default function EnergyForm({ initialData, onSave }: EnergyFormProps) {
     (initialData.details?.hotelStars || 4) as HotelStars
   );
   const [days, setDays] = useState(initialData.details?.days || 1);
-  const [emission, setEmission] = useState(0);
 
-  useEffect(() => {
-    const factor = HOTEL_FACTORS[hotelStars];
-    setEmission(Math.round(days * factor));
-  }, [hotelStars, days]);
+  // Calculate emission directly without useEffect
+  const emission = Math.round(days * HOTEL_FACTORS[hotelStars]);
 
   const handleSave = () => {
     onSave({

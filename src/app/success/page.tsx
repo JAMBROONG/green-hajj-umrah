@@ -14,7 +14,6 @@ function SuccessContent() {
   const productName = searchParams.get('productName') || '';
   const units = searchParams.get('units') || '0';
   const total = searchParams.get('total') || '0';
-  const payment = searchParams.get('payment') || '';
   const trxId = generateTransactionId();
 
   return (

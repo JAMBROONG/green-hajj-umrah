@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
               <div className="space-y-3">
                 {categoryEmissions.map(([catId, emission]) => {
                   const catDef = CATEGORY_DEFINITIONS[catId as keyof typeof CATEGORY_DEFINITIONS];
-                  const maxEmission = Math.max(...categoryEmissions.map(([_, e]) => e));
+                  const maxEmission = Math.max(...categoryEmissions.map(([, e]) => e));
                   const widthPercent = (emission / maxEmission) * 100;
 
                   return (

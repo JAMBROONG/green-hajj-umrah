@@ -34,7 +34,9 @@ export default function AddHotelPage() {
     hotel: hotel
   }));
 
-  const handleHotelChange = (option: any) => {
+  type HotelOption = typeof hotelOptions[number];
+
+  const handleHotelChange = (option: HotelOption | null) => {
     if (option) {
       setFormData({
         ...formData,

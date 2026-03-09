@@ -7,9 +7,7 @@ import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { v4 as uuidv4 } from 'uuid';
-import { FaCar, FaBus, FaTrain } from 'react-icons/fa';
-import { MdElectricCar } from 'react-icons/md';
-import { RiBusFill } from 'react-icons/ri';
+import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
 
 export default function AddTransportPage() {

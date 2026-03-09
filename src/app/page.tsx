@@ -3,42 +3,29 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
-import { useHajiJourney } from '@/hooks/useHajiJourney';
-import { 
-  getGreeting, 
-  formatEmission, 
-  getProgressPercent,
-  getCompletedPhasesCount,
-  getTopEmissions,
-  formatCurrency
-} from '@/lib/utils';
-import { PHASE_DEFINITIONS } from '@/lib/constants';
+import { getGreeting, formatEmission, formatCurrency } from '@/lib/utils';
 import { IoSettings } from 'react-icons/io5';
 import { HiLightBulb } from 'react-icons/hi';
-import { MdHome, MdFlight, MdMosque, MdPark } from 'react-icons/md';
-import { FaKaaba, FaMountain, FaMoon, FaBullseye } from 'react-icons/fa';
+import { FaPlus, FaKaaba, FaMosque, FaLeaf, FaCalendarAlt } from 'react-icons/fa';
 import { GiPlantSeed } from 'react-icons/gi';
 
-// Helper function to get phase icon
-const getPhaseIcon = (phaseId: string) => {
-  const iconMap: Record<string, React.ReactElement> = {
-    'pra-keberangkatan': <MdHome className="text-2xl text-teal-600" />,
-    'penerbangan-pergi': <MdFlight className="text-2xl text-blue-500" />,
-    'madinah': <MdMosque className="text-2xl text-green-600" />,
-    'makkah': <FaKaaba className="text-2xl text-gray-900" />,
-    'arafah': <FaMountain className="text-2xl text-amber-700" />,
-    'muzdalifah': <FaMoon className="text-2xl text-yellow-400" />,
-    'mina': <FaBullseye className="text-2xl text-red-600" />,
-    'rekreasi': <MdPark className="text-2xl text-green-500" />,
-    'pulang': <MdFlight className="text-2xl text-blue-500 rotate-180" />
-  };
-  return iconMap[phaseId] || <MdHome className="text-2xl text-teal-600" />;
-};
+interface Trip {
+  id: string;
+  name: string;
+  type: 'haji' | 'umrah';
+  startDate: string;
+  endDate: string;
+  totalEmission: number;
+  status: 'ongoing' | 'completed' | 'cancelled';
+}
 
 export default function Home() {
-  const { journey, isLoading, totalEmission } = useHajiJourney();
+  const router = useRouter();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState('Selamat pagi');
 
   useEffect(() => {
@@ -50,7 +37,40 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  if (isLoading || !journey) {
+  useEffect(() => {
+    loadTrips();
+  }, []);
+
+  const loadTrips = async () => {
+    try {
+      const response = await fetch('/api/trips');
+      if (response.ok) {
+        const data = await response.json();
+        setTrips(data.trips);
+      }
+    } catch (error) {
+      console.error('Failed to load trips:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const totalEmission = trips.reduce((sum, trip) => sum + parseFloat(trip.totalEmission.toString()), 0);
+  const ongoingTrips = trips.filter(trip => trip.status === 'ongoing');
+  const completedTrips = trips.filter(trip => trip.status === 'completed');
+  const totalTon = formatEmission(totalEmission, 'ton');
+  const estimatedCost = Math.ceil(totalEmission / 1000) * 58800;
+
+  if (isLoading) {
     return (
       <div className="app-container flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -60,12 +80,6 @@ export default function Home() {
       </div>
     );
   }
-
-  const progressPercent = getProgressPercent(journey);
-  const completedPhasesCount = getCompletedPhasesCount(journey);
-  const topEmissions = getTopEmissions(journey, 3);
-  const totalTon = formatEmission(totalEmission, 'ton');
-  const estimatedCost = Math.ceil(totalEmission / 1000) * 58800;
 
   return (
     <div className="app-container">
@@ -81,7 +95,10 @@ export default function Home() {
                 {greeting}, Brian Pramudita
               </h1>
             </div>
-            <button className="w-10 h-10 rounded-full bg-primaryLight flex items-center justify-center hover:bg-primary/20 transition-colors">
+            <button 
+              onClick={() => router.push('/settings')}
+              className="w-10 h-10 rounded-full bg-primaryLight flex items-center justify-center hover:bg-primary/20 transition-colors"
+            >
               <IoSettings className="text-xl text-primary" />
             </button>
           </div>
@@ -92,82 +109,130 @@ export default function Home() {
           <div className="bg-primary rounded-2xl p-5 text-white shadow-lg fade-in-item">
             <p className="text-xs opacity-90 mb-1">Total jejak emisi CO2e</p>
             <h2 className="text-3xl font-bold mb-2 number-display">{totalTon} Ton CO2e</h2>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="opacity-75">{trips.length} perjalanan</span>
+              <span className="opacity-75">{ongoingTrips.length} berlangsung</span>
             </div>
-            <p className="text-xs opacity-75 mt-2">Target: 4.0 Ton CO2e</p>
           </div>
         </div>
 
         {/* Phase Progress */}
         <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.15s' }}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-textDark">Progress Tahapan</h2>
-            <span className="text-xs font-medium px-2 py-1 bg-primaryLight text-primary rounded-full">
-              {completedPhasesCount}/9 Tahapan
-            </span>
+            <h2 className="text-sm font-semibold text-textDark">Perjalanan Saya</h2>
+            <button
+              onClick={() => router.push('/journeys/new')}
+              className="text-xs font-medium px-3 py-1.5 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors flex items-center gap-1"
+            >
+              <FaPlus className="text-xs" />
+              <span>Baru</span>
+            </button>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all">
-            <div id="phaseProgressList" className="space-y-3">
-              {PHASE_DEFINITIONS.slice(0, 4).map((phase) => {
-                const phaseData = journey.phases[phase.id];
-                if (!phaseData) return null;
-                
-                const phaseEmission = Object.values(phaseData.categories).reduce((sum, cat) => sum + (cat?.emission || 0), 0);
-                const status = phaseData.completed ? 'completed' : (phaseEmission > 0 ? 'in-progress' : 'pending');
-                const statusText = status === 'completed' ? 'Selesai' : (status === 'in-progress' ? 'Proses' : 'Belum');
 
-                return (
-                  <div key={phase.id} className="flex items-center gap-3">
-                    {getPhaseIcon(phase.id)}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-textDark">{phase.name}</p>
-                      <p className="text-xs text-textMuted">{formatEmission(phaseEmission, 'ton')} Ton CO2e</p>
-                    </div>
-                    <span className={`phase-badge ${status}`}>{statusText}</span>
-                  </div>
-                );
-              })}
+          {trips.length === 0 ? (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-border text-center">
+              <div className="text-gray-400 mb-3">
+                <FaKaaba className="text-4xl mx-auto" />
+              </div>
+              <h3 className="text-sm font-semibold text-textDark mb-1">
+                Belum Ada Perjalanan
+              </h3>
+              <p className="text-xs text-textMuted mb-4">
+                Mulai lacak jejak karbon perjalanan Anda
+              </p>
+              <button
+                onClick={() => router.push('/journeys/new')}
+                className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Buat Perjalanan
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Top Emisi by Phase */}
-        <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.2s' }}>
-          <h2 className="text-sm font-semibold text-textDark mb-3">Emisi CO2e Tertinggi</h2>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all">
-            {topEmissions.length === 0 ? (
-              <p className="text-sm text-textMuted">Belum ada data emisi</p>
-            ) : (
-              <div className="space-y-3">
-                {topEmissions.map((item, index) => {
-                  const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : '🥉');
-                  return (
-                    <div key={index} className="flex items-center gap-3">
-                      <span className="text-xl">{medal}</span>
-                      <span className="text-2xl">{item.icon}</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-textDark">{item.name}</p>
-                        <p className="text-xs text-textMuted">{formatEmission(item.emission, 'ton')} Ton CO2e</p>
+          ) : (
+            <div className="space-y-3">
+              {trips.slice(0, 3).map((trip) => (
+                <div
+                  key={trip.id}
+                  onClick={() => router.push(`/journeys/${trip.id}`)}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      {trip.type === 'haji' ? (
+                        <FaKaaba className="text-xl text-emerald-600" />
+                      ) : (
+                        <FaMosque className="text-xl text-emerald-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-textDark mb-1 truncate">
+                        {trip.name}
+                      </h3>
+                      <div className="flex items-center text-xs text-textMuted mb-2">
+                        <FaCalendarAlt className="mr-1" />
+                        <span>{formatDate(trip.startDate)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          trip.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
+                          trip.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {trip.status === 'ongoing' ? 'Berlangsung' :
+                           trip.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
+                        </span>
+                        <div className="flex items-center text-xs">
+                          <FaLeaf className="text-emerald-600 mr-1" />
+                          <span className="font-medium text-textDark">
+                            {parseFloat(trip.totalEmission.toString()).toFixed(2)} kg CO₂
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                </div>
+              ))}
+              
+              {trips.length > 3 && (
+                <button
+                  onClick={() => router.push('/journeys')}
+                  className="w-full py-3 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  Lihat Semua Perjalanan →
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Statistics */}
+        <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.2s' }}>
+          <h2 className="text-sm font-semibold text-textDark mb-3">Statistik</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-border text-center">
+              <div className="text-2xl font-bold text-primary">{trips.length}</div>
+              <div className="text-xs text-textMuted mt-1">Total</div>
+            </div>
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-border text-center">
+              <div className="text-2xl font-bold text-blue-600">{ongoingTrips.length}</div>
+              <div className="text-xs text-textMuted mt-1">Aktif</div>
+            </div>
+            <div className="bg-white rounded-xl p-3 shadow-sm border border-border text-center">
+              <div className="text-2xl font-bold text-green-600">{completedTrips.length}</div>
+              <div className="text-xs text-textMuted mt-1">Selesai</div>
+            </div>
           </div>
         </div>
 
         {/* Action Cards */}
         <div className="px-5 pt-5 space-y-3">
-          <Link href="/phases" className="block w-full bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item">
+          <Link href="/journeys" className="block w-full bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center text-2xl">
                 📝
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-textDark mb-0.5">Isi Data Emisi</h3>
-                <p className="text-xs text-textMuted">Lengkapi data emisi per tahapan</p>
+                <h3 className="text-sm font-semibold text-textDark mb-0.5">Kelola Perjalanan</h3>
+                <p className="text-xs text-textMuted">Lihat dan kelola semua perjalanan</p>
               </div>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 18l6-6-6-6" />

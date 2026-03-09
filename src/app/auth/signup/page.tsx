@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { IoMail, IoLockClosed, IoPerson } from 'react-icons/io5';
@@ -32,6 +33,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+      // 1. Register user
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -51,9 +53,22 @@ export default function SignUpPage() {
         return;
       }
 
-      // Redirect to sign in
-      router.push('/auth/signin?registered=true');
-    } catch (error) {
+      // 2. Auto login after signup
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError('Akun dibuat, tapi gagal login otomatis. Silakan login manual.');
+        setTimeout(() => router.push('/auth/signin'), 2000);
+      } else {
+        // Success! Redirect to home
+        router.push('/');
+        router.refresh();
+      }
+    } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setLoading(false);

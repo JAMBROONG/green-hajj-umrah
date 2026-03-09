@@ -51,7 +51,7 @@ export function loadDataFromStorage(): HajiJourney {
     } else {
       return initializePhases();
     }
-  } catch (e) {
+  } catch {
     return initializePhases();
   }
 }
@@ -96,6 +96,9 @@ export function initializePhases(): HajiJourney {
 
 // Calculation Functions
 export function calculateTotalEmission(journey: HajiJourney): number {
+  if (!journey || !journey.phases) {
+    return 0;
+  }
   let total = 0;
   Object.values(journey.phases).forEach(phase => {
     if (phase?.categories) {
@@ -109,6 +112,7 @@ export function calculateTotalEmission(journey: HajiJourney): number {
 }
 
 export function calculatePhaseEmission(journey: HajiJourney, phaseId: PhaseId): number {
+  if (!journey || !journey.phases) return 0;
   const phase = journey.phases[phaseId];
   if (!phase || !phase.categories) return 0;
   
@@ -121,6 +125,7 @@ export function calculatePhaseEmission(journey: HajiJourney, phaseId: PhaseId): 
 }
 
 export function getCompletedPhasesCount(journey: HajiJourney): number {
+  if (!journey || !journey.phases) return 0;
   return PHASE_DEFINITIONS.filter(p => 
     journey.phases[p.id as PhaseId]?.completed
   ).length;
@@ -132,6 +137,7 @@ export function getProgressPercent(journey: HajiJourney): number {
 }
 
 export function getCompletedCategoriesCount(journey: HajiJourney, phaseId: PhaseId): number {
+  if (!journey || !journey.phases) return 0;
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   if (!phase) return 0;
   
@@ -174,7 +180,7 @@ export function getCategoryEmissions(journey: HajiJourney) {
   });
 
   return Object.entries(categoryEmissions)
-    .filter(([_, emission]) => emission > 0)
+    .filter(([, emission]) => emission > 0)
     .sort((a, b) => b[1] - a[1]);
 }
 

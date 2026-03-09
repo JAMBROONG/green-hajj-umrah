@@ -4,6 +4,7 @@ import { compare } from "bcryptjs"
 import prisma from "@/lib/prisma"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     Credentials({
       credentials: {
@@ -46,17 +47,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     jwt: async ({ token, user }) => {
       if (user) {
-        token.id = user.id as string
-        token.tenantId = (user as any).tenantId
-        token.tenant = (user as any).tenant
+        token.id = user.id
+        token.tenantId = user.tenantId
+        token.tenant = user.tenant
       }
       return token
     },
     session: async ({ session, token }) => {
       if (session.user) {
-        (session.user as any).id = token.id as string
-        (session.user as any).tenantId = token.tenantId as string | null
-        (session.user as any).tenant = token.tenant
+        session.user.id = token.id
+        session.user.tenantId = token.tenantId
+        session.user.tenant = token.tenant
       }
       return session
     },

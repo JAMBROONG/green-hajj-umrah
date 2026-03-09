@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FOOD_FACTORS } from '@/lib/constants';
 import { FoodType, CategoryData } from '@/lib/types';
 
@@ -15,12 +15,9 @@ export default function FoodForm({ initialData, onSave }: FoodFormProps) {
   );
   const [meals, setMeals] = useState(initialData.details?.meals || 3);
   const [days, setDays] = useState(initialData.details?.days || 1);
-  const [emission, setEmission] = useState(0);
 
-  useEffect(() => {
-    const factor = FOOD_FACTORS[foodType];
-    setEmission(Math.round(meals * days * factor));
-  }, [foodType, meals, days]);
+  // Calculate emission directly without useEffect
+  const emission = Math.round(meals * days * FOOD_FACTORS[foodType]);
 
   const handleSave = () => {
     onSave({
