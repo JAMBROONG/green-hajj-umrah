@@ -7,7 +7,8 @@ import {
   loadDataFromStorage, 
   saveDataToStorage, 
   calculateTotalEmission,
-  initializePhases
+  initializePhases,
+  migratePhaseIds
 } from '@/lib/utils';
 
 interface UseHajiJourneyOptions {
@@ -32,9 +33,11 @@ export function useHajiJourney(options: UseHajiJourneyOptions = {}) {
           if (response.ok) {
             const data = await response.json();
             // data.journey.phases contains the HajiJourney structure
-            const phases = data.journey?.phases;
+            let phases = data.journey?.phases;
             if (phases && phases.phases && typeof phases.phases === 'object' && Object.keys(phases.phases).length > 0) {
               // phases is a proper HajiJourney object with currentPhase and phases
+              // Apply migration for old phase IDs
+              phases = migratePhaseIds(phases);
               setJourney(phases);
             } else {
               // Initialize with default structure
@@ -57,7 +60,8 @@ export function useHajiJourney(options: UseHajiJourneyOptions = {}) {
           const response = await fetch('/api/journey');
           if (response.ok) {
             const data = await response.json();
-            setJourney(data.journey);
+            const migratedJourney = migratePhaseIds(data.journey);
+            setJourney(migratedJourney);
           } else {
             const localData = loadDataFromStorage();
             setJourney(localData);

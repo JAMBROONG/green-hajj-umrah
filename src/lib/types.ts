@@ -1,13 +1,13 @@
 export type PhaseId = 
   | 'pra-keberangkatan'
-  | 'penerbangan-pergi'
+  | 'keberangkatan'
   | 'madinah'
   | 'makkah'
   | 'arafah'
   | 'muzdalifah'
   | 'mina'
   | 'rekreasi'
-  | 'pulang';
+  | 'kepulangan';
 
 export type CategoryId = 'transport' | 'hotel' | 'food' | 'waste';
 

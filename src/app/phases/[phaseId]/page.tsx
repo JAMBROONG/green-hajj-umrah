@@ -16,14 +16,14 @@ import { IoArrowBack, IoChevronForward } from 'react-icons/io5';
 function getPhaseIcon(phaseId: string) {
   switch (phaseId) {
     case 'pra-keberangkatan': return <MdHome className="text-2xl text-teal-600" />;
-    case 'penerbangan-pergi': return <MdFlight className="text-2xl text-blue-500" />;
+    case 'keberangkatan': return <MdFlight className="text-2xl text-blue-500" />;
     case 'madinah': return <MdMosque className="text-2xl text-green-600" />;
     case 'makkah': return <FaKaaba className="text-2xl text-gray-900" />;
     case 'arafah': return <FaMountain className="text-2xl text-amber-700" />;
     case 'muzdalifah': return <FaMoon className="text-2xl text-yellow-400" />;
     case 'mina': return <FaBullseye className="text-2xl text-red-600" />;
     case 'rekreasi': return <MdPark className="text-2xl text-green-500" />;
-    case 'pulang': return <MdFlight className="text-2xl text-blue-500 rotate-180" />;
+    case 'kepulangan': return <MdFlight className="text-2xl text-blue-500 rotate-180" />;
     default: return <MdHome className="text-2xl text-teal-600" />;
   }
 }

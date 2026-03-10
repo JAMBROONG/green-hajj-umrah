@@ -27,7 +27,7 @@ const getPhaseIcon = (phaseId: string) => {
   switch (phaseId) {
     case 'pra-keberangkatan':
       return <MdHome className="text-2xl text-teal-600" />;
-    case 'penerbangan-pergi':
+    case 'keberangkatan':
       return <MdFlight className="text-2xl text-blue-500" />;
     case 'madinah':
       return <MdMasjid className="text-2xl text-green-600" />;
@@ -41,7 +41,7 @@ const getPhaseIcon = (phaseId: string) => {
       return <FaBullseye className="text-2xl text-red-600" />;
     case 'rekreasi':
       return <MdPark className="text-2xl text-green-500" />;
-    case 'pulang':
+    case 'kepulangan':
       return <MdFlight className="text-2xl text-blue-500 rotate-180" />;
     default:
       return <MdHome className="text-2xl text-teal-600" />;

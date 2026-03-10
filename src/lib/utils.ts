@@ -11,6 +11,26 @@ import {
   AVG_EMISSION 
 } from './constants';
 
+// Migration helper: convert old phase IDs to new ones
+export function migratePhaseIds(journey: HajiJourney): HajiJourney {
+  const oldToNewMap: Record<string, PhaseId> = {
+    'penerbangan-pergi': 'keberangkatan',
+    'pulang': 'kepulangan'
+  };
+
+  const migratedPhases: { [key in PhaseId]?: PhaseData } = {};
+  
+  Object.entries(journey.phases).forEach(([key, value]) => {
+    const newKey = oldToNewMap[key] || key;
+    migratedPhases[newKey as PhaseId] = value;
+  });
+
+  return {
+    ...journey,
+    phases: migratedPhases
+  };
+}
+
 // Storage Functions
 export function loadDataFromStorage(): HajiJourney {
   if (typeof window === 'undefined') {
@@ -20,7 +40,10 @@ export function loadDataFromStorage(): HajiJourney {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const data = JSON.parse(stored) as HajiJourney;
+      let data = JSON.parse(stored) as HajiJourney;
+      
+      // Migrate old phase IDs to new ones
+      data = migratePhaseIds(data);
       
       // Ensure all phases exist (for backward compatibility when new phases are added)
       PHASE_DEFINITIONS.forEach(phase => {

@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useHajiJourney } from '@/hooks/useHajiJourney';import { useDialog } from '@/contexts/DialogContext';import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
+import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useDialog } from '@/contexts/DialogContext';
+import { PHASE_DEFINITIONS, TRANSPORT_FACTORS, AIRPORTS, AirportCode } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
+import Select from 'react-select';
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
 
@@ -50,8 +53,30 @@ export default function EditTransportPage() {
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(activity?.distance || null);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Check if transport type is airplane
+  const isAirplane = formData.type === 'pesawat-ekonomi' || formData.type === 'pesawat-bisnis';
+  
+  // Airport selection states
+  const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportCode | ''>('');
+  const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportCode | ''>('');
+
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
+
+  // Prepare airport options for react-select
+  const airportOptions = Object.entries(AIRPORTS).map(([code, airport]) => ({
+    value: code as AirportCode,
+    label: `${airport.city} - ${airport.name}`,
+    country: airport.country
+  }));
+
+  const indonesiaAirports = airportOptions.filter(option => option.country === 'Indonesia');
+  const saudiAirports = airportOptions.filter(option => option.country === 'Saudi Arabia');
+
+  const groupedAirportOptions = [
+    { label: 'Indonesia', options: indonesiaAirports },
+    { label: 'Saudi Arabia', options: saudiAirports }
+  ];
 
   // Search origin locations
   useEffect(() => {
@@ -87,10 +112,31 @@ export default function EditTransportPage() {
     return () => clearTimeout(debounce);
   }, [destinationQuery, selectedDestination]);
 
-  // Calculate distance when both locations are selected
+  // Calculate distance - Haversine for airplanes, Routing API for ground transport
   useEffect(() => {
     const calculateDistance = async () => {
-      if (selectedOrigin && selectedDestination) {
+      // For airplanes: use Haversine formula with airport coordinates
+      if (isAirplane && selectedOriginAirport && selectedDestinationAirport) {
+        const origin = AIRPORTS[selectedOriginAirport];
+        const dest = AIRPORTS[selectedDestinationAirport];
+        
+        // Haversine formula for great circle distance
+        const R = 6371; // Earth's radius in km
+        const dLat = (dest.lat - origin.lat) * Math.PI / 180;
+        const dLon = (dest.lon - origin.lon) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(origin.lat * Math.PI / 180) * Math.cos(dest.lat * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+        
+        setCalculatedDistance(Math.round(distance));
+      } else if (isAirplane) {
+        setCalculatedDistance(null);
+      }
+      // For ground transport: use routing API with location coordinates
+      else if (!isAirplane && selectedOrigin && selectedDestination) {
         setIsSearching(true);
         const distance = await calculateRoutingDistance(
           selectedOrigin.lat,
@@ -106,7 +152,7 @@ export default function EditTransportPage() {
     };
 
     calculateDistance();
-  }, [selectedOrigin, selectedDestination]);
+  }, [isAirplane, selectedOriginAirport, selectedDestinationAirport, selectedOrigin, selectedDestination]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -138,9 +184,17 @@ export default function EditTransportPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedOrigin || !selectedDestination || !calculatedDistance) {
-      showWarning('Mohon pilih lokasi asal dan tujuan yang valid', { title: 'Data Belum Lengkap' });
-      return;
+    // Validation based on transport type
+    if (isAirplane) {
+      if (!selectedOriginAirport || !selectedDestinationAirport || !calculatedDistance) {
+        showWarning('Mohon pilih bandara asal dan tujuan', { title: 'Data Belum Lengkap' });
+        return;
+      }
+    } else {
+      if (!selectedOrigin || !selectedDestination || !calculatedDistance) {
+        showWarning('Mohon pilih lokasi asal dan tujuan yang valid', { title: 'Data Belum Lengkap' });
+        return;
+      }
     }
 
     const distance = calculatedDistance;
@@ -156,16 +210,32 @@ export default function EditTransportPage() {
       passengers,
       date: formData.date,
       emission,
-      origin: {
-        name: selectedOrigin.displayName,
-        lat: selectedOrigin.lat,
-        lon: selectedOrigin.lon
-      },
-      destination: {
-        name: selectedDestination.displayName,
-        lat: selectedDestination.lat,
-        lon: selectedDestination.lon
-      }
+      origin: isAirplane && selectedOriginAirport
+        ? {
+            name: AIRPORTS[selectedOriginAirport].name,
+            lat: AIRPORTS[selectedOriginAirport].lat,
+            lon: AIRPORTS[selectedOriginAirport].lon
+          }
+        : selectedOrigin
+        ? {
+            name: selectedOrigin.displayName,
+            lat: selectedOrigin.lat,
+            lon: selectedOrigin.lon
+          }
+        : undefined,
+      destination: isAirplane && selectedDestinationAirport
+        ? {
+            name: AIRPORTS[selectedDestinationAirport].name,
+            lat: AIRPORTS[selectedDestinationAirport].lat,
+            lon: AIRPORTS[selectedDestinationAirport].lon
+          }
+        : selectedDestination
+        ? {
+            name: selectedDestination.displayName,
+            lat: selectedDestination.lat,
+            lon: selectedDestination.lon
+          }
+        : undefined
     };
 
     // Update activities array
@@ -221,15 +291,26 @@ export default function EditTransportPage() {
           </label>
           <select
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, type: e.target.value });
+              // Reset all selections when transport type changes
+              setSelectedOrigin(null);
+              setSelectedDestination(null);
+              setSelectedOriginAirport('');
+              setSelectedDestinationAirport('');
+              setCalculatedDistance(null);
+            }}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           >
+            <option value="">-- Pilih Jenis Transportasi --</option>
             <option value="mobil">Mobil</option>
             <option value="mobil-listrik">Mobil Listrik</option>
             <option value="bus">Bus</option>
             <option value="bus-listrik">Bus Listrik</option>
             <option value="kereta">Kereta</option>
+            <option value="pesawat-ekonomi">Pesawat (Kelas Ekonomi)</option>
+            <option value="pesawat-bisnis">Pesawat (Kelas Bisnis)</option>
           </select>
         </div>
 
@@ -247,95 +328,190 @@ export default function EditTransportPage() {
           />
         </div>
 
-        {/* Origin Location */}
-        <div className="relative" ref={originRef}>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Dari (Lokasi Asal) *
-          </label>
-          <input
-            type="text"
-            value={originQuery}
-            onChange={(e) => {
-              setOriginQuery(e.target.value);
-              setSelectedOrigin(null);
-            }}
-            placeholder="Cari lokasi asal..."
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-            required
-          />
-          {isSearching && originQuery.length >= 3 && (
-            <div className="absolute right-4 top-11 text-gray-400">
-              <div className="animate-spin">⏳</div>
-            </div>
-          )}
-          {originSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-              {originSuggestions.map((location) => (
-                <button
-                  key={location.placeId}
-                  type="button"
-                  onClick={() => handleOriginSelect(location)}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                >
-                  <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                    {location.displayName}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-          {selectedOrigin && (
-            <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
-          )}
-        </div>
+        {/* Origin - Conditional based on transport type */}
+        {isAirplane ? (
+          /* Airport Selection for Airplanes */
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Dari (Bandara Asal) *
+            </label>
+            <Select
+              value={selectedOriginAirport ? { 
+                value: selectedOriginAirport, 
+                label: `${AIRPORTS[selectedOriginAirport].city} - ${AIRPORTS[selectedOriginAirport].name}`,
+                country: AIRPORTS[selectedOriginAirport].country
+              } : null}
+              onChange={(option) => setSelectedOriginAirport(option?.value || '')}
+              options={groupedAirportOptions}
+              placeholder="Cari atau pilih bandara asal..."
+              isClearable
+              isSearchable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  padding: '0.5rem',
+                  borderRadius: '0.75rem',
+                  borderWidth: '2px',
+                  borderColor: '#e5e7eb',
+                  '&:hover': { borderColor: '#e5e7eb' },
+                  '&:focus-within': { borderColor: '#10b981', boxShadow: 'none' }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                })
+              }}
+              required
+            />
+            {selectedOriginAirport && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ {AIRPORTS[selectedOriginAirport].city} - {AIRPORTS[selectedOriginAirport].name}
+              </p>
+            )}
+          </div>
+        ) : (
+          /* Location Search for Ground Transport */
+          <div className="relative" ref={originRef}>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Dari (Lokasi Asal) *
+            </label>
+            <input
+              type="text"
+              value={originQuery}
+              onChange={(e) => {
+                setOriginQuery(e.target.value);
+                setSelectedOrigin(null);
+              }}
+              placeholder="Cari lokasi asal..."
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+              required
+            />
+            {isSearching && originQuery.length >= 3 && (
+              <div className="absolute right-4 top-11 text-gray-400">
+                <div className="animate-spin">⏳</div>
+              </div>
+            )}
+            {originSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                {originSuggestions.map((location) => (
+                  <button
+                    key={location.placeId}
+                    type="button"
+                    onClick={() => handleOriginSelect(location)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                  >
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                      {location.displayName}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedOrigin && (
+              <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
+            )}
+          </div>
+        )}
 
-        {/* Destination Location */}
-        <div className="relative" ref={destinationRef}>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Menuju (Lokasi Tujuan) *
-          </label>
-          <input
-            type="text"
-            value={destinationQuery}
-            onChange={(e) => {
-              setDestinationQuery(e.target.value);
-              setSelectedDestination(null);
-            }}
-            placeholder="Cari lokasi tujuan..."
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-            required
-          />
-          {isSearching && destinationQuery.length >= 3 && (
-            <div className="absolute right-4 top-11 text-gray-400">
-              <div className="animate-spin">⏳</div>
-            </div>
-          )}
-          {destinationSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-              {destinationSuggestions.map((location) => (
-                <button
-                  key={location.placeId}
-                  type="button"
-                  onClick={() => handleDestinationSelect(location)}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                >
-                  <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                    {location.displayName}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-          {selectedDestination && (
-            <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
-          )}
-        </div>
+        {/* Destination - Conditional based on transport type */}
+        {isAirplane ? (
+           /* Airport Selection for Airplanes */
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Menuju (Bandara Tujuan) *
+            </label>
+            <Select
+              value={selectedDestinationAirport ? { 
+                value: selectedDestinationAirport, 
+                label: `${AIRPORTS[selectedDestinationAirport].city} - ${AIRPORTS[selectedDestinationAirport].name}`,
+                country: AIRPORTS[selectedDestinationAirport].country
+              } : null}
+              onChange={(option) => setSelectedDestinationAirport(option?.value || '')}
+              options={groupedAirportOptions}
+              placeholder="Cari atau pilih bandara tujuan..."
+              isClearable
+              isSearchable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  padding: '0.5rem',
+                  borderRadius: '0.75rem',
+                  borderWidth: '2px',
+                  borderColor: '#e5e7eb',
+                  '&:hover': { borderColor: '#e5e7eb' },
+                  '&:focus-within': { borderColor: '#10b981', boxShadow: 'none' }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                })
+              }}
+              required
+            />
+            {selectedDestinationAirport && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ {AIRPORTS[selectedDestinationAirport].city} - {AIRPORTS[selectedDestinationAirport].name}
+              </p>
+            )}
+          </div>
+        ) : (
+          /* Location Search for Ground Transport */
+          <div className="relative" ref={destinationRef}>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Menuju (Lokasi Tujuan) *
+            </label>
+            <input
+              type="text"
+              value={destinationQuery}
+              onChange={(e) => {
+                setDestinationQuery(e.target.value);
+                setSelectedDestination(null);
+              }}
+              placeholder="Cari lokasi tujuan..."
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+              required
+            />
+            {isSearching && destinationQuery.length >= 3 && (
+              <div className="absolute right-4 top-11 text-gray-400">
+                <div className="animate-spin">⏳</div>
+              </div>
+            )}
+            {destinationSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                {destinationSuggestions.map((location) => (
+                  <button
+                    key={location.placeId}
+                    type="button"
+                    onClick={() => handleDestinationSelect(location)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                  >
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                      {location.displayName}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedDestination && (
+              <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
+            )}
+          </div>
+        )}
 
         {/* Calculated Distance Display */}
-        {selectedOrigin && selectedDestination && (
+        {((isAirplane && selectedOriginAirport && selectedDestinationAirport) || 
+          (!isAirplane && selectedOrigin && selectedDestination)) && (
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <p className="text-sm text-blue-700 font-medium mb-1">
-              Jarak Rute Jalan
+              {isAirplane ? 'Jarak Terbang' : 'Jarak Rute Jalan'}
             </p>
             {isSearching ? (
               <div className="flex items-center gap-2">
@@ -343,9 +519,16 @@ export default function EditTransportPage() {
                 <p className="text-lg text-blue-700">Menghitung rute...</p>
               </div>
             ) : calculatedDistance !== null ? (
-              <p className="text-2xl font-bold text-blue-900">
-                {calculatedDistance.toFixed(1)} km
-              </p>
+              <>
+                <p className="text-2xl font-bold text-blue-900">
+                  {calculatedDistance.toFixed(1)} km
+                </p>
+                {formData.type && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO2e
+                  </p>
+                )}
+              </>
             ) : null}
           </div>
         )}

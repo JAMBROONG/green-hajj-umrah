@@ -12,7 +12,7 @@ interface TransportFormProps {
 }
 
 export default function TransportForm({ phaseId, initialData, onSave }: TransportFormProps) {
-  const isFlight = phaseId === 'penerbangan-pergi' || phaseId === 'pulang';
+  const isFlight = phaseId === 'keberangkatan' || phaseId === 'kepulangan';
   
   const [vehicleType, setVehicleType] = useState<VehicleType>(
     (initialData.details?.vehicleType || 'bus') as VehicleType
@@ -21,7 +21,7 @@ export default function TransportForm({ phaseId, initialData, onSave }: Transpor
 
   // Calculate emission directly without useEffect
   const emission = isFlight
-    ? (phaseId === 'penerbangan-pergi' ? FLIGHT_EMISSION_PERGI : FLIGHT_EMISSION_PULANG)
+    ? (phaseId === 'keberangkatan' ? FLIGHT_EMISSION_PERGI : FLIGHT_EMISSION_PULANG)
     : Math.round(distance * TRANSPORT_FACTORS[vehicleType]);
 
   const handleSave = () => {
@@ -42,7 +42,7 @@ export default function TransportForm({ phaseId, initialData, onSave }: Transpor
       <div className="space-y-4">
         <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
           <p className="text-sm text-blue-900 mb-2 font-medium flex items-center gap-2">
-            <MdFlight className="text-lg" /> Penerbangan {phaseId === 'penerbangan-pergi' ? 'Indonesia → Arab Saudi' : 'Arab Saudi → Indonesia'}
+            <MdFlight className="text-lg" /> Penerbangan {phaseId === 'keberangkatan' ? 'Indonesia → Arab Saudi' : 'Arab Saudi → Indonesia'}
           </p>
           <p className="text-xs text-blue-700">
             Emisi telah dihitung berdasarkan rata-rata penerbangan jarak jauh.
