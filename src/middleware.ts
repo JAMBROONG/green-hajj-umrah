@@ -22,6 +22,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
+  // Only allow jemaah role to access this application
+  // @ts-ignore - token has custom fields from our auth config
+  if (token.role && token.role !== 'jemaah') {
+    // Redirect non-jemaah users to error page
+    return NextResponse.redirect(new URL('/auth/signin?error=access_denied', req.url));
+  }
+
   // Handle tenant from query params
   const tenant = req.nextUrl.searchParams.get('tenant') || 'default';
   

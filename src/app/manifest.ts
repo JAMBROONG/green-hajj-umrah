@@ -1,0 +1,13 @@
+import { MetadataRoute } from 'next'
+ 
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'Green Hajj & Umrah',
+    short_name: 'GreenHajj',
+    description: 'Aplikasi Perhitungan Emisi Ibadah Hajj dan Umrah',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#10b981',
+  }
+}

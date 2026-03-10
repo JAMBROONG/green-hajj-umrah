@@ -5,7 +5,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Green Hajj & Umrah - Kalkulator Emisi CO2e",
   description: "Aplikasi Perhitungan Emisi Ibadah Hajj dan Umrah",
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {

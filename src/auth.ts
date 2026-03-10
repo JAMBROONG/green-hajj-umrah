@@ -12,33 +12,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" }
       },
       authorize: async (credentials) => {
+        console.log('🔐 Login attempt:', credentials?.email);
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Missing credentials');
           return null
         }
 
-        const user = await prisma.profile.findUnique({
+        const user = await prisma.profiles.findUnique({
           where: { email: credentials.email as string },
           include: { tenant: true }
         })
 
+        console.log('👤 User found:', user ? `Yes (${user.email})` : 'No');
+
         if (!user) {
+          console.log('❌ User not found in database');
           return null
         }
 
+        // Check if user is jemaah
+        if (user.role !== 'jemaah') {
+          console.log('❌ Access denied: User is not a jemaah (role:', user.role, ')');
+          return null
+        }
+
+        console.log('🔑 Comparing password...');
         const isPasswordValid = await compare(
           credentials.password as string,
           user.password
         )
 
+        console.log('✅ Password valid:', isPasswordValid);
+
         if (!isPasswordValid) {
+          console.log('❌ Invalid password');
           return null
         }
 
+        console.log('✅ Login successful');
         return {
           id: user.id,
           email: user.email,
-          name: user.fullName,
-          tenantId: user.tenantId,
+          name: user.full_name,
+          tenantId: user.tenant_id,
           tenant: user.tenant
         }
       },
@@ -50,6 +67,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id
         token.tenantId = user.tenantId
         token.tenant = user.tenant
+        // @ts-ignore - Add role to token for middleware check
+        token.role = 'jemaah'
       }
       return token
     },
