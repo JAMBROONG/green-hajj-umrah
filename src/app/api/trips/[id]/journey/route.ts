@@ -22,10 +22,10 @@ export async function GET(
     }
 
     // Verify trip belongs to user
-    const trip = await prisma.trip.findFirst({
+    const trip = await prisma.trips.findFirst({
       where: {
         id,
-        userId: token.sub as string,
+        user_id: token.sub as string,
       },
     });
 
@@ -34,9 +34,9 @@ export async function GET(
     }
 
     // Get journey data
-    const journeyData = await prisma.journeyData.findUnique({
+    const journeyData = await prisma.journey_data.findUnique({
       where: {
-        tripId: id,
+        trip_id: id,
       },
     });
 
@@ -74,10 +74,10 @@ export async function PUT(
     }
 
     // Verify trip belongs to user
-    const trip = await prisma.trip.findFirst({
+    const trip = await prisma.trips.findFirst({
       where: {
         id,
-        userId: token.sub as string,
+        user_id: token.sub as string,
       },
     });
 
@@ -89,26 +89,26 @@ export async function PUT(
     const { phases, totalEmission } = body;
 
     // Update journey data
-    const journeyData = await prisma.journeyData.upsert({
+    const journeyData = await prisma.journey_data.upsert({
       where: {
-        tripId: id,
+        trip_id: id,
       },
       update: {
         phases: (phases || {}) as Prisma.InputJsonValue,
-        totalEmission: totalEmission || 0,
+        total_emission: totalEmission || 0,
       },
       create: {
-        tripId: id,
+        trip_id: id,
         phases: (phases || {}) as Prisma.InputJsonValue,
-        totalEmission: totalEmission || 0,
+        total_emission: totalEmission || 0,
       },
     });
 
     // Also update trip's total emission
     if (totalEmission !== undefined) {
-      await prisma.trip.update({
+      await prisma.trips.update({
         where: { id },
-        data: { totalEmission },
+        data: { total_emission: totalEmission },
       });
     }
 

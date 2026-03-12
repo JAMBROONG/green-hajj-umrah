@@ -18,19 +18,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trips = await prisma.trip.findMany({
+    const trips = await prisma.trips.findMany({
       where: {
-        userId: token.sub as string,
+        user_id: token.sub as string,
       },
       include: {
         journeys: true,
       },
       orderBy: {
-        startDate: "desc",
+        start_date: "desc",
       },
     });
 
-    return NextResponse.json({ trips });
+    // Transform snake_case to camelCase for frontend
+    const transformedTrips = trips.map((trip) => ({
+      id: trip.id,
+      name: trip.name,
+      type: trip.type,
+      startDate: trip.start_date,
+      endDate: trip.end_date,
+      totalEmission: trip.total_emission,
+      status: trip.status,
+      createdAt: trip.created_at,
+      userId: trip.user_id,
+      tenantId: trip.tenant_id,
+      journeys: trip.journeys
+    }));
+
+    return NextResponse.json({ trips: transformedTrips });
   } catch (error) {
     console.error("Error fetching trips:", error);
     return NextResponse.json(
@@ -70,12 +85,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's tenantId
-    const user = await prisma.profile.findUnique({
+    const user = await prisma.profiles.findUnique({
       where: { id: token.sub as string },
-      select: { tenantId: true },
+      select: { tenant_id: true },
     });
 
-    if (!user || !user.tenantId) {
+    if (!user || !user.tenant_id) {
       return NextResponse.json(
         { error: "User tenant not found" },
         { status: 400 }
@@ -83,30 +98,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Create trip and empty journey data
-    const trip = await prisma.trip.create({
+    const trip = await prisma.trips.create({
       data: {
         name,
         type,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        userId: token.sub as string,
-        tenantId: user.tenantId,
+        start_date: new Date(startDate),
+        end_date: new Date(endDate),
+        user_id: token.sub as string,
+        tenant_id: user.tenant_id,
         status: "ongoing",
-        totalEmission: 0,
+        total_emission: 0,
       },
     });
 
     // Create journey data with initialized phases for the trip
     const initialPhases = initializePhases();
-    const journeyData = await prisma.journeyData.create({
+    const journeyData = await prisma.journey_data.create({
       data: {
-        tripId: trip.id,
+        trip_id: trip.id,
         phases: JSON.parse(JSON.stringify(initialPhases)) as Prisma.InputJsonValue,
-        totalEmission: 0,
+        total_emission: 0,
       },
     });
 
-    return NextResponse.json({ trip, journeyData }, { status: 201 });
+    // Transform response to camelCase
+    const transformedTrip = {
+      id: trip.id,
+      name: trip.name,
+      type: trip.type,
+      startDate: trip.start_date,
+      endDate: trip.end_date,
+      totalEmission: trip.total_emission,
+      status: trip.status,
+      createdAt: trip.created_at,
+      userId: trip.user_id,
+      tenantId: trip.tenant_id
+    };
+
+    const transformedJourneyData = {
+      id: journeyData.id,
+      tripId: journeyData.trip_id,
+      phases: journeyData.phases,
+      totalEmission: journeyData.total_emission,
+      createdAt: journeyData.created_at
+    };
+
+    return NextResponse.json({ trip: transformedTrip, journeyData: transformedJourneyData }, { status: 201 });
   } catch (error) {
     console.error("Error creating trip:", error);
     return NextResponse.json(

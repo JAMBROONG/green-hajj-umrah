@@ -20,10 +20,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trip = await prisma.trip.findFirst({
+    const trip = await prisma.trips.findFirst({
       where: {
         id,
-        userId: token.sub as string,
+        user_id: token.sub as string,
       },
       include: {
         journeys: true,
@@ -34,7 +34,22 @@ export async function GET(
       return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ trip });
+    // Transform to camelCase
+    const transformedTrip = {
+      id: trip.id,
+      name: trip.name,
+      type: trip.type,
+      startDate: trip.start_date,
+      endDate: trip.end_date,
+      totalEmission: trip.total_emission,
+      status: trip.status,
+      createdAt: trip.created_at,
+      userId: trip.user_id,
+      tenantId: trip.tenant_id,
+      journeys: trip.journeys
+    };
+
+    return NextResponse.json({ trip: transformedTrip });
   } catch (error) {
     console.error("Error fetching trip:", error);
     return NextResponse.json(
@@ -64,10 +79,10 @@ export async function PUT(
     const { name, type, startDate, endDate, status } = body;
 
     // Verify trip belongs to user
-    const existingTrip = await prisma.trip.findFirst({
+    const existingTrip = await prisma.trips.findFirst({
       where: {
         id,
-        userId: token.sub as string,
+        user_id: token.sub as string,
       },
     });
 
@@ -79,8 +94,8 @@ export async function PUT(
     const updateData: {
       name?: string;
       type?: string;
-      startDate?: Date;
-      endDate?: Date;
+      start_date?: Date;
+      end_date?: Date;
       status?: string;
     } = {};
     if (name) updateData.name = name;
@@ -93,8 +108,8 @@ export async function PUT(
       }
       updateData.type = type;
     }
-    if (startDate) updateData.startDate = new Date(startDate);
-    if (endDate) updateData.endDate = new Date(endDate);
+    if (startDate) updateData.start_date = new Date(startDate);
+    if (endDate) updateData.end_date = new Date(endDate);
     if (status) {
       if (!["ongoing", "completed", "cancelled"].includes(status)) {
         return NextResponse.json(
@@ -105,7 +120,7 @@ export async function PUT(
       updateData.status = status;
     }
 
-    const trip = await prisma.trip.update({
+    const trip = await prisma.trips.update({
       where: { id },
       data: updateData,
       include: {
@@ -113,7 +128,22 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ trip });
+    // Transform to camelCase
+    const transformedTrip = {
+      id: trip.id,
+      name: trip.name,
+      type: trip.type,
+      startDate: trip.start_date,
+      endDate: trip.end_date,
+      totalEmission: trip.total_emission,
+      status: trip.status,
+      createdAt: trip.created_at,
+      userId: trip.user_id,
+      tenantId: trip.tenant_id,
+      journeys: trip.journeys
+    };
+
+    return NextResponse.json({ trip: transformedTrip });
   } catch (error) {
     console.error("Error updating trip:", error);
     return NextResponse.json(
@@ -140,10 +170,10 @@ export async function DELETE(
     }
 
     // Verify trip belongs to user
-    const existingTrip = await prisma.trip.findFirst({
+    const existingTrip = await prisma.trips.findFirst({
       where: {
         id,
-        userId: token.sub as string,
+        user_id: token.sub as string,
       },
     });
 
@@ -152,7 +182,7 @@ export async function DELETE(
     }
 
     // Delete trip (cascade will delete journey data)
-    await prisma.trip.delete({
+    await prisma.trips.delete({
       where: { id },
     });
 

@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tenantSlug = searchParams.get('tenant') || 'default';
 
-  const tenant = await prisma.tenant.findUnique({
+  const tenant = await prisma.tenants.findUnique({
     where: { slug: tenantSlug }
   });
 

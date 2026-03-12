@@ -18,22 +18,22 @@ export async function GET() {
   const userId = session.user.id;
 
   // Get user's first trip (for backward compatibility)
-  const trip = await prisma.trip.findFirst({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
+  const trip = await prisma.trips.findFirst({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' },
     include: {
       journeys: true
     }
   });
 
-  if (!trip || !trip.journeys || trip.journeys.length === 0) {
+  if (!trip || !trip.journeys) {
     // Return default journey structure
     const defaultJourney = initializePhases();
     return NextResponse.json({ journey: defaultJourney });
   }
 
-  const journeyData = trip.journeys[0];
-  return NextResponse.json({ journey: journeyData.phases as unknown as HajiJourney });
+  const journeyData = trip.journeys;
+  return NextResponse.json({journey: journeyData.phases as unknown as HajiJourney });
 }
 
 // POST - Create or update journey (backward compatibility - updates first trip's journey)
@@ -51,45 +51,45 @@ export async function POST(request: Request) {
   const tenantId = session.user.tenantId || process.env.NEXT_PUBLIC_DEFAULT_TENANT || 'default';
 
   // Get user's first trip (for backward compatibility)
-  let trip = await prisma.trip.findFirst({
-    where: { userId },
-    orderBy: { createdAt: 'desc' }
+  let trip = await prisma.trips.findFirst({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' }
   });
 
   // If no trip exists, create a default one
   if (!trip) {
-    trip = await prisma.trip.create({
+    trip = await prisma.trips.create({
       data: {
         name: 'Perjalanan Default',
         type: 'umrah',
-        startDate: new Date(),
-        endDate: new Date(),
-        userId,
-        tenantId,
-        totalEmission: totalEmission || 0,
+        start_date: new Date(),
+        end_date: new Date(),
+        user_id: userId,
+        tenant_id: tenantId,
+        total_emission: totalEmission || 0,
         status: 'ongoing'
       }
     });
   }
 
   // Upsert journey data for this trip
-  const data = await prisma.journeyData.upsert({
-    where: { tripId: trip.id },
+  const data = await prisma.journey_data.upsert({
+   where: { trip_id: trip.id },
     create: {
-      tripId: trip.id,
+      trip_id: trip.id,
       phases: journey as Prisma.InputJsonValue,
-      totalEmission: totalEmission || 0
+      total_emission: totalEmission || 0
     },
     update: {
       phases: journey as Prisma.InputJsonValue,
-      totalEmission: totalEmission || 0
+      total_emission: totalEmission || 0
     }
   });
 
   // Update trip's total emission
-  await prisma.trip.update({
+  await prisma.trips.update({
     where: { id: trip.id },
-    data: { totalEmission: totalEmission || 0 }
+    data: { total_emission: totalEmission || 0 }
   });
 
   return NextResponse.json({ journey: data });

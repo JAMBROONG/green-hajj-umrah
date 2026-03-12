@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const { email, password, fullName } = await request.json();
 
     // Check if user already exists
-    const existingUser = await prisma.profile.findUnique({
+    const existingUser = await prisma.profiles.findUnique({
       where: { email }
     });
 
@@ -24,13 +24,13 @@ export async function POST(request: Request) {
     const hashedPassword = await hash(password, 12);
 
     // Get default tenant
-    let tenant = await prisma.tenant.findUnique({
+    let tenant = await prisma.tenants.findUnique({
       where: { slug: 'default' }
     });
 
     // Create default tenant if it doesn't exist
     if (!tenant) {
-      tenant = await prisma.tenant.create({
+      tenant = await prisma.tenants.create({
         data: {
           name: 'Default Organization',
           slug: 'default',
@@ -41,13 +41,13 @@ export async function POST(request: Request) {
     }
 
     // Create user
-    const user = await prisma.profile.create({
+    const user = await prisma.profiles.create({
       data: {
         email,
         password: hashedPassword,
-        fullName,
-        tenantId: tenant.id,
-        authProvider: 'credentials',
+        full_name: fullName,
+        tenant_id: tenant.id,
+        auth_provider: 'credentials',
         metadata: {}
       }
     });
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       user: {
         id: user.id,
         email: user.email,
-        fullName: user.fullName
+        fullName: user.full_name
       }
     });
   } catch (error) {
