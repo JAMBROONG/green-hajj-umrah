@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaKaaba, FaMosque, FaArrowLeft } from 'react-icons/fa';
 import { useDialog } from '@/contexts/DialogContext';
+import { checkHajjPeriod, HajjPeriodCheckResult } from '@/lib/hajjPeriodHelper';
 
 export default function NewJourneyPage() {
   const router = useRouter();
-  const { showError } = useDialog();
+  const { showError, showWarning, showAlert } = useDialog();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -16,6 +17,34 @@ export default function NewJourneyPage() {
     endDate: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hajjPeriodStatus, setHajjPeriodStatus] = useState<HajjPeriodCheckResult | null>(null);
+  const [isCheckingHajjPeriod, setIsCheckingHajjPeriod] = useState(false);
+
+  // Check hajj period on component mount
+  useEffect(() => {
+    const checkPeriod = async () => {
+      const result = await checkHajjPeriod();
+      setHajjPeriodStatus(result);
+    };
+    checkPeriod();
+  }, []);
+
+  const handleTypeSelection = async (type: 'haji' | 'umrah') => {
+    // If selecting Haji, check period first
+    if (type === 'haji') {
+      setIsCheckingHajjPeriod(true);
+      const result = await checkHajjPeriod();
+      setHajjPeriodStatus(result);
+      setIsCheckingHajjPeriod(false);
+
+      if (!result.canRegister) {
+        showAlert(result.message, { title: 'Pendaftaran Haji Belum Dibuka' });
+        return; // Don't change type
+      }
+    }
+    
+    setFormData({ ...formData, type });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +141,7 @@ export default function NewJourneyPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, type: 'umrah' })}
+                onClick={() => handleTypeSelection('umrah')}
                 className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
                   formData.type === 'umrah'
                     ? 'border-emerald-600 bg-emerald-50'
@@ -131,23 +160,48 @@ export default function NewJourneyPage() {
 
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, type: 'haji' })}
-                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${
+                onClick={() => handleTypeSelection('haji')}
+                disabled={isCheckingHajjPeriod}
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all relative ${
                   formData.type === 'haji'
                     ? 'border-emerald-600 bg-emerald-50'
+                    : hajjPeriodStatus && !hajjPeriodStatus.canRegister
+                    ? 'border-red-300 bg-red-50 opacity-60 cursor-not-allowed'
                     : 'border-gray-300 hover:border-emerald-400'
-                }`}
+                } ${isCheckingHajjPeriod ? 'opacity-50 cursor-wait' : ''}`}
               >
                 <FaKaaba className={`text-3xl mb-2 ${
-                  formData.type === 'haji' ? 'text-emerald-600' : 'text-gray-400'
+                  formData.type === 'haji' 
+                    ? 'text-emerald-600' 
+                    : hajjPeriodStatus && !hajjPeriodStatus.canRegister
+                    ? 'text-red-400'
+                    : 'text-gray-400'
                 }`} />
                 <span className={`font-medium ${
-                  formData.type === 'haji' ? 'text-emerald-600' : 'text-gray-600'
+                  formData.type === 'haji' 
+                    ? 'text-emerald-600' 
+                    : hajjPeriodStatus && !hajjPeriodStatus.canRegister
+                    ? 'text-red-600'
+                    : 'text-gray-600'
                 }`}>
                   Haji
                 </span>
+                {hajjPeriodStatus && !hajjPeriodStatus.canRegister && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    Tutup
+                  </span>
+                )}
               </button>
             </div>
+            
+            {/* Hajj Period Info */}
+            {hajjPeriodStatus && formData.type === 'haji' && hajjPeriodStatus.canRegister && (
+              <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-xs text-emerald-700">
+                  ℹ️ {hajjPeriodStatus.message}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Start Date */}

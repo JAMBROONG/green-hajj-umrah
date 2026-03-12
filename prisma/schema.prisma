@@ -69,3 +69,18 @@ model journey_data {
 
   trip trips @relation(fields: [trip_id], references: [id], onDelete: Cascade)
 }
+
+model hajj_periods {
+  id                       Int      @id @default(autoincrement())
+  year                     Int      @unique
+  start_date               DateTime
+  end_date                 DateTime
+  registration_open_date   DateTime
+  registration_close_date  DateTime
+  is_active                Boolean  @default(true)
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  @@index([year])
+  @@index([is_active])
+}
