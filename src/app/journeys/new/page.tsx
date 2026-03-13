@@ -4,21 +4,38 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaKaaba, FaMosque, FaArrowLeft } from 'react-icons/fa';
 import { useDialog } from '@/contexts/DialogContext';
-import { checkHajjPeriod, HajjPeriodCheckResult } from '@/lib/hajjPeriodHelper';
+import { checkHajjPeriod, HajjPeriodCheckResult, HajjPeriod } from '@/lib/hajjPeriodHelper';
+
+interface HajjPeriodOption extends HajjPeriod {
+  canRegister: boolean;
+  isOpen: boolean;
+}
 
 export default function NewJourneyPage() {
   const router = useRouter();
-  const { showError, showWarning, showAlert } = useDialog();
+  const { showError, showAlert } = useDialog();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type: 'umrah' as 'haji' | 'umrah',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    hajjPeriodYear: '' // Selected hajj period year
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hajjPeriodStatus, setHajjPeriodStatus] = useState<HajjPeriodCheckResult | null>(null);
+  const [selectedHajjPeriod, setSelectedHajjPeriod] = useState<HajjPeriodOption | null>(null);
   const [isCheckingHajjPeriod, setIsCheckingHajjPeriod] = useState(false);
+
+  // Normalize date to YYYY-MM-DD string (strips time/timezone)
+  const toDateString = (date: string | Date): string => {
+    if (!date) return '';
+    const d = new Date(date);
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   // Check hajj period on component mount
   useEffect(() => {
@@ -29,21 +46,61 @@ export default function NewJourneyPage() {
     checkPeriod();
   }, []);
 
+  // Fetch all available hajj periods when type is haji
+  const fetchHajjPeriods = async (): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/hajj-periods/all');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Auto-select first available period if any
+        if (data.periods && data.periods.length > 0) {
+          const firstPeriod = data.periods[0];
+          setSelectedHajjPeriod(firstPeriod);
+          setFormData(prev => ({ 
+            ...prev, 
+            hajjPeriodYear: firstPeriod.year.toString(),
+            startDate: toDateString(firstPeriod.startDate),
+            endDate: toDateString(firstPeriod.endDate)
+          }));
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error fetching hajj periods:', error);
+      return false;
+    }
+  };
+
   const handleTypeSelection = async (type: 'haji' | 'umrah') => {
-    // If selecting Haji, check period first
+    // If selecting Haji, check period first and fetch all periods
     if (type === 'haji') {
       setIsCheckingHajjPeriod(true);
       const result = await checkHajjPeriod();
       setHajjPeriodStatus(result);
+      
+      const hasAvailablePeriod = await fetchHajjPeriods();
       setIsCheckingHajjPeriod(false);
 
-      if (!result.canRegister) {
+      if (!result.canRegister || !hasAvailablePeriod) {
         showAlert(result.message, { title: 'Pendaftaran Haji Belum Dibuka' });
         return; // Don't change type
       }
+    } else {
+      // Reset hajj-related fields when switching to umrah
+      setSelectedHajjPeriod(null);
+      setFormData(prev => ({ 
+        ...prev, 
+        type,
+        hajjPeriodYear: '',
+        startDate: '',
+        endDate: ''
+      }));
+      return;
     }
     
-    setFormData({ ...formData, type });
+    setFormData(prev => ({ ...prev, type }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +118,24 @@ export default function NewJourneyPage() {
       newErrors.endDate = 'Tanggal selesai wajib diisi';
     }
     if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
-      newErrors.endDate = 'Tanggal selesai harus setelah tanggal mulai';
+      newErrors.endDate = 'Tanggal selesai harus setelah atau sama dengan tanggal mulai';
+    }
+
+    // Additional validation for Haji type
+    if (formData.type === 'haji') {
+      if (selectedHajjPeriod && formData.startDate && formData.endDate) {
+        const startDate = new Date(formData.startDate);
+        const endDate = new Date(formData.endDate);
+        const periodStart = new Date(selectedHajjPeriod.startDate);
+        const periodEnd = new Date(selectedHajjPeriod.endDate);
+
+        if (startDate < periodStart || startDate > periodEnd) {
+          newErrors.startDate = `Tanggal mulai harus dalam periode ${periodStart.toLocaleDateString('id-ID')} - ${periodEnd.toLocaleDateString('id-ID')}`;
+        }
+        if (endDate < periodStart || endDate > periodEnd) {
+          newErrors.endDate = `Tanggal selesai harus dalam periode ${periodStart.toLocaleDateString('id-ID')} - ${periodEnd.toLocaleDateString('id-ID')}`;
+        }
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -213,12 +287,19 @@ export default function NewJourneyPage() {
               type="date"
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              min={formData.type === 'haji' && selectedHajjPeriod ? toDateString(selectedHajjPeriod.startDate) : undefined}
+              max={formData.type === 'haji' && selectedHajjPeriod ? toDateString(selectedHajjPeriod.endDate) : undefined}
               className={`w-full px-4 py-3 border ${
                 errors.startDate ? 'border-red-500' : 'border-gray-300'
               } rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
             />
             {errors.startDate && (
               <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
+            )}
+            {formData.type === 'haji' && selectedHajjPeriod && (
+              <p className="mt-1 text-xs text-gray-500">
+                Harus antara {new Date(toDateString(selectedHajjPeriod.startDate) + 'T00:00:00').toLocaleDateString('id-ID')} - {new Date(toDateString(selectedHajjPeriod.endDate) + 'T00:00:00').toLocaleDateString('id-ID')}
+              </p>
             )}
           </div>
 
@@ -231,12 +312,19 @@ export default function NewJourneyPage() {
               type="date"
               value={formData.endDate}
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              min={formData.startDate || (formData.type === 'haji' && selectedHajjPeriod ? toDateString(selectedHajjPeriod.startDate) : undefined)}
+              max={formData.type === 'haji' && selectedHajjPeriod ? toDateString(selectedHajjPeriod.endDate) : undefined}
               className={`w-full px-4 py-3 border ${
                 errors.endDate ? 'border-red-500' : 'border-gray-300'
               } rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
             />
             {errors.endDate && (
               <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
+            )}
+            {formData.startDate && (
+              <p className="mt-1 text-xs text-gray-500">
+                Tidak boleh lebih awal dari tanggal mulai
+              </p>
             )}
           </div>
 

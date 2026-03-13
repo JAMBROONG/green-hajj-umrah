@@ -149,6 +149,18 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
               
               if (!catDef || !catData) return null;
 
+              // Get dynamic description for transport category based on phase transport type
+              let description: string = catDef.description;
+              if (catId === 'transport' && phase.transportTypes) {
+                if (phase.transportTypes === 'airplane') {
+                  description = 'Penerbangan (pesawat)';
+                } else if (phase.transportTypes === 'ground') {
+                  description = 'Kendaraan darat (bus, mobil, kereta)';
+                } else if (phase.transportTypes === 'mixed') {
+                  description = 'Semua jenis transportasi';
+                }
+              }
+
               const status = catData.completed ? 'completed' : (((catData.totalEmission ?? catData.emission) || 0) > 0 ? 'in-progress' : 'pending');
               const statusText = status === 'completed' ? 'Selesai' : (status === 'in-progress' ? 'Diisi' : 'Belum');
 
@@ -165,7 +177,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
                     </div>
                     <div className="flex-1">
                       <h4 className="text-sm font-semibold text-textDark mb-0.5">{catDef.name}</h4>
-                      <p className="text-xs text-textMuted mb-1">{catDef.description}</p>
+                      <p className="text-xs text-textMuted mb-1">{description}</p>
                       <p className="text-xs font-medium text-primary">
                         {formatEmission((catData.totalEmission ?? catData.emission) || 0, 'ton')} Ton CO2e
                       </p>

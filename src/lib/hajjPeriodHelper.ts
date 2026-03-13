@@ -66,3 +66,25 @@ export async function checkHajjPeriodServer(): Promise<HajjPeriodCheckResult> {
     };
   }
 }
+
+/**
+ * Fetch all available hajj periods
+ */
+export async function fetchAllHajjPeriods(): Promise<HajjPeriod[]> {
+  try {
+    const response = await fetch('/api/hajj-periods/all', {
+      method: 'GET',
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch hajj periods');
+    }
+
+    const data = await response.json();
+    return data.periods || [];
+  } catch (error) {
+    console.error('Error fetching hajj periods:', error);
+    return [];
+  }
+}

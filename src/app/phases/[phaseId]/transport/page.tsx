@@ -7,7 +7,7 @@ import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
 import { TransportActivity, PhaseId } from '@/lib/types';
-import { FaCar, FaBus, FaTrain } from 'react-icons/fa';
+import { FaCar, FaBus, FaTrain, FaPlane } from 'react-icons/fa';
 import { MdElectricCar } from 'react-icons/md';
 import { RiBusFill } from 'react-icons/ri';
 import { IoArrowBack, IoAdd, IoCalendarOutline } from 'react-icons/io5';
@@ -31,11 +31,35 @@ export default function TransportListPage() {
   }
 
   const handleAddClick = () => {
-    router.push(`/phases/${phaseId}/transport/add`);
+    // Route to appropriate form based on phase transport type
+    const transportType = phase.transportTypes;
+    
+    if (transportType === 'airplane') {
+      router.push(`/phases/${phaseId}/transport/add-airplane`);
+    } else if (transportType === 'ground') {
+      router.push(`/phases/${phaseId}/transport/add-ground`);
+    } else {
+      // 'mixed' - show combined form
+      router.push(`/phases/${phaseId}/transport/add`);
+    }
   };
 
   const handleEditClick = (activityId: string) => {
-    router.push(`/phases/${phaseId}/transport/edit/${activityId}`);
+    // Find the activity to determine its type
+    const activity = activities.find(a => a.id === activityId);
+    const isAirplane = activity && (activity.type === 'pesawat-ekonomi' || activity.type === 'pesawat-bisnis');
+    
+    // Route to appropriate edit form based on transport type
+    const transportType = phase.transportTypes;
+    
+    if (transportType === 'airplane' || isAirplane) {
+      router.push(`/phases/${phaseId}/transport/edit-airplane/${activityId}`);
+    } else if (transportType === 'ground' || !isAirplane) {
+      router.push(`/phases/${phaseId}/transport/edit-ground/${activityId}`);
+    } else {
+      // Mixed - route based on actual activity type
+      router.push(`/phases/${phaseId}/transport/edit/${activityId}`);
+    }
   };
 
   const handleDeleteClick = (activityId: string) => {
@@ -62,6 +86,31 @@ export default function TransportListPage() {
 
   const handleBackClick = () => {
     router.push(`/phases/${phaseId}`);
+  };
+
+  // Get icon based on transport type
+  const getPhaseTransportIcon = () => {
+    const transportType = phase.transportTypes;
+    if (transportType === 'airplane') {
+      return <FaPlane className="text-3xl text-blue-400" />;
+    } else if (transportType === 'ground') {
+      return <FaCar className="text-3xl text-blue-400" />;
+    } else {
+      // Mixed - show car as default
+      return <FaCar className="text-3xl text-blue-400" />;
+    }
+  };
+
+  const getEmptyStateIcon = () => {
+    const transportType = phase.transportTypes;
+    if (transportType === 'airplane') {
+      return <FaPlane className="text-6xl text-blue-300 mx-auto mb-4" />;
+    } else if (transportType === 'ground') {
+      return <FaCar className="text-6xl text-blue-300 mx-auto mb-4" />;
+    } else {
+      // Mixed
+      return <FaCar className="text-6xl text-blue-300 mx-auto mb-4" />;
+    }
   };
 
   const getTransportLabel = (type: string) => {
@@ -100,7 +149,7 @@ export default function TransportListPage() {
           <IoArrowBack className="text-xl" /> Kembali
         </button>
         <div className="flex items-center gap-3 mb-2">
-          <FaCar className="text-3xl text-blue-400" />
+          {getPhaseTransportIcon()}
           <div>
             <h1 className="text-xl font-bold">{category.name}</h1>
             <p className="text-sm text-white/80">{phase.name}</p>
@@ -116,7 +165,7 @@ export default function TransportListPage() {
       <div className="p-6 space-y-4">
         {activities.length === 0 ? (
           <div className="text-center py-12">
-            <FaCar className="text-6xl text-blue-300 mx-auto mb-4" />
+            {getEmptyStateIcon()}
             <p className="text-gray-500 mb-6">Belum ada aktivitas transportasi</p>
             <button
               onClick={handleAddClick}

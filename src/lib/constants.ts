@@ -2,19 +2,21 @@
 export const PHASE_DEFINITIONS = [
   {
     id: 'pra-keberangkatan',
-    name: 'Pra-keberangkatan (Asrama)',
+    name: 'Pra-keberangkatan',
     icon: '🏠',
-    description: 'Persiapan di asrama sebelum keberangkatan',
+    description: 'Persiapan sebelum keberangkatan',
     categories: ['transport', 'hotel', 'food', 'waste'],
-    type: ['haji'] as const
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'mixed' as const  // All transport types allowed
   },
   {
     id: 'keberangkatan',
-    name: 'Keberangkatan (ID → KSA)',
+    name: 'Keberangkatan',
     icon: '✈️',
-    description: 'Transportasi darat ke bandara dan penerbangan dari Indonesia ke Arab Saudi',
+    description: 'Keberangkatan dari Indonesia ke Arab Saudi',
     categories: ['transport'],
-    type: ['haji', 'umrah'] as const
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'airplane' as const  // Airplane only
   },
   {
     id: 'madinah',
@@ -22,7 +24,8 @@ export const PHASE_DEFINITIONS = [
     icon: '🕌',
     description: 'Tinggal dan beribadah di Madinah',
     categories: ['transport', 'hotel', 'food', 'waste'],
-    type: ['haji', 'umrah'] as const
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
   },
   {
     id: 'makkah',
@@ -30,7 +33,8 @@ export const PHASE_DEFINITIONS = [
     icon: '🕋',
     description: 'Di Makkah',
     categories: ['transport', 'hotel', 'food', 'waste'],
-    type: ['haji', 'umrah'] as const
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
   },
   {
     id: 'arafah',
@@ -38,7 +42,8 @@ export const PHASE_DEFINITIONS = [
     icon: '⛰️',
     description: 'Wukuf di Arafah',
     categories: ['transport', 'hotel', 'food', 'waste'],
-    type: ['haji'] as const
+    type: ['haji'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
   },
   {
     id: 'muzdalifah',
@@ -46,7 +51,8 @@ export const PHASE_DEFINITIONS = [
     icon: '🌙',
     description: 'Bermalam di Muzdalifah',
     categories: ['transport', 'food', 'waste'],
-    type: ['haji'] as const
+    type: ['haji'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
   },
   {
     id: 'mina',
@@ -54,7 +60,8 @@ export const PHASE_DEFINITIONS = [
     icon: '🎯',
     description: 'Hari Tasyrik di Mina',
     categories: ['transport', 'hotel', 'food', 'waste'],
-    type: ['haji'] as const
+    type: ['haji'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
   },
   {
     id: 'rekreasi',
@@ -62,15 +69,17 @@ export const PHASE_DEFINITIONS = [
     icon: '🎡',
     description: 'Wisata dan rekreasi sebelum kepulangan',
     categories: ['transport', 'hotel', 'food', 'waste'],
-    type: ['haji', 'umrah'] as const
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
   },
   {
     id: 'kepulangan',
-    name: 'Kepulangan (KSA → ID)',
+    name: 'Kepulangan',
     icon: '🏠',
-    description: 'Penerbangan kembali ke Indonesia dan transportasi darat ke rumah',
+    description: 'Kepulangan dari Arab Saudi ke Indonesia',
     categories: ['transport'],
-    type: ['haji', 'umrah'] as const
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'airplane' as const  // Airplane only
   }
 ] as const;
 
