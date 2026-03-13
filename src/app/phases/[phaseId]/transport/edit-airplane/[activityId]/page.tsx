@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, TRANSPORT_FACTORS, AIRPORTS, AirportCode } from '@/lib/constants';
+import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
+import { fetchAirports, toIndonesiaSelectOptions, getSaudiFallbackOptions, findAirportByName, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
 import Select from 'react-select';
 import { FaPlane } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
@@ -28,67 +29,55 @@ export default function EditAirplaneTransportPage() {
     date: activity?.date || ''
   });
 
-  const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportCode | ''>('');
-  const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportCode | ''>('');
-  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(activity?.distance || null);
+  const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportSelectOption | null | undefined>(undefined);
+  const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportSelectOption | null | undefined>(undefined);
+  const [groupedAirportOptions, setGroupedAirportOptions] = useState<{ label: string; options: AirportSelectOption[] }[]>([]);
+  const [flatAirportOptions, setFlatAirportOptions] = useState<AirportSelectOption[]>([]);
 
-  // Find airport codes from activity origin/destination
+  // Load airport options from DB (Indonesia) + fallback (Saudi Arabia)
   useEffect(() => {
-    if (activity?.origin) {
-      const originCode = Object.entries(AIRPORTS).find(([_, airport]) => 
-        airport.name === activity.origin?.name
-      )?.[0] as AirportCode | undefined;
-      if (originCode) setSelectedOriginAirport(originCode);
-    }
-    if (activity?.destination) {
-      const destCode = Object.entries(AIRPORTS).find(([_, airport]) => 
-        airport.name === activity.destination?.name
-      )?.[0] as AirportCode | undefined;
-      if (destCode) setSelectedDestinationAirport(destCode);
-    }
-  }, [activity]);
+    const loadAirportOptions = async () => {
+      try {
+        const indonesiaAirports = await fetchAirports({ country: 'Indonesia' });
+        const indonesiaOptions = toIndonesiaSelectOptions(indonesiaAirports);
+        const saudiOptions = getSaudiFallbackOptions();
+        const allOptions = [...indonesiaOptions, ...saudiOptions];
 
-  // Prepare airport options for react-select
-  const airportOptions = Object.entries(AIRPORTS).map(([code, airport]) => ({
-    value: code as AirportCode,
-    label: `${airport.city} - ${airport.name}`,
-    country: airport.country
-  }));
+        setFlatAirportOptions(allOptions);
+        setGroupedAirportOptions([
+          { label: 'Indonesia', options: indonesiaOptions },
+          { label: 'Saudi Arabia', options: saudiOptions }
+        ]);
+      } catch (error) {
+        console.error('Failed to load airports:', error);
+        const saudiOptions = getSaudiFallbackOptions();
+        setFlatAirportOptions(saudiOptions);
+        setGroupedAirportOptions([{ label: 'Saudi Arabia', options: saudiOptions }]);
+      }
+    };
 
-  const indonesiaAirports = airportOptions.filter(option => option.country === 'Indonesia');
-  const saudiAirports = airportOptions.filter(option => option.country === 'Saudi Arabia');
+    loadAirportOptions();
+  }, []);
 
-  const groupedAirportOptions = [
-    { label: 'Indonesia', options: indonesiaAirports },
-    { label: 'Saudi Arabia', options: saudiAirports }
-  ];
+  const resolvedOriginAirport = useMemo(() => {
+    if (selectedOriginAirport !== undefined) return selectedOriginAirport;
+    return findAirportByName(flatAirportOptions, activity?.origin?.name);
+  }, [selectedOriginAirport, flatAirportOptions, activity?.origin?.name]);
 
-  // Calculate distance when both airports are selected
-  useEffect(() => {
-    if (selectedOriginAirport && selectedDestinationAirport) {
-      const origin = AIRPORTS[selectedOriginAirport];
-      const destination = AIRPORTS[selectedDestinationAirport];
-      
-      // Calculate great circle distance using Haversine formula
-      const R = 6371; // Earth's radius in km
-      const dLat = (destination.lat - origin.lat) * Math.PI / 180;
-      const dLon = (destination.lon - origin.lon) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(origin.lat * Math.PI / 180) * Math.cos(destination.lat * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
-      
-      setCalculatedDistance(Math.round(distance));
-    } else {
-      setCalculatedDistance(null);
-    }
-  }, [selectedOriginAirport, selectedDestinationAirport]);
+  const resolvedDestinationAirport = useMemo(() => {
+    if (selectedDestinationAirport !== undefined) return selectedDestinationAirport;
+    return findAirportByName(flatAirportOptions, activity?.destination?.name);
+  }, [selectedDestinationAirport, flatAirportOptions, activity?.destination?.name]);
+
+  const calculatedDistance = useMemo(() => {
+    if (!resolvedOriginAirport || !resolvedDestinationAirport) return null;
+    return calculateFlightDistanceKm(resolvedOriginAirport, resolvedDestinationAirport);
+  }, [resolvedOriginAirport, resolvedDestinationAirport]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedOriginAirport || !selectedDestinationAirport || !calculatedDistance) {
+    if (!resolvedOriginAirport || !resolvedDestinationAirport || !calculatedDistance) {
       showWarning('Mohon pilih bandara asal dan tujuan', { title: 'Data Belum Lengkap' });
       return;
     }
@@ -106,14 +95,14 @@ export default function EditAirplaneTransportPage() {
       date: formData.date,
       emission,
       origin: {
-        name: AIRPORTS[selectedOriginAirport].name,
-        lat: AIRPORTS[selectedOriginAirport].lat,
-        lon: AIRPORTS[selectedOriginAirport].lon
+        name: resolvedOriginAirport.name,
+        lat: resolvedOriginAirport.lat,
+        lon: resolvedOriginAirport.lon
       },
       destination: {
-        name: AIRPORTS[selectedDestinationAirport].name,
-        lat: AIRPORTS[selectedDestinationAirport].lat,
-        lon: AIRPORTS[selectedDestinationAirport].lon
+        name: resolvedDestinationAirport.name,
+        lat: resolvedDestinationAirport.lat,
+        lon: resolvedDestinationAirport.lon
       }
     };
 
@@ -198,12 +187,8 @@ export default function EditAirplaneTransportPage() {
               Dari (Bandara Asal) *
             </label>
             <Select
-              value={selectedOriginAirport ? { 
-                value: selectedOriginAirport, 
-                label: `${AIRPORTS[selectedOriginAirport].city} - ${AIRPORTS[selectedOriginAirport].name}`,
-                country: AIRPORTS[selectedOriginAirport].country
-              } : null}
-              onChange={(option) => setSelectedOriginAirport(option?.value || '')}
+              value={resolvedOriginAirport || null}
+              onChange={(option) => setSelectedOriginAirport(option as AirportSelectOption | null)}
               options={groupedAirportOptions}
               placeholder="Cari atau pilih bandara asal..."
               isClearable
@@ -229,9 +214,9 @@ export default function EditAirplaneTransportPage() {
               }}
               required
             />
-            {selectedOriginAirport && (
+            {resolvedOriginAirport && (
               <p className="text-xs text-green-600 mt-1">
-                ✓ {AIRPORTS[selectedOriginAirport].city} - {AIRPORTS[selectedOriginAirport].name}
+                ✓ {resolvedOriginAirport.label}
               </p>
             )}
           </div>
@@ -242,12 +227,8 @@ export default function EditAirplaneTransportPage() {
               Menuju (Bandara Tujuan) *
             </label>
             <Select
-              value={selectedDestinationAirport ? { 
-                value: selectedDestinationAirport, 
-                label: `${AIRPORTS[selectedDestinationAirport].city} - ${AIRPORTS[selectedDestinationAirport].name}`,
-                country: AIRPORTS[selectedDestinationAirport].country
-              } : null}
-              onChange={(option) => setSelectedDestinationAirport(option?.value || '')}
+              value={resolvedDestinationAirport || null}
+              onChange={(option) => setSelectedDestinationAirport(option as AirportSelectOption | null)}
               options={groupedAirportOptions}
               placeholder="Cari atau pilih bandara tujuan..."
               isClearable
@@ -273,9 +254,9 @@ export default function EditAirplaneTransportPage() {
               }}
               required
             />
-            {selectedDestinationAirport && (
+            {resolvedDestinationAirport && (
               <p className="text-xs text-green-600 mt-1">
-                ✓ {AIRPORTS[selectedDestinationAirport].city} - {AIRPORTS[selectedDestinationAirport].name}
+                ✓ {resolvedDestinationAirport.label}
               </p>
             )}
           </div>

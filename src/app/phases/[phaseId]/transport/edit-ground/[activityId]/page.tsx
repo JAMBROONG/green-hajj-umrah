@@ -10,45 +10,66 @@ import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locat
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
 
-export default function EditGroundTransportPage() {
-  const params = useParams();
+const toDateInputValue = (date: string | Date | undefined): string => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+interface EditGroundTransportFormProps {
+  phaseId: PhaseId;
+  phaseName: string;
+  activityId: string;
+  activity: TransportActivity;
+  activities: TransportActivity[];
+  updateCategory: ReturnType<typeof useHajiJourney>['updateCategory'];
+}
+
+function EditGroundTransportForm({
+  phaseId,
+  phaseName,
+  activityId,
+  activity,
+  activities,
+  updateCategory
+}: EditGroundTransportFormProps) {
   const router = useRouter();
   const { showWarning } = useDialog();
-  const phaseId = params.phaseId as PhaseId;
-  const activityId = params.activityId as string;
-  const { journey, updateCategory } = useHajiJourney();
-
-  const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
-  const categoryData = journey?.phases[phaseId]?.categories?.transport;
-  const activities = (categoryData?.activities as TransportActivity[]) || [];
-  const activity = activities.find(a => a.id === activityId);
 
   const [formData, setFormData] = useState({
-    type: activity?.type || 'mobil',
-    date: activity?.date || ''
+    type: activity.type || 'mobil',
+    date: toDateInputValue(activity.date)
   });
 
-  const [originQuery, setOriginQuery] = useState(activity?.origin?.name || '');
-  const [destinationQuery, setDestinationQuery] = useState(activity?.destination?.name || '');
+  const [originQuery, setOriginQuery] = useState(activity.origin?.name || '');
+  const [destinationQuery, setDestinationQuery] = useState(activity.destination?.name || '');
   const [originSuggestions, setOriginSuggestions] = useState<Location[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<Location[]>([]);
   const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(
-    activity?.origin ? {
-      displayName: activity.origin.name,
-      lat: activity.origin.lat,
-      lon: activity.origin.lon,
-      placeId: 0
-    } : null
+    activity.origin
+      ? {
+          displayName: activity.origin.name,
+          lat: activity.origin.lat,
+          lon: activity.origin.lon,
+          placeId: 0
+        }
+      : null
   );
   const [selectedDestination, setSelectedDestination] = useState<Location | null>(
-    activity?.destination ? {
-      displayName: activity.destination.name,
-      lat: activity.destination.lat,
-      lon: activity.destination.lon,
-      placeId: 0
-    } : null
+    activity.destination
+      ? {
+          displayName: activity.destination.name,
+          lat: activity.destination.lat,
+          lon: activity.destination.lon,
+          placeId: 0
+        }
+      : null
   );
-  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(activity?.distance || null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(activity.distance || null);
   const [isSearching, setIsSearching] = useState(false);
 
   const originRef = useRef<HTMLDivElement>(null);
@@ -187,10 +208,6 @@ export default function EditGroundTransportPage() {
     router.push(`/phases/${phaseId}/transport`);
   };
 
-  if (!phase || !activity) {
-    return null;
-  }
-
   return (
     <div className="app-container">
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
@@ -206,7 +223,7 @@ export default function EditGroundTransportPage() {
             <FaCar className="text-3xl text-blue-400" />
             <div>
               <h1 className="text-xl font-bold">Edit Transportasi Darat</h1>
-              <p className="text-sm text-white/80">{phase.name}</p>
+              <p className="text-sm text-white/80">{phaseName}</p>
             </div>
           </div>
         </div>
@@ -364,5 +381,32 @@ export default function EditGroundTransportPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function EditGroundTransportPage() {
+  const params = useParams();
+  const phaseId = params.phaseId as PhaseId;
+  const activityId = params.activityId as string;
+  const { journey, updateCategory } = useHajiJourney();
+
+  const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+  const categoryData = journey?.phases[phaseId]?.categories?.transport;
+  const activities = (categoryData?.activities as TransportActivity[]) || [];
+  const activity = activities.find(a => a.id === activityId);
+
+  if (!phase || !activity) {
+    return null;
+  }
+
+  return (
+    <EditGroundTransportForm
+      phaseId={phaseId}
+      phaseName={phase.name}
+      activityId={activityId}
+      activity={activity}
+      activities={activities}
+      updateCategory={updateCategory}
+    />
   );
 }

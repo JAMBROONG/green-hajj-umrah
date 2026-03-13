@@ -132,7 +132,9 @@ export default function TransportListPage() {
       'mobil-listrik': <MdElectricCar className="text-xl text-green-600" />,
       'bus': <FaBus className="text-xl text-orange-600" />,
       'bus-listrik': <RiBusFill className="text-xl text-green-600" />,
-      'kereta': <FaTrain className="text-xl text-purple-600" />
+      'kereta': <FaTrain className="text-xl text-purple-600" />,
+      'pesawat-ekonomi': <FaPlane className="text-xl text-sky-600" />,
+      'pesawat-bisnis': <FaPlane className="text-xl text-indigo-600" />
     };
     return icons[type] || <FaCar className="text-xl text-gray-600" />;
   };

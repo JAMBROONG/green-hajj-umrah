@@ -143,6 +143,8 @@ export default function AddHotelPage() {
             Pilih Hotel *
           </label>
           <Select
+            instanceId={`hotel-select-${phaseId}`}
+            inputId={`hotel-select-input-${phaseId}`}
             options={hotelOptions}
             onChange={handleHotelChange}
             placeholder="Cari hotel..."

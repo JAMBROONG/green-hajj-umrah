@@ -84,3 +84,35 @@ model hajj_periods {
   @@index([year])
   @@index([is_active])
 }
+
+model airports {
+  id         Int      @id @default(autoincrement())
+  name       String
+  icao       String?
+  iata       String?
+  country    String
+  lat        Float
+  lon        Float
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([country])
+  @@index([is_active])
+  @@index([iata])
+  @@index([icao])
+}
+
+model hotels {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  factor_emission      Decimal  @db.Decimal(10, 4)
+  factor_emission_name String
+  address              String
+  country_code         String
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@index([country_code])
+  @@index([name])
+}

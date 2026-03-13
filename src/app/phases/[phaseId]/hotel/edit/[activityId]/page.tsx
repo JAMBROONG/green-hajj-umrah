@@ -140,6 +140,8 @@ export default function EditHotelPage() {
             Pilih Hotel *
           </label>
           <Select
+            instanceId={`hotel-select-${phaseId}-${activityId}`}
+            inputId={`hotel-select-input-${phaseId}-${activityId}`}
             options={hotelOptions}
             value={selectedOption}
             onChange={handleHotelChange}
