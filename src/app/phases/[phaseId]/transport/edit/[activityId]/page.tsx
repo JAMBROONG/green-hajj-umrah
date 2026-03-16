@@ -36,27 +36,13 @@ export default function EditTransportPage() {
   const selectedDate = formData.date || activity?.date || '';
 
   // Location search states
-  const [originQuery, setOriginQuery] = useState(activity?.origin?.name || '');
-  const [destinationQuery, setDestinationQuery] = useState(activity?.destination?.name || '');
+  const [originQuery, setOriginQuery] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
   const [originSuggestions, setOriginSuggestions] = useState<Location[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<Location[]>([]);
-  const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(
-    activity?.origin ? {
-      displayName: activity.origin.name,
-      lat: activity.origin.lat,
-      lon: activity.origin.lon,
-      placeId: 0
-    } : null
-  );
-  const [selectedDestination, setSelectedDestination] = useState<Location | null>(
-    activity?.destination ? {
-      displayName: activity.destination.name,
-      lat: activity.destination.lat,
-      lon: activity.destination.lon,
-      placeId: 0
-    } : null
-  );
-  const [groundDistance, setGroundDistance] = useState<number | null>(activity?.distance || null);
+  const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<Location | null>(null);
+  const [groundDistance, setGroundDistance] = useState<number | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
   // Check if transport type is airplane
@@ -76,6 +62,41 @@ export default function EditTransportPage() {
 
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
+  const hasInitializedLocations = useRef(false);
+
+  useEffect(() => {
+    // Initialize origin and destination from activity data when activity is available
+    // This pattern initializes the form with existing activity data
+    if (activity && !hasInitializedLocations.current && (activity.origin || activity.destination)) {
+      const initData = () => {
+        if (activity.origin) {
+          setOriginQuery(activity.origin.name);
+          setSelectedOrigin({
+            displayName: activity.origin.name,
+            lat: activity.origin.lat,
+            lon: activity.origin.lon,
+            placeId: 0
+          });
+        }
+        if (activity.destination) {
+          setDestinationQuery(activity.destination.name);
+          setSelectedDestination({
+            displayName: activity.destination.name,
+            lat: activity.destination.lat,
+            lon: activity.destination.lon,
+            placeId: 0
+          });
+        }
+        if (activity.distance) {
+          setGroundDistance(activity.distance);
+        }
+        hasInitializedLocations.current = true;
+      };
+      
+      // Use requestAnimationFrame to defer state updates to avoid cascading renders
+      requestAnimationFrame(initData);
+    }
+  }, [activity]);
 
   useEffect(() => {
     const loadAirportOptions = async () => {
