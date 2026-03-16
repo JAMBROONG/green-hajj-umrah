@@ -11,14 +11,14 @@ export type PhaseId =
 
 export type CategoryId = 'transport' | 'hotel' | 'food' | 'waste';
 
-export type VehicleType = 'bus' | 'mobil' | 'kereta';
+export type VehicleType = 'bus' | 'mobil' | 'kapal' | 'kereta';
 export type HotelStars = 3 | 4 | 5;
 export type FoodType = 'nasi-ayam' | 'daging-sapi' | 'ikan' | 'vegetarian';
 
 // Activity types for multiple input system
 export interface TransportActivity {
   id: string;
-  type: string; // bus, mobil, kereta, pesawat-ekonomi, pesawat-bisnis
+  type: string; // bus, mobil, kapal, kereta, pesawat-ekonomi, pesawat-bisnis
   distance: number;
   passengers?: number;
   date?: string;

@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:import-airports:id": "npx tsx prisma/import-indonesia-airports.ts"
+    "db:import-airports:id": "npx tsx prisma/import-indonesia-airports.ts",
+    "db:import-seaports:laravel": "npx tsx prisma/import-seaports-from-laravel.ts",
+    "db:seed-food-factors": "npx tsx prisma/seed-food-emission-factors.ts",
+    "db:seed-vehicle-factors": "npx tsx prisma/seed-vehicle-emission-factors.ts",
+    "db:seed-waste-factors": "npx tsx prisma/seed-waste-emission-factors.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",

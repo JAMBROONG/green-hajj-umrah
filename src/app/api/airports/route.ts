@@ -66,11 +66,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching airports:', error);
+    const details = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         airports: [],
         count: 0,
-        error: 'Terjadi kesalahan saat mengambil data bandara.'
+        error: 'Terjadi kesalahan saat mengambil data bandara.',
+        ...(process.env.NODE_ENV !== 'production' ? { details } : {})
       },
       { status: 500 }
     );

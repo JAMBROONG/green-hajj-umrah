@@ -103,6 +103,27 @@ model airports {
   @@index([icao])
 }
 
+model seaports {
+  id          Int      @id @default(autoincrement())
+  source_id   Int?     @unique
+  name        String
+  alias_name  String?
+  latitude    Float
+  longitude   Float
+  province    String?
+  city        String?
+  address     String?
+  country_id  Int?
+  country_code String  @default("ID")
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([country_code])
+  @@index([is_active])
+  @@index([name])
+}
+
 model hotels {
   id                   Int      @id @default(autoincrement())
   name                 String
@@ -114,5 +135,43 @@ model hotels {
   updated_at           DateTime @updatedAt
 
   @@index([country_code])
+  @@index([name])
+}
+
+model jenis_kendaraan {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  emission_factor      Decimal? @db.Decimal(12, 6)
+  type                 String
+  emission_factor_name String
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@unique([name, type])
+  @@index([type])
+  @@index([name])
+}
+
+model faktor_emisi_makanan {
+  id                   Int      @id @default(autoincrement())
+  name                 String   @unique
+  emission_factor      Decimal  @db.Decimal(10, 4)
+  emission_factor_name String
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@index([name])
+}
+
+model faktor_emisi_limbah {
+  id                   Int      @id @default(autoincrement())
+  name                 String   @unique
+  emission_factor      Decimal  @db.Decimal(12, 5)
+  emission_factor_name String
+  source               String?
+  unit                 String
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
   @@index([name])
 }

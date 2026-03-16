@@ -7,11 +7,11 @@ import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
 import { TransportActivity, PhaseId } from '@/lib/types';
-import { FaCar, FaBus, FaTrain, FaPlane } from 'react-icons/fa';
+import { FaCar, FaBus, FaTrain, FaPlane, FaShip } from 'react-icons/fa';
 import { MdElectricCar } from 'react-icons/md';
 import { RiBusFill } from 'react-icons/ri';
 import { IoArrowBack, IoAdd, IoCalendarOutline } from 'react-icons/io5';
-import { MdEdit, MdDelete } from 'react-icons/md';
+import { MdEdit, MdDelete, MdInfoOutline } from 'react-icons/md';
 
 export default function TransportListPage() {
   const params = useParams();
@@ -52,13 +52,17 @@ export default function TransportListPage() {
     // Route to appropriate edit form based on transport type
     const transportType = phase.transportTypes;
     
-    if (transportType === 'airplane' || isAirplane) {
+    if (transportType === 'airplane') {
       router.push(`/phases/${phaseId}/transport/edit-airplane/${activityId}`);
-    } else if (transportType === 'ground' || !isAirplane) {
+    } else if (transportType === 'ground') {
       router.push(`/phases/${phaseId}/transport/edit-ground/${activityId}`);
     } else {
       // Mixed - route based on actual activity type
-      router.push(`/phases/${phaseId}/transport/edit/${activityId}`);
+      if (isAirplane) {
+        router.push(`/phases/${phaseId}/transport/edit-airplane/${activityId}`);
+      } else {
+        router.push(`/phases/${phaseId}/transport/edit/${activityId}`);
+      }
     }
   };
 
@@ -82,6 +86,10 @@ export default function TransportListPage() {
         cancelText: 'Batal'
       }
     );
+  };
+
+  const handleDetailClick = (activityId: string) => {
+    router.push(`/phases/${phaseId}/transport/detail/${activityId}`);
   };
 
   const handleBackClick = () => {
@@ -119,6 +127,7 @@ export default function TransportListPage() {
       'mobil-listrik': 'Mobil Listrik',
       'bus': 'Bus',
       'bus-listrik': 'Bus Listrik',
+      'kapal': 'Kapal',
       'kereta': 'Kereta',
       'pesawat-ekonomi': 'Pesawat Ekonomi',
       'pesawat-bisnis': 'Pesawat Bisnis'
@@ -132,6 +141,7 @@ export default function TransportListPage() {
       'mobil-listrik': <MdElectricCar className="text-xl text-green-600" />,
       'bus': <FaBus className="text-xl text-orange-600" />,
       'bus-listrik': <RiBusFill className="text-xl text-green-600" />,
+      'kapal': <FaShip className="text-xl text-cyan-600" />,
       'kereta': <FaTrain className="text-xl text-purple-600" />,
       'pesawat-ekonomi': <FaPlane className="text-xl text-sky-600" />,
       'pesawat-bisnis': <FaPlane className="text-xl text-indigo-600" />
@@ -141,7 +151,7 @@ export default function TransportListPage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
       {/* Header */}
       <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
         <button
@@ -210,7 +220,14 @@ export default function TransportListPage() {
                     <p className="text-lg font-bold text-primary">
                       {formatEmission(activity.emission)}
                     </p>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-2 mt-2 flex-wrap justify-end">
+                      <button
+                        onClick={() => handleDetailClick(activity.id)}
+                        className="text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1"
+                      >
+                        <MdInfoOutline /> Detail
+                      </button>
+                      <span className="text-gray-300">|</span>
                       <button
                         onClick={() => handleEditClick(activity.id)}
                         className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"

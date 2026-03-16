@@ -1,70 +1,174 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, FOODS_DATA } from '@/lib/constants';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
+import { fetchFoodEmissionFactors, toFoodSelectOptions, FoodSelectOption } from '@/lib/foodHelper';
 import { FoodActivity, PhaseId } from '@/lib/types';
 import { MdRestaurant } from 'react-icons/md';
 import { IoArrowBack } from 'react-icons/io5';
 
+const LEGACY_FOOD_LOOKUP: Record<string, { label: string; factor: number }> = {
+  'nasi-ayam': { label: 'Nasi dengan Ayam', factor: 1.2 },
+  'nasi-kambing': { label: 'Nasi dengan Kambing', factor: 3.5 },
+  'nasi-ikan': { label: 'Nasi dengan Ikan', factor: 1.5 },
+  'kebab': { label: 'Kebab/Shawarma', factor: 2.8 },
+  'mandi-rice': { label: 'Mandi Rice', factor: 3.0 },
+  'kabsa': { label: 'Kabsa (Saudi Traditional)', factor: 3.2 },
+  'biryani': { label: 'Biryani', factor: 2.5 },
+  'salad': { label: 'Salad/Sayuran', factor: 0.5 },
+  'roti-hummus': { label: 'Roti dengan Hummus', factor: 0.8 },
+  'sup-lentil': { label: 'Sup Lentil', factor: 0.6 },
+  'falafel': { label: 'Falafel', factor: 0.7 },
+  'dates-fruits': { label: 'Kurma & Buah-buahan', factor: 0.3 },
+  'vegan': { label: 'Makanan vegan', factor: 0.39 },
+  'vegetarian': { label: 'Makanan vegetarian', factor: 0.51 },
+  'ikan-berlemak': { label: 'Makan dengan ikan berlemak', factor: 1.11 },
+  'ayam': { label: 'Makan dengan ayam', factor: 1.58 },
+  'ikan-putih': { label: 'Makan dengan ikan putih', factor: 1.98 },
+  'daging-sapi': { label: 'Makan dengan daging sapi', factor: 7.26 }
+};
+
+const normalizeText = (value: string | undefined) => (value || '').trim().toLowerCase();
+
+type FoodFormData = {
+  foodId: string;
+  foodName: string;
+  factor: number;
+  servings: number;
+  date: string;
+};
+
+const createInitialFormData = (activity: FoodActivity): FoodFormData => ({
+  foodId: activity.foodId || '',
+  foodName: activity.foodName || '',
+  factor: activity.servings > 0 ? activity.emission / activity.servings : 0,
+  servings: activity.servings || 1,
+  date: activity.date || ''
+});
+
 export default function EditFoodPage() {
   const params = useParams();
-  const router = useRouter();
-  const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const activityId = params.activityId as string;
-  const { journey, updateCategory } = useHajiJourney();
+  const { journey } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const categoryData = journey?.phases[phaseId]?.categories?.food;
   const activities = (categoryData?.activities as FoodActivity[]) || [];
   const activity = activities.find(a => a.id === activityId);
 
-  const food = activity ? FOODS_DATA.find(f => f.id === activity.foodId) : undefined;
-  const [formData, setFormData] = useState({
-    foodId: activity?.foodId || '',
-    foodName: activity?.foodName || '',
-    factor: food?.factor || 0,
-    servings: activity?.servings || 1,
-    date: activity?.date || ''
-  });
+  if (!phase || !activity) {
+    return null;
+  }
 
-  const foodOptions = FOODS_DATA.map(food => ({
-    value: food.id,
-    label: food.name,
-    food: food
-  }));
+  return (
+    <EditFoodForm
+      key={activity.id}
+      phaseId={phaseId}
+      activityId={activityId}
+      phaseName={phase.name}
+      activity={activity}
+      activities={activities}
+    />
+  );
+}
 
-  type FoodOption = typeof foodOptions[number];
+type EditFoodFormProps = {
+  phaseId: PhaseId;
+  activityId: string;
+  phaseName: string;
+  activity: FoodActivity;
+  activities: FoodActivity[];
+};
 
-  const handleFoodChange = (option: FoodOption | null) => {
+function EditFoodForm({ phaseId, activityId, phaseName, activity, activities }: EditFoodFormProps) {
+  const router = useRouter();
+  const { showWarning } = useDialog();
+  const { updateCategory } = useHajiJourney();
+  const [foodOptions, setFoodOptions] = useState<FoodSelectOption[]>([]);
+  const [formData, setFormData] = useState<FoodFormData>(() => createInitialFormData(activity));
+
+  useEffect(() => {
+    const loadFoodOptions = async () => {
+      try {
+        const items = await fetchFoodEmissionFactors();
+        setFoodOptions(toFoodSelectOptions(items));
+      } catch (error) {
+        console.error('Failed to load food emission factors:', error);
+      }
+    };
+
+    loadFoodOptions();
+  }, []);
+
+  const handleFoodChange = (option: FoodSelectOption | null) => {
     if (option) {
       setFormData({
         ...formData,
-        foodId: option.food.id,
-        foodName: option.food.name,
-        factor: option.food.factor
+        foodId: option.value,
+        foodName: option.label,
+        factor: option.factor
+      });
+    } else {
+      setFormData({
+        ...formData,
+        foodId: '',
+        foodName: '',
+        factor: 0
       });
     }
   };
 
+  const normalizedFoodName = normalizeText(formData.foodName);
+
+  const selectedOption =
+    foodOptions.find(opt => opt.value === formData.foodId) ||
+    (normalizedFoodName
+      ? foodOptions.find(opt => normalizeText(opt.label) === normalizedFoodName)
+      : undefined) ||
+    (normalizedFoodName.length >= 3
+      ? foodOptions.find(opt => normalizeText(opt.label).includes(normalizedFoodName))
+      : undefined) ||
+    (formData.factor > 0
+      ? foodOptions.find(opt => Math.abs(opt.factor - formData.factor) < 0.0001)
+      : undefined) ||
+    null;
+
+  const legacyFood = LEGACY_FOOD_LOOKUP[formData.foodId];
+
+  const displayedSelectedOption: FoodSelectOption | null = selectedOption || (
+    (formData.foodName || legacyFood?.label)
+      ? {
+          value: formData.foodId || 'legacy-food',
+          label: formData.foodName || legacyFood?.label || '',
+          factor: formData.factor || legacyFood?.factor || 0,
+          factorName: 'kg CO₂e/porsi'
+        }
+      : null
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.foodId) {
+    const effectiveFoodId = selectedOption?.value || formData.foodId;
+    const effectiveFoodName = selectedOption?.label || formData.foodName || legacyFood?.label || '';
+    const effectiveFactor = (selectedOption?.factor ?? formData.factor) || legacyFood?.factor || 0;
+
+    if (!effectiveFoodId) {
       showWarning('Pilih jenis makanan terlebih dahulu', { title: 'Data Belum Lengkap' });
       return;
     }
 
-    const emission = formData.servings * formData.factor;
+    const emission = formData.servings * effectiveFactor;
 
     const updatedActivity: FoodActivity = {
       ...activity!,
-      foodId: formData.foodId,
-      foodName: formData.foodName,
+      foodId: effectiveFoodId,
+      foodName: effectiveFoodName,
       servings: formData.servings,
       date: formData.date,
       emission
@@ -89,15 +193,9 @@ export default function EditFoodPage() {
     router.push(`/phases/${phaseId}/food`);
   };
 
-  if (!phase || !activity) {
-    return null;
-  }
-
-  const selectedOption = foodOptions.find(opt => opt.value === formData.foodId);
-
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
       {/* Header */}
       <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
         <button
@@ -110,7 +208,7 @@ export default function EditFoodPage() {
           <MdRestaurant className="text-3xl text-orange-400" />
           <div>
             <h1 className="text-xl font-bold">Edit Konsumsi</h1>
-            <p className="text-sm text-white/80">{phase.name}</p>
+            <p className="text-sm text-white/80">{phaseName}</p>
           </div>
         </div>
       </div>
@@ -123,9 +221,11 @@ export default function EditFoodPage() {
             Pilih Jenis Makanan *
           </label>
           <Select
+            instanceId={`food-select-${phaseId}-${activityId}`}
+            inputId={`food-select-input-${phaseId}-${activityId}`}
             options={foodOptions}
-            value={selectedOption}
-            onChange={handleFoodChange}
+            value={displayedSelectedOption}
+            onChange={(option) => handleFoodChange(option as FoodSelectOption | null)}
             placeholder="Cari makanan..."
             className="react-select-container"
             classNamePrefix="react-select"
@@ -186,10 +286,10 @@ export default function EditFoodPage() {
           <div className="p-4 bg-primaryLight rounded-xl">
             <p className="text-sm text-gray-600 mb-1">Estimasi Emisi</p>
             <p className="text-2xl font-bold text-primary">
-              {(formData.servings * formData.factor).toFixed(2)} kg CO₂e
+              {(formData.servings * (selectedOption?.factor ?? formData.factor)).toFixed(2)} kg CO₂e
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {formData.factor} kg CO₂e per porsi × {formData.servings} porsi
+              {(selectedOption?.factor ?? formData.factor)} kg CO₂e per porsi × {formData.servings} porsi
             </p>
           </div>
         )}

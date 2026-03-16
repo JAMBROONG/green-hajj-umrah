@@ -224,7 +224,7 @@ export function formatEmission(emission: number, unit: 'kg' | 'ton' = 'kg'): str
   if (unit === 'ton') {
     return (emission / 1000).toFixed(2);
   }
-  return emission.toFixed(0);
+  return emission.toFixed(2);
 }
 
 export function formatCurrency(amount: number): string {

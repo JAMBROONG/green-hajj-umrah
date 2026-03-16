@@ -8,6 +8,7 @@ import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { fetchAirports, toIndonesiaSelectOptions, getSaudiFallbackOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
+import { fetchSeaports, toSeaportSelectOptions, calculateSeaportDistanceKm, SeaportSelectOption } from '@/lib/seaportHelper';
 import { v4 as uuidv4 } from 'uuid';
 import Select from 'react-select';
 import { FaCar } from 'react-icons/fa';
@@ -21,6 +22,7 @@ export default function AddTransportPage() {
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+  const canUseSeaTransport = phaseId === 'pra-keberangkatan';
 
   const [formData, setFormData] = useState({
     type: 'mobil',
@@ -29,11 +31,17 @@ export default function AddTransportPage() {
 
   // Check if selected type is airplane
   const isAirplane = formData.type === 'pesawat-ekonomi' || formData.type === 'pesawat-bisnis';
+  const isSeaTransport = formData.type === 'kapal';
 
   // Airport selection states (for airplanes)
   const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportSelectOption | null>(null);
   const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportSelectOption | null>(null);
   const [groupedAirportOptions, setGroupedAirportOptions] = useState<{ label: string; options: AirportSelectOption[] }[]>([]);
+
+  // Seaport selection states (for sea transport)
+  const [selectedOriginSeaport, setSelectedOriginSeaport] = useState<SeaportSelectOption | null>(null);
+  const [selectedDestinationSeaport, setSelectedDestinationSeaport] = useState<SeaportSelectOption | null>(null);
+  const [seaportOptions, setSeaportOptions] = useState<SeaportSelectOption[]>([]);
 
   // Location search states (for ground transport)
   const [originQuery, setOriginQuery] = useState('');
@@ -66,6 +74,20 @@ export default function AddTransportPage() {
     };
 
     loadAirportOptions();
+  }, []);
+
+  useEffect(() => {
+    const loadSeaportOptions = async () => {
+      try {
+        const seaports = await fetchSeaports();
+        setSeaportOptions(toSeaportSelectOptions(seaports));
+      } catch (error) {
+        console.error('Failed to load seaports:', error);
+        setSeaportOptions([]);
+      }
+    };
+
+    loadSeaportOptions();
   }, []);
 
   // Search origin locations
@@ -128,7 +150,12 @@ export default function AddTransportPage() {
     return calculateFlightDistanceKm(selectedOriginAirport, selectedDestinationAirport);
   }, [selectedOriginAirport, selectedDestinationAirport]);
 
-  const calculatedDistance = isAirplane ? airplaneDistance : groundDistance;
+  const seaDistance = useMemo(() => {
+    if (!selectedOriginSeaport || !selectedDestinationSeaport) return null;
+    return calculateSeaportDistanceKm(selectedOriginSeaport, selectedDestinationSeaport);
+  }, [selectedOriginSeaport, selectedDestinationSeaport]);
+
+  const calculatedDistance = isAirplane ? airplaneDistance : isSeaTransport ? seaDistance : groundDistance;
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -166,6 +193,11 @@ export default function AddTransportPage() {
         showWarning('Mohon pilih bandara asal dan tujuan', { title: 'Data Belum Lengkap' });
         return;
       }
+    } else if (isSeaTransport) {
+      if (!selectedOriginSeaport || !selectedDestinationSeaport || !calculatedDistance) {
+        showWarning('Mohon pilih pelabuhan asal dan tujuan', { title: 'Data Belum Lengkap' });
+        return;
+      }
     } else {
       if (!selectedOrigin || !selectedDestination || !calculatedDistance) {
         showWarning('Mohon pilih lokasi asal dan tujuan yang valid', { title: 'Data Belum Lengkap' });
@@ -192,6 +224,12 @@ export default function AddTransportPage() {
             lat: selectedOriginAirport.lat,
             lon: selectedOriginAirport.lon
           }
+        : isSeaTransport && selectedOriginSeaport
+        ? {
+            name: selectedOriginSeaport.name,
+            lat: selectedOriginSeaport.lat,
+            lon: selectedOriginSeaport.lon
+          }
         : selectedOrigin
         ? {
             name: selectedOrigin.displayName,
@@ -204,6 +242,12 @@ export default function AddTransportPage() {
             name: selectedDestinationAirport.name,
             lat: selectedDestinationAirport.lat,
             lon: selectedDestinationAirport.lon
+          }
+        : isSeaTransport && selectedDestinationSeaport
+        ? {
+            name: selectedDestinationSeaport.name,
+            lat: selectedDestinationSeaport.lat,
+            lon: selectedDestinationSeaport.lon
           }
         : selectedDestination
         ? {
@@ -245,7 +289,7 @@ export default function AddTransportPage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
       {/* Header */}
       <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
         <button
@@ -279,6 +323,8 @@ export default function AddTransportPage() {
               setSelectedDestination(null);
               setSelectedOriginAirport(null);
               setSelectedDestinationAirport(null);
+              setSelectedOriginSeaport(null);
+              setSelectedDestinationSeaport(null);
               setGroundDistance(null);
             }}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
@@ -288,6 +334,7 @@ export default function AddTransportPage() {
             <option value="mobil-listrik">Mobil Listrik</option>
             <option value="bus">Bus</option>
             <option value="bus-listrik">Bus Listrik</option>
+            {canUseSeaTransport && <option value="kapal">Kapal</option>}
             <option value="kereta">Kereta</option>
             <option value="pesawat-ekonomi">Pesawat (Kelas Ekonomi)</option>
             <option value="pesawat-bisnis">Pesawat (Kelas Bisnis)</option>
@@ -353,6 +400,47 @@ export default function AddTransportPage() {
             {selectedOriginAirport && (
               <p className="text-xs text-green-600 mt-1">
                 ✓ {selectedOriginAirport.label}
+              </p>
+            )}
+          </div>
+        ) : isSeaTransport ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Dari (Pelabuhan Asal) *
+            </label>
+            <Select
+              instanceId={`seaport-origin-${phaseId}`}
+              inputId={`seaport-origin-input-${phaseId}`}
+              value={selectedOriginSeaport}
+              onChange={(option) => setSelectedOriginSeaport(option as SeaportSelectOption | null)}
+              options={seaportOptions}
+              placeholder="Cari atau pilih pelabuhan asal..."
+              isClearable
+              isSearchable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  padding: '0.5rem',
+                  borderRadius: '0.75rem',
+                  borderWidth: '2px',
+                  borderColor: '#e5e7eb',
+                  '&:hover': { borderColor: '#e5e7eb' },
+                  '&:focus-within': { borderColor: '#10b981', boxShadow: 'none' }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                })
+              }}
+              required
+            />
+            {selectedOriginSeaport && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ Pelabuhan dipilih
               </p>
             )}
           </div>
@@ -448,6 +536,47 @@ export default function AddTransportPage() {
               </p>
             )}
           </div>
+        ) : isSeaTransport ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Menuju (Pelabuhan Tujuan) *
+            </label>
+            <Select
+              instanceId={`seaport-destination-${phaseId}`}
+              inputId={`seaport-destination-input-${phaseId}`}
+              value={selectedDestinationSeaport}
+              onChange={(option) => setSelectedDestinationSeaport(option as SeaportSelectOption | null)}
+              options={seaportOptions}
+              placeholder="Cari atau pilih pelabuhan tujuan..."
+              isClearable
+              isSearchable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  padding: '0.5rem',
+                  borderRadius: '0.75rem',
+                  borderWidth: '2px',
+                  borderColor: '#e5e7eb',
+                  '&:hover': { borderColor: '#e5e7eb' },
+                  '&:focus-within': { borderColor: '#10b981', boxShadow: 'none' }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                })
+              }}
+              required
+            />
+            {selectedDestinationSeaport && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ Pelabuhan dipilih
+              </p>
+            )}
+          </div>
         ) : (
           /* Location Search for Ground Transport */
           <div className="relative" ref={destinationRef}>
@@ -496,7 +625,7 @@ export default function AddTransportPage() {
         {calculatedDistance !== null && (
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <p className="text-sm text-blue-700 font-medium mb-1">
-              {isAirplane ? 'Jarak Terbang' : 'Jarak Rute Jalan'}
+              {isAirplane ? 'Jarak Terbang' : isSeaTransport ? 'Jarak Pelabuhan' : 'Jarak Rute Jalan'}
             </p>
             <p className="text-2xl font-bold text-blue-900">
               {calculatedDistance.toFixed(1)} km

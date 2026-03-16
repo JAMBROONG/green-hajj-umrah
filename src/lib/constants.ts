@@ -65,9 +65,9 @@ export const PHASE_DEFINITIONS = [
   },
   {
     id: 'rekreasi',
-    name: 'Rekreasi',
+    name: 'Fase Perjalanan Tambahan',
     icon: '🎡',
-    description: 'Wisata dan rekreasi sebelum kepulangan',
+    description: 'Aktivitas perjalanan tambahan atau insidental di luar rangkaian utama',
     categories: ['transport', 'hotel', 'food', 'waste'],
     type: ['haji', 'umrah'] as const,
     transportTypes: 'ground' as const  // Ground transport only
@@ -89,7 +89,7 @@ export const CATEGORY_DEFINITIONS = {
     name: 'Transportasi',
     icon: '🚌',
     color: 'blue',
-    description: 'Kendaraan darat (bus, mobil, dll) dan kendaraan udara (pesawat)'
+    description: 'Kendaraan darat, laut, dan udara'
   },
   hotel: {
     name: 'Hotel/Penginapan',
@@ -201,6 +201,7 @@ export const TRANSPORT_FACTORS = {
   'bus-listrik': 0.040,
   mobil: 0.171,
   'mobil-listrik': 0.053,
+  kapal: 0.115,
   kereta: 0.041,
   'pesawat-ekonomi': 0.255,  // kg CO2e per km per passenger
   'pesawat-bisnis': 0.434    // kg CO2e per km per passenger

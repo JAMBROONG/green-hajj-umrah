@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
-import { PHASE_DEFINITIONS, WASTE_FACTOR } from '@/lib/constants';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { WasteActivity, PhaseId } from '@/lib/types';
+import { fetchWasteEmissionFactors, toWasteSelectOptions, WasteSelectOption } from '@/lib/wasteHelper';
 import { v4 as uuidv4 } from 'uuid';
+import Select from 'react-select';
 import { MdRecycling } from 'react-icons/md';
 import { IoArrowBack } from 'react-icons/io5';
 
@@ -18,16 +20,54 @@ export default function AddWastePage() {
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
 
   const [formData, setFormData] = useState({
-    type: 'plastic',
+    type: '',
+    factor: 0,
     amount: '',
     date: new Date().toISOString().split('T')[0]
   });
+  const [wasteOptions, setWasteOptions] = useState<WasteSelectOption[]>([]);
+
+  useEffect(() => {
+    const loadWasteOptions = async () => {
+      try {
+        const items = await fetchWasteEmissionFactors();
+        setWasteOptions(toWasteSelectOptions(items));
+      } catch (error) {
+        console.error('Failed to load waste emission factors:', error);
+      }
+    };
+
+    loadWasteOptions();
+  }, []);
+
+  const selectedWasteOption = wasteOptions.find((opt) => opt.value === formData.type) || null;
+
+  const handleWasteChange = (option: WasteSelectOption | null) => {
+    if (option) {
+      setFormData({
+        ...formData,
+        type: option.value,
+        factor: option.factor
+      });
+    } else {
+      setFormData({
+        ...formData,
+        type: '',
+        factor: 0
+      });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.type) {
+      return;
+    }
+
     const amount = parseFloat(formData.amount);
-    const emission = amount * WASTE_FACTOR;
+    const factor = selectedWasteOption?.factor ?? formData.factor;
+    const emission = (amount / 1000) * factor;
 
     const newActivity: WasteActivity = {
       id: uuidv4(),
@@ -68,7 +108,7 @@ export default function AddWastePage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
       {/* Header */}
       <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
         <button
@@ -93,16 +133,35 @@ export default function AddWastePage() {
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Jenis Limbah *
           </label>
-          <select
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-            required
-          >
-            <option value="plastic">Plastik</option>
-            <option value="organic">Organik</option>
-            <option value="other">Lainnya</option>
-          </select>
+          <Select
+            instanceId={`waste-select-${phaseId}`}
+            inputId={`waste-select-input-${phaseId}`}
+            options={wasteOptions}
+            value={selectedWasteOption}
+            onChange={(option) => handleWasteChange(option as WasteSelectOption | null)}
+            placeholder="Pilih jenis limbah..."
+            className="react-select-container"
+            classNamePrefix="react-select"
+            isClearable
+            isSearchable
+            styles={{
+              control: (base) => ({
+                ...base,
+                borderRadius: '0.75rem',
+                borderWidth: '2px',
+                borderColor: '#e5e7eb',
+                padding: '0.25rem',
+                '&:hover': {
+                  borderColor: '#0D6E4F'
+                }
+              }),
+              menu: (base) => ({
+                ...base,
+                borderRadius: '0.75rem',
+                overflow: 'hidden'
+              })
+            }}
+          />
         </div>
 
         {/* Date */}
@@ -141,10 +200,10 @@ export default function AddWastePage() {
           <div className="p-4 bg-primaryLight rounded-xl">
             <p className="text-sm text-gray-600 mb-1">Estimasi Emisi</p>
             <p className="text-2xl font-bold text-primary">
-              {(parseFloat(formData.amount) * WASTE_FACTOR).toFixed(2)} kg CO₂e
+              {((parseFloat(formData.amount) / 1000) * (selectedWasteOption?.factor ?? formData.factor)).toFixed(2)} kg CO₂e
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {WASTE_FACTOR} kg CO₂e per kg limbah × {formData.amount} kg
+              {(selectedWasteOption?.factor ?? formData.factor)} kg CO₂e per tonne limbah × ({formData.amount} kg ÷ 1000)
             </p>
           </div>
         )}

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, FOODS_DATA } from '@/lib/constants';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
+import { fetchFoodEmissionFactors, toFoodSelectOptions, FoodSelectOption } from '@/lib/foodHelper';
 import { FoodActivity, PhaseId } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { MdRestaurant } from 'react-icons/md';
@@ -27,23 +28,35 @@ export default function AddFoodPage() {
     servings: 1,
     date: new Date().toISOString().split('T')[0]
   });
+  const [foodOptions, setFoodOptions] = useState<FoodSelectOption[]>([]);
 
-  // Convert foods data to react-select options
-  const foodOptions = FOODS_DATA.map(food => ({
-    value: food.id,
-    label: food.name,
-    food: food
-  }));
+  useEffect(() => {
+    const loadFoodOptions = async () => {
+      try {
+        const items = await fetchFoodEmissionFactors();
+        setFoodOptions(toFoodSelectOptions(items));
+      } catch (error) {
+        console.error('Failed to load food emission factors:', error);
+      }
+    };
 
-  type FoodOption = typeof foodOptions[number];
+    loadFoodOptions();
+  }, []);
 
-  const handleFoodChange = (option: FoodOption | null) => {
+  const handleFoodChange = (option: FoodSelectOption | null) => {
     if (option) {
       setFormData({
         ...formData,
-        foodId: option.food.id,
-        foodName: option.food.name,
-        factor: option.food.factor
+        foodId: option.value,
+        foodName: option.label,
+        factor: option.factor
+      });
+    } else {
+      setFormData({
+        ...formData,
+        foodId: '',
+        foodName: '',
+        factor: 0
       });
     }
   };
@@ -124,8 +137,10 @@ export default function AddFoodPage() {
             Pilih Jenis Makanan *
           </label>
           <Select
+            instanceId={`food-select-${phaseId}`}
+            inputId={`food-select-input-${phaseId}`}
             options={foodOptions}
-            onChange={handleFoodChange}
+            onChange={(option) => handleFoodChange(option as FoodSelectOption | null)}
             placeholder="Cari makanan..."
             className="react-select-container"
             classNamePrefix="react-select"

@@ -60,9 +60,20 @@ export default function WasteListPage() {
     router.push(`/phases/${phaseId}`);
   };
 
+  const getWasteLabel = (type: string) => {
+    const legacyLabels: Record<string, string> = {
+      plastic: 'Plastik',
+      organic: 'Organik',
+      other: 'Lainnya',
+      'Food and Drink': 'Makanan dan Minuman'
+    };
+
+    return legacyLabels[type] || type;
+  };
+
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
       {/* Header */}
       <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
         <button
@@ -107,7 +118,7 @@ export default function WasteListPage() {
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-900 mb-1">
-                      Limbah {activity.type === 'plastic' ? 'Plastik' : activity.type === 'organic' ? 'Organik' : 'Lainnya'}
+                      Limbah {getWasteLabel(activity.type)}
                     </h3>
                     {activity.date && (
                       <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">

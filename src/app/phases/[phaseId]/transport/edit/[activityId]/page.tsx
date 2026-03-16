@@ -8,6 +8,7 @@ import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { fetchAirports, toIndonesiaSelectOptions, getSaudiFallbackOptions, findAirportByName, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
+import { fetchSeaports, toSeaportSelectOptions, findSeaportByName, calculateSeaportDistanceKm, SeaportSelectOption } from '@/lib/seaportHelper';
 import Select from 'react-select';
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
@@ -21,6 +22,7 @@ export default function EditTransportPage() {
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+  const canUseSeaTransport = phaseId === 'pra-keberangkatan';
   const categoryData = journey?.phases[phaseId]?.categories?.transport;
   const activities = (categoryData?.activities as TransportActivity[]) || [];
   const activity = activities.find(a => a.id === activityId);
@@ -29,6 +31,9 @@ export default function EditTransportPage() {
     type: activity?.type || '',
     date: activity?.date || ''
   });
+
+  const selectedTransportType = formData.type || activity?.type || '';
+  const selectedDate = formData.date || activity?.date || '';
 
   // Location search states
   const [originQuery, setOriginQuery] = useState(activity?.origin?.name || '');
@@ -55,13 +60,19 @@ export default function EditTransportPage() {
   const [isSearching, setIsSearching] = useState(false);
 
   // Check if transport type is airplane
-  const isAirplane = formData.type === 'pesawat-ekonomi' || formData.type === 'pesawat-bisnis';
+  const isAirplane = selectedTransportType === 'pesawat-ekonomi' || selectedTransportType === 'pesawat-bisnis';
+  const isSeaTransport = selectedTransportType === 'kapal';
   
   // Airport selection states
   const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportSelectOption | null | undefined>(undefined);
   const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportSelectOption | null | undefined>(undefined);
   const [groupedAirportOptions, setGroupedAirportOptions] = useState<{ label: string; options: AirportSelectOption[] }[]>([]);
   const [flatAirportOptions, setFlatAirportOptions] = useState<AirportSelectOption[]>([]);
+
+  // Seaport selection states
+  const [selectedOriginSeaport, setSelectedOriginSeaport] = useState<SeaportSelectOption | null | undefined>(undefined);
+  const [selectedDestinationSeaport, setSelectedDestinationSeaport] = useState<SeaportSelectOption | null | undefined>(undefined);
+  const [seaportOptions, setSeaportOptions] = useState<SeaportSelectOption[]>([]);
 
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
@@ -90,6 +101,20 @@ export default function EditTransportPage() {
     loadAirportOptions();
   }, []);
 
+  useEffect(() => {
+    const loadSeaportOptions = async () => {
+      try {
+        const seaports = await fetchSeaports();
+        setSeaportOptions(toSeaportSelectOptions(seaports));
+      } catch (error) {
+        console.error('Failed to load seaports:', error);
+        setSeaportOptions([]);
+      }
+    };
+
+    loadSeaportOptions();
+  }, []);
+
   const resolvedOriginAirport = useMemo(() => {
     if (selectedOriginAirport !== undefined) return selectedOriginAirport;
     if (!isAirplane) return null;
@@ -101,6 +126,18 @@ export default function EditTransportPage() {
     if (!isAirplane) return null;
     return findAirportByName(flatAirportOptions, activity?.destination?.name);
   }, [selectedDestinationAirport, flatAirportOptions, activity?.destination?.name, isAirplane]);
+
+  const resolvedOriginSeaport = useMemo(() => {
+    if (selectedOriginSeaport !== undefined) return selectedOriginSeaport;
+    if (!isSeaTransport) return null;
+    return findSeaportByName(seaportOptions, activity?.origin?.name);
+  }, [selectedOriginSeaport, seaportOptions, activity?.origin?.name, isSeaTransport]);
+
+  const resolvedDestinationSeaport = useMemo(() => {
+    if (selectedDestinationSeaport !== undefined) return selectedDestinationSeaport;
+    if (!isSeaTransport) return null;
+    return findSeaportByName(seaportOptions, activity?.destination?.name);
+  }, [selectedDestinationSeaport, seaportOptions, activity?.destination?.name, isSeaTransport]);
 
   // Search origin locations
   useEffect(() => {
@@ -139,7 +176,7 @@ export default function EditTransportPage() {
   // Calculate distance for ground transport only
   useEffect(() => {
     const calculateDistance = async () => {
-      if (!isAirplane && selectedOrigin && selectedDestination) {
+      if (!isAirplane && !isSeaTransport && selectedOrigin && selectedDestination) {
         setIsSearching(true);
         const distance = await calculateRoutingDistance(
           selectedOrigin.lat,
@@ -155,14 +192,36 @@ export default function EditTransportPage() {
     };
 
     calculateDistance();
-  }, [isAirplane, selectedOrigin, selectedDestination]);
+  }, [isAirplane, isSeaTransport, selectedOrigin, selectedDestination]);
 
   const airplaneDistance = useMemo(() => {
     if (!isAirplane || !resolvedOriginAirport || !resolvedDestinationAirport) return null;
     return calculateFlightDistanceKm(resolvedOriginAirport, resolvedDestinationAirport);
   }, [isAirplane, resolvedOriginAirport, resolvedDestinationAirport]);
 
-  const calculatedDistance = isAirplane ? airplaneDistance : groundDistance;
+  const shouldUseStoredSeaDistance =
+    isSeaTransport &&
+    selectedOriginSeaport === undefined &&
+    selectedDestinationSeaport === undefined;
+
+  const seaDistance = useMemo(() => {
+    if (!isSeaTransport) return null;
+
+    if (shouldUseStoredSeaDistance) {
+      return activity?.distance || null;
+    }
+
+    if (!resolvedOriginSeaport || !resolvedDestinationSeaport) return null;
+    return calculateSeaportDistanceKm(resolvedOriginSeaport, resolvedDestinationSeaport);
+  }, [
+    isSeaTransport,
+    shouldUseStoredSeaDistance,
+    activity?.distance,
+    resolvedOriginSeaport,
+    resolvedDestinationSeaport
+  ]);
+
+  const calculatedDistance = isAirplane ? airplaneDistance : isSeaTransport ? seaDistance : groundDistance;
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -200,6 +259,11 @@ export default function EditTransportPage() {
         showWarning('Mohon pilih bandara asal dan tujuan', { title: 'Data Belum Lengkap' });
         return;
       }
+    } else if (isSeaTransport) {
+      if (!resolvedOriginSeaport || !resolvedDestinationSeaport || !calculatedDistance) {
+        showWarning('Mohon pilih pelabuhan asal dan tujuan', { title: 'Data Belum Lengkap' });
+        return;
+      }
     } else {
       if (!selectedOrigin || !selectedDestination || !calculatedDistance) {
         showWarning('Mohon pilih lokasi asal dan tujuan yang valid', { title: 'Data Belum Lengkap' });
@@ -210,21 +274,27 @@ export default function EditTransportPage() {
     const distance = calculatedDistance;
     const passengers = 1; // For individual use
     
-    const factor = TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0;
+    const factor = TRANSPORT_FACTORS[selectedTransportType as keyof typeof TRANSPORT_FACTORS] || 0;
     const emission = distance * factor;
 
     const updatedActivity: TransportActivity = {
       ...activity!,
-      type: formData.type,
+      type: selectedTransportType,
       distance,
       passengers,
-      date: formData.date,
+      date: selectedDate,
       emission,
       origin: isAirplane && resolvedOriginAirport
         ? {
             name: resolvedOriginAirport.name,
             lat: resolvedOriginAirport.lat,
             lon: resolvedOriginAirport.lon
+          }
+        : isSeaTransport && resolvedOriginSeaport
+        ? {
+            name: resolvedOriginSeaport.name,
+            lat: resolvedOriginSeaport.lat,
+            lon: resolvedOriginSeaport.lon
           }
         : selectedOrigin
         ? {
@@ -238,6 +308,12 @@ export default function EditTransportPage() {
             name: resolvedDestinationAirport.name,
             lat: resolvedDestinationAirport.lat,
             lon: resolvedDestinationAirport.lon
+          }
+        : isSeaTransport && resolvedDestinationSeaport
+        ? {
+            name: resolvedDestinationSeaport.name,
+            lat: resolvedDestinationSeaport.lat,
+            lon: resolvedDestinationSeaport.lon
           }
         : selectedDestination
         ? {
@@ -274,7 +350,7 @@ export default function EditTransportPage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
       {/* Header */}
       <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
         <button
@@ -300,7 +376,7 @@ export default function EditTransportPage() {
             Jenis Transportasi *
           </label>
           <select
-            value={formData.type}
+            value={selectedTransportType}
             onChange={(e) => {
               setFormData({ ...formData, type: e.target.value });
               // Reset all selections when transport type changes
@@ -308,6 +384,8 @@ export default function EditTransportPage() {
               setSelectedDestination(null);
               setSelectedOriginAirport(null);
               setSelectedDestinationAirport(null);
+              setSelectedOriginSeaport(null);
+              setSelectedDestinationSeaport(null);
               setGroundDistance(null);
             }}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
@@ -318,6 +396,7 @@ export default function EditTransportPage() {
             <option value="mobil-listrik">Mobil Listrik</option>
             <option value="bus">Bus</option>
             <option value="bus-listrik">Bus Listrik</option>
+            {canUseSeaTransport && <option value="kapal">Kapal</option>}
             <option value="kereta">Kereta</option>
             <option value="pesawat-ekonomi">Pesawat (Kelas Ekonomi)</option>
             <option value="pesawat-bisnis">Pesawat (Kelas Bisnis)</option>
@@ -331,7 +410,7 @@ export default function EditTransportPage() {
           </label>
           <input
             type="date"
-            value={formData.date}
+            value={selectedDate}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
@@ -376,6 +455,47 @@ export default function EditTransportPage() {
             {resolvedOriginAirport && (
               <p className="text-xs text-green-600 mt-1">
                 ✓ {resolvedOriginAirport.label}
+              </p>
+            )}
+          </div>
+        ) : isSeaTransport ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Dari (Pelabuhan Asal) *
+            </label>
+            <Select
+              instanceId={`seaport-origin-edit-${phaseId}-${activityId}`}
+              inputId={`seaport-origin-edit-input-${phaseId}-${activityId}`}
+              value={resolvedOriginSeaport || null}
+              onChange={(option) => setSelectedOriginSeaport(option as SeaportSelectOption | null)}
+              options={seaportOptions}
+              placeholder="Cari atau pilih pelabuhan asal..."
+              isClearable
+              isSearchable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  padding: '0.5rem',
+                  borderRadius: '0.75rem',
+                  borderWidth: '2px',
+                  borderColor: '#e5e7eb',
+                  '&:hover': { borderColor: '#e5e7eb' },
+                  '&:focus-within': { borderColor: '#10b981', boxShadow: 'none' }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                })
+              }}
+              required
+            />
+            {resolvedOriginSeaport && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ Pelabuhan dipilih
               </p>
             )}
           </div>
@@ -464,6 +584,47 @@ export default function EditTransportPage() {
               </p>
             )}
           </div>
+        ) : isSeaTransport ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Menuju (Pelabuhan Tujuan) *
+            </label>
+            <Select
+              instanceId={`seaport-destination-edit-${phaseId}-${activityId}`}
+              inputId={`seaport-destination-edit-input-${phaseId}-${activityId}`}
+              value={resolvedDestinationSeaport || null}
+              onChange={(option) => setSelectedDestinationSeaport(option as SeaportSelectOption | null)}
+              options={seaportOptions}
+              placeholder="Cari atau pilih pelabuhan tujuan..."
+              isClearable
+              isSearchable
+              className="react-select-container"
+              classNamePrefix="react-select"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  padding: '0.5rem',
+                  borderRadius: '0.75rem',
+                  borderWidth: '2px',
+                  borderColor: '#e5e7eb',
+                  '&:hover': { borderColor: '#e5e7eb' },
+                  '&:focus-within': { borderColor: '#10b981', boxShadow: 'none' }
+                }),
+                menu: (base) => ({
+                  ...base,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                })
+              }}
+              required
+            />
+            {resolvedDestinationSeaport && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ Pelabuhan dipilih
+              </p>
+            )}
+          </div>
         ) : (
           /* Location Search for Ground Transport */
           <div className="relative" ref={destinationRef}>
@@ -509,11 +670,10 @@ export default function EditTransportPage() {
         )}
 
         {/* Calculated Distance Display */}
-        {((isAirplane && selectedOriginAirport && selectedDestinationAirport) || 
-          (!isAirplane && selectedOrigin && selectedDestination)) && (
+        {calculatedDistance !== null && (
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <p className="text-sm text-blue-700 font-medium mb-1">
-              {isAirplane ? 'Jarak Terbang' : 'Jarak Rute Jalan'}
+              {isAirplane ? 'Jarak Terbang' : isSeaTransport ? 'Jarak Pelabuhan' : 'Jarak Rute Jalan'}
             </p>
             {isSearching ? (
               <div className="flex items-center gap-2">
@@ -525,9 +685,9 @@ export default function EditTransportPage() {
                 <p className="text-2xl font-bold text-blue-900">
                   {calculatedDistance.toFixed(1)} km
                 </p>
-                {formData.type && (
+                {selectedTransportType && (
                   <p className="text-xs text-blue-600 mt-1">
-                    Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO2e
+                    Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[selectedTransportType as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO2e
                   </p>
                 )}
               </>
