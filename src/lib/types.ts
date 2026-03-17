@@ -2,6 +2,7 @@ export type PhaseId =
   | 'pra-keberangkatan'
   | 'keberangkatan'
   | 'madinah'
+  | 'perjalanan-antar-kota'
   | 'makkah'
   | 'arafah'
   | 'muzdalifah'

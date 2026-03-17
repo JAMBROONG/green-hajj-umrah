@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaKaaba, FaMosque, FaCalendarAlt, FaLeaf, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaArrowLeft, FaKaaba, FaMosque, FaCalendarAlt, FaLeaf, FaEdit, FaTrash, FaRoad } from 'react-icons/fa';
 import { MdHome, MdFlight, MdMosque as MdMasjid, MdPark } from 'react-icons/md';
 import { FaMountain, FaMoon, FaBullseye } from 'react-icons/fa';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
@@ -41,6 +41,8 @@ const getPhaseIcon = (phaseId: string) => {
       return <FaBullseye className="text-2xl text-red-600" />;
     case 'rekreasi':
       return <MdPark className="text-2xl text-green-500" />;
+    case 'perjalanan-antar-kota':
+      return <FaRoad className="text-2xl text-orange-500" />;
     case 'kepulangan':
       return <MdFlight className="text-2xl text-blue-500 rotate-180" />;
     default:

@@ -1,0 +1,2354 @@
+[
+  {
+    "name": "ABDUL RACHMAN SALEH",
+    "icao": "WARA",
+    "iata": "",
+    "lat": -7.926556,
+    "lon": 112.714514
+  },
+  {
+    "name": "Abdul Rachman Saleh Airport",
+    "icao": "WIAS",
+    "iata": "MLG",
+    "lat": -7.926667,
+    "lon": 112.708889
+  },
+  {
+    "name": "Abresso",
+    "icao": "WASC",
+    "iata": "RSK",
+    "lat": -1.5,
+    "lon": 134.25
+  },
+  {
+    "name": "ACC/FIC",
+    "icao": "WRRZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "ACC/FIC",
+    "icao": "WABZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "ACC/FIC/UIC",
+    "icao": "WIIZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Achmad Yani",
+    "icao": "WARS",
+    "iata": "SRG",
+    "lat": -6.971447,
+    "lon": 110.374122
+  },
+  {
+    "name": "Adi Sucipto",
+    "icao": "WARJ",
+    "iata": "JOG",
+    "lat": -7.788181,
+    "lon": 110.431758
+  },
+  {
+    "name": "Adi Sumarmo",
+    "icao": "WRSQ",
+    "iata": "SOC",
+    "lat": -7.5,
+    "lon": 110.75
+  },
+  {
+    "name": "ADI SUMARMO WIRYOKUSUMO",
+    "icao": "WARQ",
+    "iata": "",
+    "lat": -7.516089,
+    "lon": 110.756892
+  },
+  {
+    "name": "Aek Godang",
+    "icao": "WIME",
+    "iata": "AEG",
+    "lat": 1.400103,
+    "lon": 99.430453
+  },
+  {
+    "name": "Aek Loba",
+    "icao": "WIML",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Abohoy",
+    "icao": "WAKH",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Agats",
+    "icao": "WAKG",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Akimuga",
+    "icao": "WAKA",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Bada",
+    "icao": "WAMQ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Bengkayang",
+    "icao": "WIOB",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Bentayan",
+    "icao": "WIPY",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Bula",
+    "icao": "WAPB",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Genjem",
+    "icao": "",
+    "iata": "GNJ",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Kalijati",
+    "icao": "WIIK",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Kiwirok",
+    "icao": "WAJK",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Kualatungkal",
+    "icao": "WIPF",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Long Nawang",
+    "icao": "WRLN",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Malili",
+    "icao": "WAAI",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Malimpung",
+    "icao": "WAAG",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Malinau",
+    "icao": "WRLM",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Maskolen",
+    "icao": "WRKF",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Mbai",
+    "icao": "WRKI",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Melak",
+    "icao": "WRLE",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Mena",
+    "icao": "WRKJ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Muara Badak",
+    "icao": "WRLQ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Muara Wahau",
+    "icao": "WRLW",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Naikliu",
+    "icao": "WRKN",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Nanukan",
+    "icao": "WRLF",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Ongko Asa",
+    "icao": "WRLO",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Pelabuhan Ratu",
+    "icao": "WIIR",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Pelalawan",
+    "icao": "WIBL",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Ponggaluku",
+    "icao": "WAAL",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Pontianak Sector",
+    "icao": "WIOZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Primapun",
+    "icao": "WAKN",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Rimbo Bujang",
+    "icao": "WIPC",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Sabang",
+    "icao": "WIAA",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Sangkurilang",
+    "icao": "WRLU",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Sekapung",
+    "icao": "WRBG",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Selaru",
+    "icao": "WAPS",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Seumayam",
+    "icao": "WITS",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Singkawang Ii",
+    "icao": "WIOI",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Tanjung Bara",
+    "icao": "WRLJ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Teluk Kepayang",
+    "icao": "WRBT",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Tentena",
+    "icao": "WAMC",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Tiong Ohong",
+    "icao": "WRLI",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Ubrub",
+    "icao": "WAJU",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Wakde",
+    "icao": "WAJD",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Waren",
+    "icao": "WABW",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Werur",
+    "icao": "",
+    "iata": "WRR",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Airport of Wuasa",
+    "icao": "WAMU",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Alor Island",
+    "icao": "",
+    "iata": "ARD",
+    "lat": -8.25,
+    "lon": 124.75
+  },
+  {
+    "name": "Amahai",
+    "icao": "WAPA",
+    "iata": "AHI",
+    "lat": -3.333333,
+    "lon": 128.916667
+  },
+  {
+    "name": "Ambon Sector",
+    "icao": "WAPZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "ANDI JEMMA",
+    "icao": "WAWM",
+    "iata": "",
+    "lat": -2.558044,
+    "lon": 120.324383
+  },
+  {
+    "name": "Andi Jemma Airport",
+    "icao": "WAAM",
+    "iata": "MXB",
+    "lat": -2.533333,
+    "lon": 120.333333
+  },
+  {
+    "name": "Anggi",
+    "icao": "",
+    "iata": "AGD",
+    "lat": -1.383333,
+    "lon": 133.866667
+  },
+  {
+    "name": "Apalapsili",
+    "icao": "",
+    "iata": "AAS",
+    "lat": -3.916667,
+    "lon": 139.25
+  },
+  {
+    "name": "Arso",
+    "icao": "WAJA",
+    "iata": "ARJ",
+    "lat": -2.933333,
+    "lon": 140.783333
+  },
+  {
+    "name": "ARU",
+    "icao": "",
+    "iata": "",
+    "lat": -6.573422,
+    "lon": 134.147058
+  },
+  {
+    "name": "Atang Senjaya",
+    "icao": "WIAJ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Ayamu Airport",
+    "icao": "WIMA",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Ayawasi",
+    "icao": "",
+    "iata": "AYW",
+    "lat": -1.2,
+    "lon": 132.5
+  },
+  {
+    "name": "Babo",
+    "icao": "WASO",
+    "iata": "BXB",
+    "lat": -2.532242,
+    "lon": 133.438894
+  },
+  {
+    "name": "Babullah",
+    "icao": "WAMT",
+    "iata": "TTE",
+    "lat": 3.831389,
+    "lon": 127.381389
+  },
+  {
+    "name": "Bade",
+    "icao": "WAKE",
+    "iata": "BXD",
+    "lat": -7.166667,
+    "lon": 139.583333
+  },
+  {
+    "name": "BALI INTL",
+    "icao": "WADD",
+    "iata": "",
+    "lat": -8.748169,
+    "lon": 115.167172
+  },
+  {
+    "name": "Banaina",
+    "icao": "",
+    "iata": "NAF",
+    "lat": 2.75,
+    "lon": 117.05
+  },
+  {
+    "name": "Bandanaira",
+    "icao": "",
+    "iata": "NDA",
+    "lat": -4.533333,
+    "lon": 129.9
+  },
+  {
+    "name": "BANDING AGUNG",
+    "icao": "WIPD",
+    "iata": "",
+    "lat": -4.787025,
+    "lon": 103.933086
+  },
+  {
+    "name": "Bangko",
+    "icao": "WIPE",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Banjamasin Sector",
+    "icao": "WRBZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Batom",
+    "icao": "",
+    "iata": "BXM",
+    "lat": -2.283333,
+    "lon": 139.6
+  },
+  {
+    "name": "Batu Licin",
+    "icao": "WAOC",
+    "iata": "BTW",
+    "lat": -3.412408,
+    "lon": 115.995136
+  },
+  {
+    "name": "BATUJAJAR",
+    "icao": "",
+    "iata": "",
+    "lat": -6.903856,
+    "lon": 107.475856
+  },
+  {
+    "name": "Baubau",
+    "icao": "",
+    "iata": "BUW",
+    "lat": -5.466667,
+    "lon": 122.633333
+  },
+  {
+    "name": "Benjina",
+    "icao": "",
+    "iata": "BJK",
+    "lat": -6.083333,
+    "lon": 134.25
+  },
+  {
+    "name": "Beringin",
+    "icao": "WRBM",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Betoambari",
+    "icao": "WAWB",
+    "iata": "",
+    "lat": -5.486875,
+    "lon": 122.569047
+  },
+  {
+    "name": "Binaka Airport",
+    "icao": "WIMB",
+    "iata": "GNS",
+    "lat": 1.166381,
+    "lon": 97.704681
+  },
+  {
+    "name": "Bintuni",
+    "icao": "WASB",
+    "iata": "NTI",
+    "lat": -2.1,
+    "lon": 133.516667
+  },
+  {
+    "name": "Bokondini",
+    "icao": "WAJB",
+    "iata": "BUI",
+    "lat": -3.716667,
+    "lon": 138.65
+  },
+  {
+    "name": "Bolaang",
+    "icao": "",
+    "iata": "BJG",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Bontang",
+    "icao": "WRLC",
+    "iata": "BXT",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Branda Neira",
+    "icao": "WAPC",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Branti",
+    "icao": "WIIT",
+    "iata": "TKG",
+    "lat": -5.242222,
+    "lon": 105.178889
+  },
+  {
+    "name": "Bubung",
+    "icao": "WAMW",
+    "iata": "LUW",
+    "lat": -0.933333,
+    "lon": 122.783333
+  },
+  {
+    "name": "Budiarto",
+    "icao": "WICB",
+    "iata": "",
+    "lat": -6.293169,
+    "lon": 106.5699
+  },
+  {
+    "name": "Buluh Tumbang",
+    "icao": "WIKD",
+    "iata": "TJQ",
+    "lat": -2.966667,
+    "lon": 111.683333
+  },
+  {
+    "name": "Bunyu",
+    "icao": "WALV",
+    "iata": "BYQ",
+    "lat": 3.455725,
+    "lon": 117.867372
+  },
+  {
+    "name": "Buol",
+    "icao": "",
+    "iata": "UOL",
+    "lat": 1.166667,
+    "lon": 121.433333
+  },
+  {
+    "name": "CIBEUREUM",
+    "icao": "WICM",
+    "iata": "",
+    "lat": -7.346603,
+    "lon": 108.246092
+  },
+  {
+    "name": "Cilik Riwut (Tjilik Riwoet)",
+    "icao": "WRBP",
+    "iata": "PKY",
+    "lat": -2.225,
+    "lon": 113.942778
+  },
+  {
+    "name": "Cut Nyak Dien Airport",
+    "icao": "WITC",
+    "iata": "MEQ",
+    "lat": 4.136667,
+    "lon": 96.129444
+  },
+  {
+    "name": "Dabo Airport",
+    "icao": "WIDS",
+    "iata": "SIQ",
+    "lat": -0.479189,
+    "lon": 104.579283
+  },
+  {
+    "name": "Dabra",
+    "icao": "",
+    "iata": "DRH",
+    "lat": -2.8,
+    "lon": 138.316667
+  },
+  {
+    "name": "Datadawai",
+    "icao": "",
+    "iata": "DTD",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "DEPATI AMIR",
+    "icao": "WIPK",
+    "iata": "",
+    "lat": -2.1622,
+    "lon": 106.139064
+  },
+  {
+    "name": "Depati Parbo",
+    "icao": "WIPH",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Djayapura Sector",
+    "icao": "WAJZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Dobo Airport",
+    "icao": "WAPD",
+    "iata": "DOB",
+    "lat": -5.75,
+    "lon": 134
+  },
+  {
+    "name": "DOMINIQUE EDWARD OSOK",
+    "icao": "",
+    "iata": "",
+    "lat": -0.895178,
+    "lon": 131.285442
+  },
+  {
+    "name": "DR FERDINAND LUMBAN TOBING",
+    "icao": "WIMS",
+    "iata": "",
+    "lat": 1.555944,
+    "lon": 98.888908
+  },
+  {
+    "name": "Dumatubun",
+    "icao": "WAPL",
+    "iata": "LUV",
+    "lat": -5.65,
+    "lon": 132.725
+  },
+  {
+    "name": "Dusan Aro",
+    "icao": "WIPJ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Elelim",
+    "icao": "",
+    "iata": "ELR",
+    "lat": 7.816667,
+    "lon": 40.516667
+  },
+  {
+    "name": "Eltari",
+    "icao": "WATT",
+    "iata": "KOE",
+    "lat": -10.171583,
+    "lon": 123.671136
+  },
+  {
+    "name": "Enarotali",
+    "icao": "WABT",
+    "iata": "EWI",
+    "lat": -3.933333,
+    "lon": 136.366667
+  },
+  {
+    "name": "Ewer",
+    "icao": "",
+    "iata": "EWE",
+    "lat": -5.483333,
+    "lon": 138.066667
+  },
+  {
+    "name": "Frans Kaisiepo",
+    "icao": "WABB",
+    "iata": "BIK",
+    "lat": -1.19,
+    "lon": 136.108056
+  },
+  {
+    "name": "GADING WONOSARI",
+    "icao": "",
+    "iata": "",
+    "lat": -7.916594,
+    "lon": 110.564289
+  },
+  {
+    "name": "Gag Island",
+    "icao": "",
+    "iata": "GAV",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Gamarmalamo Airport",
+    "icao": "WAMA",
+    "iata": "GLX",
+    "lat": -2.183333,
+    "lon": 127.833333
+  },
+  {
+    "name": "GATOT SUBRATO",
+    "icao": "WIPO",
+    "iata": "",
+    "lat": -4.391767,
+    "lon": 104.401358
+  },
+  {
+    "name": "Gebe",
+    "icao": "",
+    "iata": "GEB",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Gedangan",
+    "icao": "WRSS",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Gewayentana",
+    "icao": "WRKL",
+    "iata": "LKA",
+    "lat": -8.35,
+    "lon": 122.983333
+  },
+  {
+    "name": "Gunung Batin",
+    "icao": "WIAG",
+    "iata": "AKQ",
+    "lat": -4.616667,
+    "lon": 105.233333
+  },
+  {
+    "name": "Gunung Pamela",
+    "icao": "WIMR",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "H AS HANANDJOEDDIN",
+    "icao": "WIOD",
+    "iata": "",
+    "lat": -2.745722,
+    "lon": 107.754917
+  },
+  {
+    "name": "H HASAN AROEBOESMAN",
+    "icao": "WATE",
+    "iata": "",
+    "lat": -8.849294,
+    "lon": 121.660644
+  },
+  {
+    "name": "H.Hasan",
+    "icao": "WRBS",
+    "iata": "SMQ",
+    "lat": -2.533333,
+    "lon": 112.95
+  },
+  {
+    "name": "Halim Perdanakusuma International",
+    "icao": "WIIH",
+    "iata": "HLP",
+    "lat": -6.266667,
+    "lon": 106.883333
+  },
+  {
+    "name": "HALIM PERDANAKUSUMA INTL",
+    "icao": "WIHH",
+    "iata": "",
+    "lat": -6.266608,
+    "lon": 106.891117
+  },
+  {
+    "name": "Haliweni Airport",
+    "icao": "WRKA",
+    "iata": "ABU",
+    "lat": -9.333333,
+    "lon": 124.9
+  },
+  {
+    "name": "Hang Nadim Airport",
+    "icao": "WIDD",
+    "iata": "BTH",
+    "lat": 1.121028,
+    "lon": 104.118753
+  },
+  {
+    "name": "HASAN",
+    "icao": "WAOS",
+    "iata": "",
+    "lat": -2.499194,
+    "lon": 112.974992
+  },
+  {
+    "name": "Hasanuddin",
+    "icao": "WAAA",
+    "iata": "UPG",
+    "lat": -5.116667,
+    "lon": 119.4
+  },
+  {
+    "name": "Husein Sastranegara",
+    "icao": "WICC",
+    "iata": "BDO",
+    "lat": -6.900625,
+    "lon": 107.576294
+  },
+  {
+    "name": "Illaga",
+    "icao": "WABL",
+    "iata": "ILA",
+    "lat": -3.833333,
+    "lon": 137.583333
+  },
+  {
+    "name": "Ilu",
+    "icao": "",
+    "iata": "IUL",
+    "lat": -3.75,
+    "lon": 138.083333
+  },
+  {
+    "name": "Inanwatan",
+    "icao": "WASI",
+    "iata": "INX",
+    "lat": -2.133333,
+    "lon": 132.166667
+  },
+  {
+    "name": "Inco Soroako Waws",
+    "icao": "WAAS",
+    "iata": "SQR",
+    "lat": -2.531111,
+    "lon": 121.357778
+  },
+  {
+    "name": "Indonesia ACC/FIC/UIC",
+    "icao": "WAAZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Ipi Airport",
+    "icao": "WRKE",
+    "iata": "ENE",
+    "lat": -8.833333,
+    "lon": 121.65
+  },
+  {
+    "name": "ISKANDAR",
+    "icao": "WAOI",
+    "iata": "",
+    "lat": -2.705197,
+    "lon": 111.673208
+  },
+  {
+    "name": "Iswahyudi",
+    "icao": "WARI",
+    "iata": "",
+    "lat": -7.615767,
+    "lon": 111.434117
+  },
+  {
+    "name": "Jakarta Central City",
+    "icao": "WIIQ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Jakarta Langkawi",
+    "icao": "WIIG",
+    "iata": "PPJ",
+    "lat": -5.633333,
+    "lon": 106.55
+  },
+  {
+    "name": "Jakarta Pabelokan",
+    "icao": "WIIF",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Jakarta Pondok Cabe",
+    "icao": "WIHP",
+    "iata": "PCB",
+    "lat": -6.336964,
+    "lon": 106.764561
+  },
+  {
+    "name": "Jalaluddin Airport",
+    "icao": "WAMG",
+    "iata": "GTO",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Japura",
+    "icao": "WIPR",
+    "iata": "RGT",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Jefman",
+    "icao": "WASS",
+    "iata": "SOQ",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Jembruwo",
+    "icao": "WABF",
+    "iata": "FOO",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Juanda",
+    "icao": "WARR",
+    "iata": "SUB",
+    "lat": -7.379831,
+    "lon": 112.786858
+  },
+  {
+    "name": "Juvai Semarang",
+    "icao": "WRLB",
+    "iata": "LBW",
+    "lat": 3.883333,
+    "lon": 115.7
+  },
+  {
+    "name": "Juwata",
+    "icao": "WALR",
+    "iata": "TRK",
+    "lat": 3.326694,
+    "lon": 117.565569
+  },
+  {
+    "name": "Kalimarau",
+    "icao": "WRLK",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Kalimaru",
+    "icao": "WALK",
+    "iata": "BEJ",
+    "lat": 2.155497,
+    "lon": 117.432256
+  },
+  {
+    "name": "Kambuaya",
+    "icao": "",
+    "iata": "KBX",
+    "lat": -1,
+    "lon": 132.25
+  },
+  {
+    "name": "Kamur",
+    "icao": "",
+    "iata": "KCD",
+    "lat": -4.4,
+    "lon": 136.683333
+  },
+  {
+    "name": "Karimunjawa",
+    "icao": "",
+    "iata": "KWB",
+    "lat": -5.866667,
+    "lon": 110.433333
+  },
+  {
+    "name": "Karubaga",
+    "icao": "",
+    "iata": "KBF",
+    "lat": -3.75,
+    "lon": 138.333333
+  },
+  {
+    "name": "Kasigunou",
+    "icao": "WAMP",
+    "iata": "PSJ",
+    "lat": -1.383333,
+    "lon": 120.733333
+  },
+  {
+    "name": "Kau",
+    "icao": "",
+    "iata": "KAZ",
+    "lat": 1.166667,
+    "lon": 127.883333
+  },
+  {
+    "name": "Kebar",
+    "icao": "WASE",
+    "iata": "KEQ",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Keisah",
+    "icao": "",
+    "iata": "KEA",
+    "lat": -7.666667,
+    "lon": 140.5
+  },
+  {
+    "name": "Kelila",
+    "icao": "",
+    "iata": "LLN",
+    "lat": -3.75,
+    "lon": 138.666667
+  },
+  {
+    "name": "Keluang",
+    "icao": "WIPV",
+    "iata": "KLQ",
+    "lat": -2.6,
+    "lon": 103.95
+  },
+  {
+    "name": "Kepi",
+    "icao": "WAKP",
+    "iata": "KEI",
+    "lat": -6.533333,
+    "lon": 139.3
+  },
+  {
+    "name": "Kerinci",
+    "icao": "",
+    "iata": "KRC",
+    "lat": -1.716667,
+    "lon": 101.25
+  },
+  {
+    "name": "Ketapang",
+    "icao": "",
+    "iata": "KTG",
+    "lat": -6.9,
+    "lon": 113.283333
+  },
+  {
+    "name": "Kidjang",
+    "icao": "WIKN",
+    "iata": "TNJ",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "KIJANG",
+    "icao": "WIDN",
+    "iata": "",
+    "lat": 0.922683,
+    "lon": 104.532311
+  },
+  {
+    "name": "Kimam",
+    "icao": "",
+    "iata": "KMM",
+    "lat": -7.966667,
+    "lon": 138.9
+  },
+  {
+    "name": "KOBOK",
+    "icao": "",
+    "iata": "",
+    "lat": 1.101892,
+    "lon": 127.702994
+  },
+  {
+    "name": "Kokonao",
+    "icao": "WABN",
+    "iata": "KOX",
+    "lat": -4.533333,
+    "lon": 136.55
+  },
+  {
+    "name": "Kon",
+    "icao": "",
+    "iata": "KCI",
+    "lat": -2.75,
+    "lon": 132.266667
+  },
+  {
+    "name": "KORNASOREN",
+    "icao": "",
+    "iata": "",
+    "lat": -0.936325,
+    "lon": 134.871889
+  },
+  {
+    "name": "Kotabangun",
+    "icao": "",
+    "iata": "KOD",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Kuabang",
+    "icao": "WAMK",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Kupang Sector",
+    "icao": "WRKZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Kuripasai",
+    "icao": "WAMD",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Lasikin",
+    "icao": "WITG",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Lekunik",
+    "icao": "WRKR",
+    "iata": "RTI",
+    "lat": -10.483333,
+    "lon": 123.366667
+  },
+  {
+    "name": "Lereh",
+    "icao": "WAJL",
+    "iata": "LHI",
+    "lat": -3.133333,
+    "lon": 139.9
+  },
+  {
+    "name": "Lewoleba",
+    "icao": "",
+    "iata": "LWE",
+    "lat": -8.383333,
+    "lon": 123.4
+  },
+  {
+    "name": "Lhok Sukon",
+    "icao": "WITL",
+    "iata": "LSX",
+    "lat": 5.069506,
+    "lon": 97.259192
+  },
+  {
+    "name": "Liku",
+    "icao": "WIOH",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Long Apung",
+    "icao": "WRLP",
+    "iata": "LPU",
+    "lat": 0.583333,
+    "lon": 115.6
+  },
+  {
+    "name": "Lunyuk",
+    "icao": "",
+    "iata": "LYK",
+    "lat": -8.95,
+    "lon": 117.233333
+  },
+  {
+    "name": "Maimun Saleh",
+    "icao": "WITB",
+    "iata": "SBG",
+    "lat": 5.874131,
+    "lon": 95.339672
+  },
+  {
+    "name": "Maimun Saleh Airport",
+    "icao": "WIAB",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "MALI",
+    "icao": "WATM",
+    "iata": "",
+    "lat": -8.132336,
+    "lon": 124.597014
+  },
+  {
+    "name": "Mali",
+    "icao": "WRKM",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Malikus Saleh",
+    "icao": "WITM",
+    "iata": "LSW",
+    "lat": 5.216667,
+    "lon": 96.933333
+  },
+  {
+    "name": "MANGKAJANG",
+    "icao": "WALX",
+    "iata": "",
+    "lat": 2.007514,
+    "lon": 117.749019
+  },
+  {
+    "name": "Mangole",
+    "icao": "WAPE",
+    "iata": "MAL",
+    "lat": -1.883333,
+    "lon": 125.833333
+  },
+  {
+    "name": "Mangunjaya",
+    "icao": "",
+    "iata": "MJY",
+    "lat": -2.733333,
+    "lon": 103.566667
+  },
+  {
+    "name": "Manuhua",
+    "icao": "WABU",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "MARANGGO",
+    "icao": "",
+    "iata": "",
+    "lat": -5.764572,
+    "lon": 123.916656
+  },
+  {
+    "name": "Masalembo",
+    "icao": "",
+    "iata": "MSI",
+    "lat": 14.966667,
+    "lon": 120.666667
+  },
+  {
+    "name": "Matak",
+    "icao": "",
+    "iata": "MWK",
+    "lat": 3.348056,
+    "lon": 106.258056
+  },
+  {
+    "name": "MAU HAU",
+    "icao": "WADW",
+    "iata": "",
+    "lat": -9.669217,
+    "lon": 120.302006
+  },
+  {
+    "name": "MEKAR PUTIH",
+    "icao": "WAOH",
+    "iata": "",
+    "lat": -3.989911,
+    "lon": 116.101781
+  },
+  {
+    "name": "Melangguane",
+    "icao": "WAMN",
+    "iata": "MNA",
+    "lat": -1.383333,
+    "lon": 122.55
+  },
+  {
+    "name": "Merdey",
+    "icao": "WASM",
+    "iata": "RDE",
+    "lat": -1.583333,
+    "lon": 133.333333
+  },
+  {
+    "name": "Metropolitan Area",
+    "icao": "WIIX",
+    "iata": "JKT",
+    "lat": -6.166667,
+    "lon": 106.8
+  },
+  {
+    "name": "MINANGKABAU",
+    "icao": "WIPT",
+    "iata": "",
+    "lat": -0.786917,
+    "lon": 100.280797
+  },
+  {
+    "name": "Minangkabau International Airport",
+    "icao": "WIMG",
+    "iata": "PDG",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Mindiptana",
+    "icao": "WAKD",
+    "iata": "MDP",
+    "lat": -5.866667,
+    "lon": 147.7
+  },
+  {
+    "name": "Moanamani",
+    "icao": "WABD",
+    "iata": "ONI",
+    "lat": -3.983333,
+    "lon": 136.083333
+  },
+  {
+    "name": "Mopah",
+    "icao": "WAKK",
+    "iata": "MKQ",
+    "lat": -8.520294,
+    "lon": 140.418453
+  },
+  {
+    "name": "Mopait",
+    "icao": "WAMB",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Morotai Island",
+    "icao": "WAMR",
+    "iata": "OTI",
+    "lat": 2.046111,
+    "lon": 128.324722
+  },
+  {
+    "name": "MUHAMMAD SALAHUDDIN",
+    "icao": "WADB",
+    "iata": "",
+    "lat": -8.539647,
+    "lon": 118.687322
+  },
+  {
+    "name": "Muhammad Salahuddin Airport",
+    "icao": "WRRB",
+    "iata": "BMU",
+    "lat": -8.466667,
+    "lon": 118.716667
+  },
+  {
+    "name": "Muko-Muko",
+    "icao": "WIPU",
+    "iata": "MPC",
+    "lat": -2.55,
+    "lon": 101.1
+  },
+  {
+    "name": "Mulia",
+    "icao": "WAJM",
+    "iata": "LII",
+    "lat": -3.166667,
+    "lon": 136.166667
+  },
+  {
+    "name": "MUTIARA II",
+    "icao": "WATO",
+    "iata": "",
+    "lat": -8.486656,
+    "lon": 119.88905
+  },
+  {
+    "name": "Mutiara II Airport",
+    "icao": "WAML",
+    "iata": "LBJ",
+    "lat": -0.918542,
+    "lon": 119.909642
+  },
+  {
+    "name": "Muting",
+    "icao": "",
+    "iata": "MUF",
+    "lat": -7.383333,
+    "lon": 140.333333
+  },
+  {
+    "name": "Nabire",
+    "icao": "WABI",
+    "iata": "NBX",
+    "lat": -3.368183,
+    "lon": 135.496406
+  },
+  {
+    "name": "Naha",
+    "icao": "WAMH",
+    "iata": "NAH",
+    "lat": 3.683214,
+    "lon": 125.528019
+  },
+  {
+    "name": "Namlea",
+    "icao": "WAPR",
+    "iata": "NAM",
+    "lat": -3.3,
+    "lon": 127.1
+  },
+  {
+    "name": "Namrole",
+    "icao": "",
+    "iata": "NRE",
+    "lat": -3.816667,
+    "lon": 126.716667
+  },
+  {
+    "name": "Nangapinoh",
+    "icao": "WIOG",
+    "iata": "NPO",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "NANGASURI",
+    "icao": "WAPK",
+    "iata": "",
+    "lat": -6.0662,
+    "lon": 134.273928
+  },
+  {
+    "name": "Ngloram",
+    "icao": "WRSC",
+    "iata": "CPF",
+    "lat": -7.183333,
+    "lon": 111.533333
+  },
+  {
+    "name": "Ngurah Rai Bali International",
+    "icao": "WRRR",
+    "iata": "DPS",
+    "lat": -8.748056,
+    "lon": 115.167222
+  },
+  {
+    "name": "Nunukan",
+    "icao": "",
+    "iata": "NNX",
+    "lat": 4.15,
+    "lon": 117.65
+  },
+  {
+    "name": "NUSAWIRU",
+    "icao": "",
+    "iata": "",
+    "lat": -7.720389,
+    "lon": 108.489939
+  },
+  {
+    "name": "Obano",
+    "icao": "",
+    "iata": "OBD",
+    "lat": -3.9,
+    "lon": 136.2
+  },
+  {
+    "name": "Ocussi",
+    "icao": "",
+    "iata": "OEC",
+    "lat": -9.25,
+    "lon": 124.4
+  },
+  {
+    "name": "Okaba",
+    "icao": "WAKO",
+    "iata": "OKQ",
+    "lat": -8.1,
+    "lon": 139.7
+  },
+  {
+    "name": "Oksibil",
+    "icao": "WAJO",
+    "iata": "OKL",
+    "lat": -4.9,
+    "lon": 140.616667
+  },
+  {
+    "name": "Pabatu",
+    "icao": "WIMT",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Padang Kemiling Airport",
+    "icao": "WIPL",
+    "iata": "BKS",
+    "lat": -3.766667,
+    "lon": 102.3
+  },
+  {
+    "name": "Padhamelda Airport",
+    "icao": "WRKB",
+    "iata": "BJW",
+    "lat": -8.783333,
+    "lon": 120.966667
+  },
+  {
+    "name": "PAGERUNGAN",
+    "icao": "",
+    "iata": "",
+    "lat": -6.956608,
+    "lon": 115.931239
+  },
+  {
+    "name": "Palembang Sector",
+    "icao": "WIPZ",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Palibelo",
+    "icao": "",
+    "iata": "PBW",
+    "lat": 9.533333,
+    "lon": -0.216667
+  },
+  {
+    "name": "Pangkalanbuun",
+    "icao": "WRBI",
+    "iata": "PKN",
+    "lat": -2.7,
+    "lon": 111.666667
+  },
+  {
+    "name": "Pangkalpinang",
+    "icao": "WIKK",
+    "iata": "PGK",
+    "lat": 2.166667,
+    "lon": 106.133333
+  },
+  {
+    "name": "Pasir Mayang",
+    "icao": "WIPI",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Pasir Pangarayan",
+    "icao": "",
+    "iata": "PPR",
+    "lat": 0.833333,
+    "lon": 100.366667
+  },
+  {
+    "name": "Pattimura",
+    "icao": "WAPP",
+    "iata": "AMQ",
+    "lat": -3.710264,
+    "lon": 128.089136
+  },
+  {
+    "name": "Pendopo",
+    "icao": "WIPQ",
+    "iata": "PDO",
+    "lat": -3.286069,
+    "lon": 103.8796
+  },
+  {
+    "name": "Penggung Airport",
+    "icao": "WICD",
+    "iata": "CBN",
+    "lat": -6.756144,
+    "lon": 108.539672
+  },
+  {
+    "name": "Peranap",
+    "icao": "WIBP",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Pinang Kampai",
+    "icao": "WIBD",
+    "iata": "DUM",
+    "lat": 1.609194,
+    "lon": 101.433558
+  },
+  {
+    "name": "Polonia Airport",
+    "icao": "WIMM",
+    "iata": "MES",
+    "lat": 3.558056,
+    "lon": 98.671722
+  },
+  {
+    "name": "Pomalaa",
+    "icao": "WAAP",
+    "iata": "PUM",
+    "lat": -3.666667,
+    "lon": 119.8
+  },
+  {
+    "name": "PONGTIKU",
+    "icao": "WAWT",
+    "iata": "",
+    "lat": -3.044736,
+    "lon": 119.821536
+  },
+  {
+    "name": "Pongtiku",
+    "icao": "WAAT",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Purwokerto",
+    "icao": "",
+    "iata": "PWL",
+    "lat": 7.45,
+    "lon": 109.416667
+  },
+  {
+    "name": "Putussibau",
+    "icao": "WIOP",
+    "iata": "PSU",
+    "lat": 0.833333,
+    "lon": 112.933333
+  },
+  {
+    "name": "RADIN INTEN II",
+    "icao": "WICT",
+    "iata": "",
+    "lat": -5.242339,
+    "lon": 105.178939
+  },
+  {
+    "name": "Rahadi Usman Airport",
+    "icao": "WIOK",
+    "iata": "KNG",
+    "lat": -1.816639,
+    "lon": 109.963483
+  },
+  {
+    "name": "Ranai Airport",
+    "icao": "WION",
+    "iata": "NTX",
+    "lat": 3.95,
+    "lon": 108.383333
+  },
+  {
+    "name": "Rendani Airport",
+    "icao": "WASR",
+    "iata": "MKW",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Rokot",
+    "icao": "WIBR",
+    "iata": "RKI",
+    "lat": -0.95,
+    "lon": 100.75
+  },
+  {
+    "name": "RUMPIN",
+    "icao": "",
+    "iata": "",
+    "lat": -6.373219,
+    "lon": 106.622336
+  },
+  {
+    "name": "Salaiman",
+    "icao": "WIAK",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Sam Ratulangi",
+    "icao": "WAMM",
+    "iata": "MDC",
+    "lat": 1.549447,
+    "lon": 124.925878
+  },
+  {
+    "name": "Sanana",
+    "icao": "WAPN",
+    "iata": "SQN",
+    "lat": -2.066667,
+    "lon": 125.966667
+  },
+  {
+    "name": "Sanggata",
+    "icao": "WRLA",
+    "iata": "SGQ",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Sanggau",
+    "icao": "WRBU",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Sangir",
+    "icao": "",
+    "iata": "SAE",
+    "lat": 2.316667,
+    "lon": 125.416667
+  },
+  {
+    "name": "Sarmi",
+    "icao": "WAJI",
+    "iata": "ZRM",
+    "lat": -1.883333,
+    "lon": 138.766667
+  },
+  {
+    "name": "SATAR TACIK",
+    "icao": "WATG",
+    "iata": "",
+    "lat": -8.597011,
+    "lon": 120.477061
+  },
+  {
+    "name": "Satartacik",
+    "icao": "WRKG",
+    "iata": "RTG",
+    "lat": -8.6,
+    "lon": 120.45
+  },
+  {
+    "name": "Saumlaki",
+    "icao": "WAPI",
+    "iata": "SXK",
+    "lat": -7.966667,
+    "lon": 131.316667
+  },
+  {
+    "name": "Sawu",
+    "icao": "",
+    "iata": "SAU",
+    "lat": -10.5,
+    "lon": 121.9
+  },
+  {
+    "name": "Selaparang",
+    "icao": "WADA",
+    "iata": "AMI",
+    "lat": -8.560708,
+    "lon": 116.094656
+  },
+  {
+    "name": "Senggeh",
+    "icao": "WAJS",
+    "iata": "SEH",
+    "lat": -3.433333,
+    "lon": 140.816667
+  },
+  {
+    "name": "Senggo",
+    "icao": "",
+    "iata": "ZEG",
+    "lat": -5.983333,
+    "lon": 139.366667
+  },
+  {
+    "name": "Senipah",
+    "icao": "WRLY",
+    "iata": "SZH",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Sentani",
+    "icao": "WAJJ",
+    "iata": "DJJ",
+    "lat": -2.576953,
+    "lon": 140.516372
+  },
+  {
+    "name": "Sepinggan",
+    "icao": "WRLL",
+    "iata": "BPN",
+    "lat": -1.266667,
+    "lon": 116.9
+  },
+  {
+    "name": "Sibisa",
+    "icao": "WIMP",
+    "iata": "SIW",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "SILANGIT",
+    "icao": "WIMN",
+    "iata": "",
+    "lat": 2.259731,
+    "lon": 98.99185
+  },
+  {
+    "name": "Simpang Tiga/Sultan Syarif Kasim II",
+    "icao": "WIBB",
+    "iata": "PKU",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Sinak",
+    "icao": "",
+    "iata": "NKD",
+    "lat": -2.966667,
+    "lon": 116.283333
+  },
+  {
+    "name": "Sintang",
+    "icao": "WIOS",
+    "iata": "SQG",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Sipora",
+    "icao": "",
+    "iata": "RKO",
+    "lat": -2.083333,
+    "lon": 99.683333
+  },
+  {
+    "name": "Soekarno-Hatta International Airport",
+    "icao": "WIII",
+    "iata": "CGK",
+    "lat": -6.125556,
+    "lon": 106.655833
+  },
+  {
+    "name": "SOROAKO",
+    "icao": "WAWS",
+    "iata": "",
+    "lat": -2.531203,
+    "lon": 121.357639
+  },
+  {
+    "name": "Stagen Airport",
+    "icao": "WRBK",
+    "iata": "KBU",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Steenkool",
+    "icao": "",
+    "iata": "ZKL",
+    "lat": -2.102778,
+    "lon": 133.516667
+  },
+  {
+    "name": "Sugi Manuru",
+    "icao": "WAAR",
+    "iata": "RAQ",
+    "lat": -4.85,
+    "lon": 122.716667
+  },
+  {
+    "name": "Sujarwo Condronegoro",
+    "icao": "WABO",
+    "iata": "ZRI",
+    "lat": -1.416667,
+    "lon": 136.233333
+  },
+  {
+    "name": "Sultan Iskandarmuda Airport",
+    "icao": "WITT",
+    "iata": "BTJ",
+    "lat": 5.416667,
+    "lon": 95.341667
+  },
+  {
+    "name": "Sultan Mahmud Badaruddin II",
+    "icao": "WIPP",
+    "iata": "PLM",
+    "lat": -2.9,
+    "lon": 104.7
+  },
+  {
+    "name": "Sultan Taha Syarifudn",
+    "icao": "WIPA",
+    "iata": "DJB",
+    "lat": -1.638056,
+    "lon": 103.644444
+  },
+  {
+    "name": "Sumbawa Besar",
+    "icao": "WRRS",
+    "iata": "SWQ",
+    "lat": -8.5,
+    "lon": 117.416667
+  },
+  {
+    "name": "Sungal Pakning",
+    "icao": "WIBS",
+    "iata": "SEQ",
+    "lat": 1.366667,
+    "lon": 102.133333
+  },
+  {
+    "name": "Supadio",
+    "icao": "WIOO",
+    "iata": "PNK",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Syamsudin Noor",
+    "icao": "WRBB",
+    "iata": "BDJ",
+    "lat": -3.283333,
+    "lon": 114.683333
+  },
+  {
+    "name": "Taliabu",
+    "icao": "WAPT",
+    "iata": "TAX",
+    "lat": 14.916667,
+    "lon": -91.75
+  },
+  {
+    "name": "Talisayam",
+    "icao": "WRLD",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "TAMBOLAKA",
+    "icao": "WADT",
+    "iata": "",
+    "lat": -9.409717,
+    "lon": 119.244494
+  },
+  {
+    "name": "Tampa Padang",
+    "icao": "WAAJ",
+    "iata": "MJU",
+    "lat": -2.683333,
+    "lon": 118.9
+  },
+  {
+    "name": "Tana Toraja",
+    "icao": "",
+    "iata": "TTR",
+    "lat": -7.083333,
+    "lon": 120.7
+  },
+  {
+    "name": "Tanah Gambus",
+    "icao": "WIMK",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Tanah Grogot",
+    "icao": "WRLH",
+    "iata": "TNB",
+    "lat": 2.95,
+    "lon": 99.816667
+  },
+  {
+    "name": "Tanahmerah",
+    "icao": "WAKT",
+    "iata": "TMH",
+    "lat": 40,
+    "lon": 104.65
+  },
+  {
+    "name": "Tanjung Balai",
+    "icao": "WIBT",
+    "iata": "TJB",
+    "lat": 1.379722,
+    "lon": 102.150556
+  },
+  {
+    "name": "Tanjung Harapan",
+    "icao": "WRLG",
+    "iata": "TJS",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Tanjung Santan",
+    "icao": "WALT",
+    "iata": "TSX",
+    "lat": -0.093214,
+    "lon": 117.439292
+  },
+  {
+    "name": "Tanjung Warukin",
+    "icao": "WRBN",
+    "iata": "TJG",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Tardanu",
+    "icao": "WRKS",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "TAREMPA",
+    "icao": "WIOM",
+    "iata": "",
+    "lat": 3.348119,
+    "lon": 106.25805
+  },
+  {
+    "name": "Tasikmalaya",
+    "icao": "WIAM",
+    "iata": "TSY",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Tembagapura",
+    "icao": "WABP",
+    "iata": "TIM",
+    "lat": -4.528333,
+    "lon": 136.8875
+  },
+  {
+    "name": "Teminabuan",
+    "icao": "WAST",
+    "iata": "TXM",
+    "lat": -1.433333,
+    "lon": 132.016667
+  },
+  {
+    "name": "Temindung",
+    "icao": "WRLS",
+    "iata": "SRI",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Teuku Cut Ali",
+    "icao": "WITA",
+    "iata": "TPK",
+    "lat": 3.466667,
+    "lon": 97.3
+  },
+  {
+    "name": "Tiom",
+    "icao": "",
+    "iata": "TMY",
+    "lat": -3.866667,
+    "lon": 138.366667
+  },
+  {
+    "name": "Tjilik Riwut",
+    "icao": "WAOP",
+    "iata": "TMC",
+    "lat": -2.225128,
+    "lon": 113.942661
+  },
+  {
+    "name": "Tolitoli",
+    "icao": "WAMI",
+    "iata": "TLI",
+    "lat": 1.0425,
+    "lon": 120.813611
+  },
+  {
+    "name": "Torea Airport",
+    "icao": "WASF",
+    "iata": "FKQ",
+    "lat": -2.920192,
+    "lon": 132.267031
+  },
+  {
+    "name": "Trunojoyo",
+    "icao": "WRST",
+    "iata": "SUP",
+    "lat": -7.066667,
+    "lon": 113.933333
+  },
+  {
+    "name": "Tumbang Samba",
+    "icao": "",
+    "iata": "TBM",
+    "lat": -3.583333,
+    "lon": 133.566667
+  },
+  {
+    "name": "Tunggul Wulung",
+    "icao": "WIHL",
+    "iata": "CXP",
+    "lat": -7.645056,
+    "lon": 109.033911
+  },
+  {
+    "name": "Ubrub",
+    "icao": "",
+    "iata": "UBR",
+    "lat": -3.733333,
+    "lon": 140.8
+  },
+  {
+    "name": "Usman Sadik Airport",
+    "icao": "WAPH",
+    "iata": "LAH",
+    "lat": -0.616667,
+    "lon": 127.483333
+  },
+  {
+    "name": "Viqueque",
+    "icao": "WPVQ",
+    "iata": "VIQ",
+    "lat": -8.883333,
+    "lon": 126.366667
+  },
+  {
+    "name": "Wagethe",
+    "icao": "WABG",
+    "iata": "WET",
+    "lat": -4.05,
+    "lon": 136.266667
+  },
+  {
+    "name": "Wai Oti Airport",
+    "icao": "WATC",
+    "iata": "MOF",
+    "lat": -8.640647,
+    "lon": 122.236889
+  },
+  {
+    "name": "Waingapu",
+    "icao": "WRRW",
+    "iata": "WGP",
+    "lat": -9.666667,
+    "lon": 120.3
+  },
+  {
+    "name": "Wamena",
+    "icao": "WAJW",
+    "iata": "WMX",
+    "lat": -4.102511,
+    "lon": 138.957372
+  },
+  {
+    "name": "Waris",
+    "icao": "WAJR",
+    "iata": "WAR",
+    "lat": -3.233333,
+    "lon": 140.983333
+  },
+  {
+    "name": "WARUKIN",
+    "icao": "WAON",
+    "iata": "",
+    "lat": -2.216556,
+    "lon": 115.436333
+  },
+  {
+    "name": "Wasior",
+    "icao": "WASW",
+    "iata": "WSR",
+    "lat": -2.766667,
+    "lon": 134.5
+  },
+  {
+    "name": "Wirasaba",
+    "icao": "WIAP",
+    "iata": "",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Wolter Monginsidi",
+    "icao": "WAWW",
+    "iata": "KDI",
+    "lat": -4.081608,
+    "lon": 122.418231
+  },
+  {
+    "name": "Yuruf",
+    "icao": "",
+    "iata": "RUF",
+    "lat": null,
+    "lon": null
+  },
+  {
+    "name": "Zugapa",
+    "icao": "",
+    "iata": "UGU",
+    "lat": 38.766667,
+    "lon": 40.333333
+  }
+]

@@ -28,6 +28,15 @@ export const PHASE_DEFINITIONS = [
     transportTypes: 'ground' as const  // Ground transport only
   },
   {
+    id: 'perjalanan-antar-kota',
+    name: 'Perjalanan Antar Kota',
+    icon: '🛣️',
+    description: 'Perjalanan antara Madinah dan Makkah',
+    categories: ['transport'],
+    type: ['haji', 'umrah'] as const,
+    transportTypes: 'ground' as const  // Ground transport only
+  },
+  {
     id: 'makkah',
     name: 'Makkah',
     icon: '🕋',

@@ -10,7 +10,7 @@ import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
 import { PhaseId, CategoryId } from '@/lib/types';
 import { MdHome, MdFlight, MdMosque, MdPark, MdHotel, MdRestaurant, MdRecycling } from 'react-icons/md';
-import { FaKaaba, FaBus, FaMountain, FaMoon, FaBullseye } from 'react-icons/fa';
+import { FaKaaba, FaBus, FaMountain, FaMoon, FaBullseye, FaRoad } from 'react-icons/fa';
 import { IoArrowBack, IoChevronForward } from 'react-icons/io5';
 
 function getPhaseIcon(phaseId: string) {
@@ -23,6 +23,7 @@ function getPhaseIcon(phaseId: string) {
     case 'muzdalifah': return <FaMoon className="text-2xl text-yellow-400" />;
     case 'mina': return <FaBullseye className="text-2xl text-red-600" />;
     case 'rekreasi': return <MdPark className="text-2xl text-green-500" />;
+    case 'perjalanan-antar-kota': return <FaRoad className="text-2xl text-orange-500" />;
     case 'kepulangan': return <MdFlight className="text-2xl text-blue-500 rotate-180" />;
     default: return <MdHome className="text-2xl text-teal-600" />;
   }
