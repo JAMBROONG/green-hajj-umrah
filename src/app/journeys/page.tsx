@@ -40,6 +40,13 @@ export default function JourneysPage() {
     }
   };
 
+  const hasOngoingTrip = trips.some(trip => trip.status === 'ongoing');
+
+  const handleNewTrip = () => {
+    if (hasOngoingTrip) return;
+    router.push('/journeys/new');
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
@@ -104,8 +111,14 @@ export default function JourneysPage() {
               <h1 className="text-lg font-bold text-textDark">Perjalanan Saya</h1>
             </div>
             <button
-              onClick={() => router.push('/journeys/new')}
-              className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm"
+              onClick={handleNewTrip}
+              disabled={hasOngoingTrip}
+              title={hasOngoingTrip ? 'Selesaikan perjalanan yang sedang berlangsung terlebih dahulu' : ''}
+              className={`w-10 h-10 rounded-full text-white flex items-center justify-center transition-colors shadow-sm ${
+                hasOngoingTrip 
+                  ? 'bg-gray-400 cursor-not-allowed opacity-60' 
+                  : 'bg-primary hover:bg-primary/90'
+              }`}
             >
               <FaPlus className="text-lg" />
             </button>
@@ -114,26 +127,39 @@ export default function JourneysPage() {
 
         {/* Content */}
         <div className="p-5">
-        {trips.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-8 text-center">
-            <div className="text-gray-400 mb-4">
-              <FaKaaba className="text-6xl mx-auto" />
+          {hasOngoingTrip && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-5">
+              <p className="text-sm text-blue-800 font-medium">
+                ℹ️ Anda memiliki perjalanan yang sedang berlangsung. Selesaikan terlebih dahulu sebelum membuat perjalanan baru.
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Belum Ada Perjalanan
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Mulai lacak jejak karbon perjalanan haji atau umrah Anda
-            </p>
-            <button
-              onClick={() => router.push('/journeys/new')}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Buat Perjalanan Baru
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
+          )}
+
+          {trips.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-md p-8 text-center">
+              <div className="text-gray-400 mb-4">
+                <FaKaaba className="text-6xl mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Belum Ada Perjalanan
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Mulai lacak jejak karbon perjalanan haji atau umrah Anda
+              </p>
+              <button
+                onClick={handleNewTrip}
+                disabled={hasOngoingTrip}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  hasOngoingTrip
+                    ? 'bg-gray-400 text-white opacity-60 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                Buat Perjalanan Baru
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
             {trips.map((trip) => (
               <div
                 key={trip.id}

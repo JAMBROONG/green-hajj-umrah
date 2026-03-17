@@ -4,6 +4,7 @@ import React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { getGreeting, formatEmission, formatCurrency } from '@/lib/utils';
@@ -24,9 +25,11 @@ interface Trip {
 
 export default function Home() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState('Selamat pagi');
+  const userName = session?.user?.name || 'Pengguna';
 
   useEffect(() => {
     setGreeting(getGreeting());
@@ -53,6 +56,13 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const hasOngoingTrip = trips.some(trip => trip.status === 'ongoing');
+
+  const handleNewTrip = () => {
+    if (hasOngoingTrip) return;
+    router.push('/journeys/new');
   };
 
   const formatDate = (dateString: string) => {
@@ -92,7 +102,7 @@ export default function Home() {
             <div>
               <p className="text-xs text-textMuted mb-0.5">Green Haj & Umrah</p>
               <h1 id="greetingText" className="text-lg font-bold text-textDark">
-                {greeting}, Brian Pramudita
+                {greeting}, {userName}
               </h1>
             </div>
             <button 
@@ -121,8 +131,14 @@ export default function Home() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-textDark">Perjalanan Saya</h2>
             <button
-              onClick={() => router.push('/journeys/new')}
-              className="text-xs font-medium px-3 py-1.5 bg-primary text-white rounded-full hover:bg-primary/90 transition-colors flex items-center gap-1"
+              onClick={handleNewTrip}
+              disabled={hasOngoingTrip}
+              title={hasOngoingTrip ? 'Selesaikan perjalanan yang sedang berlangsung terlebih dahulu' : ''}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors ${
+                hasOngoingTrip
+                  ? 'bg-gray-400 text-white opacity-60 cursor-not-allowed'
+                  : 'bg-primary text-white hover:bg-primary/90'
+              }`}
             >
               <FaPlus className="text-xs" />
               <span>Baru</span>
@@ -141,8 +157,13 @@ export default function Home() {
                 Mulai lacak jejak karbon perjalanan Anda
               </p>
               <button
-                onClick={() => router.push('/journeys/new')}
-                className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors"
+                onClick={handleNewTrip}
+                disabled={hasOngoingTrip}
+                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                  hasOngoingTrip
+                    ? 'bg-gray-400 text-white opacity-60 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary/90'
+                }`}
               >
                 Buat Perjalanan
               </button>

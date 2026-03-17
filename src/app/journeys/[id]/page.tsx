@@ -165,7 +165,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             </button>
             <div className="flex gap-2">
               <button
-                onClick={() => showAlert('Fitur edit akan segera hadir', { type: 'info', title: 'Segera Hadir' })}
+                onClick={() => router.push(`/journeys/${tripId}/edit`)}
                 className="p-2 text-textMuted hover:text-primary transition-colors"
               >
                 <FaEdit className="text-lg" />
