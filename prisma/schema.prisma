@@ -175,3 +175,15 @@ model faktor_emisi_limbah {
 
   @@index([name])
 }
+
+model sessions {
+  id            String   @id
+  user_id       String?  @db.Uuid
+  ip_address    String?  @db.VarChar(45)
+  user_agent    String?  @db.Text
+  payload       String   @db.LongText
+  last_activity Int
+
+  @@index([user_id])
+  @@index([last_activity])
+}
