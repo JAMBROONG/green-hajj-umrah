@@ -11,6 +11,22 @@ import { v4 as uuidv4 } from 'uuid';
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
 
+// Fixed locations for perjalanan-antar-kota
+const FIXED_LOCATIONS = {
+  makkah: {
+    displayName: 'Makkah',
+    lat: 21.43018234639338,
+    lon: 39.8252469518234,
+    placeId: 1
+  },
+  madinah: {
+    displayName: 'Madinah',
+    lat: 24.467729816668832,
+    lon: 39.602692780309404,
+    placeId: 2
+  }
+};
+
 export default function AddGroundTransportPage() {
   const params = useParams();
   const router = useRouter();
@@ -43,7 +59,19 @@ export default function AddGroundTransportPage() {
       if (originQuery.length >= 3) {
         setIsSearching(true);
         const results = await searchLocations(originQuery);
-        setOriginSuggestions(results);
+        
+        // Filter results for perjalanan-antar-kota phase
+        let filtered = results;
+        if (phaseId === 'perjalanan-antar-kota') {
+          filtered = results.filter(loc => 
+            loc.displayName.toLowerCase().includes('makkah') || 
+            loc.displayName.toLowerCase().includes('madinah') ||
+            loc.displayName.toLowerCase().includes('mecca') ||
+            loc.displayName.toLowerCase().includes('medina')
+          );
+        }
+        
+        setOriginSuggestions(filtered);
         setIsSearching(false);
       } else {
         setOriginSuggestions([]);
@@ -52,7 +80,7 @@ export default function AddGroundTransportPage() {
 
     const debounce = setTimeout(searchOrigin, 300);
     return () => clearTimeout(debounce);
-  }, [originQuery]);
+  }, [originQuery, phaseId]);
 
   // Search destination locations
   useEffect(() => {
@@ -60,7 +88,19 @@ export default function AddGroundTransportPage() {
       if (destinationQuery.length >= 3) {
         setIsSearching(true);
         const results = await searchLocations(destinationQuery);
-        setDestinationSuggestions(results);
+        
+        // Filter results for perjalanan-antar-kota phase
+        let filtered = results;
+        if (phaseId === 'perjalanan-antar-kota') {
+          filtered = results.filter(loc => 
+            loc.displayName.toLowerCase().includes('makkah') || 
+            loc.displayName.toLowerCase().includes('madinah') ||
+            loc.displayName.toLowerCase().includes('mecca') ||
+            loc.displayName.toLowerCase().includes('medina')
+          );
+        }
+        
+        setDestinationSuggestions(filtered);
         setIsSearching(false);
       } else {
         setDestinationSuggestions([]);
@@ -69,7 +109,7 @@ export default function AddGroundTransportPage() {
 
     const debounce = setTimeout(searchDestination, 300);
     return () => clearTimeout(debounce);
-  }, [destinationQuery]);
+  }, [destinationQuery, phaseId]);
 
   // Calculate distance when both locations are selected
   useEffect(() => {
@@ -91,6 +131,28 @@ export default function AddGroundTransportPage() {
 
     calculateDistance();
   }, [selectedOrigin, selectedDestination]);
+
+  // Auto-set destination based on origin for perjalanan-antar-kota phase
+  useEffect(() => {
+    if (phaseId === 'perjalanan-antar-kota' && selectedOrigin) {
+      if (selectedOrigin.displayName === 'Makkah') {
+        setSelectedDestination(FIXED_LOCATIONS.madinah as Location);
+      } else if (selectedOrigin.displayName === 'Madinah') {
+        setSelectedDestination(FIXED_LOCATIONS.makkah as Location);
+      }
+    }
+  }, [selectedOrigin, phaseId]);
+
+  // Auto-set origin based on destination for perjalanan-antar-kota phase
+  useEffect(() => {
+    if (phaseId === 'perjalanan-antar-kota' && selectedDestination) {
+      if (selectedDestination.displayName === 'Makkah') {
+        setSelectedOrigin(FIXED_LOCATIONS.madinah as Location);
+      } else if (selectedDestination.displayName === 'Madinah') {
+        setSelectedOrigin(FIXED_LOCATIONS.makkah as Location);
+      }
+    }
+  }, [selectedDestination, phaseId]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -229,87 +291,133 @@ export default function AddGroundTransportPage() {
             />
           </div>
 
-          {/* Origin Location Search */}
-          <div className="relative" ref={originRef}>
+          {/* Origin Location */}
+          <div ref={originRef}>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Dari (Lokasi Asal) *
             </label>
-            <input
-              type="text"
-              value={originQuery}
-              onChange={(e) => {
-                setOriginQuery(e.target.value);
-                setSelectedOrigin(null);
-              }}
-              placeholder="Cari lokasi asal..."
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-              required
-            />
-            {isSearching && originQuery.length >= 3 && (
-              <div className="absolute right-4 top-11 text-gray-400">
-                <div className="animate-spin">⏳</div>
-              </div>
-            )}
-            {originSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {originSuggestions.map((location) => (
-                  <button
-                    key={location.placeId}
-                    type="button"
-                    onClick={() => handleOriginSelect(location)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                  >
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                      {location.displayName}
-                    </p>
-                  </button>
-                ))}
-              </div>
+            {phaseId === 'perjalanan-antar-kota' ? (
+              <select
+                value={selectedOrigin?.displayName === 'Makkah' ? 'makkah' : selectedOrigin?.displayName === 'Madinah' ? 'madinah' : ''}
+                onChange={(e) => {
+                  if (e.target.value === 'makkah') {
+                    setSelectedOrigin(FIXED_LOCATIONS.makkah as Location);
+                  } else if (e.target.value === 'madinah') {
+                    setSelectedOrigin(FIXED_LOCATIONS.madinah as Location);
+                  } else {
+                    setSelectedOrigin(null);
+                  }
+                }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                required
+              >
+                <option value="">-- Pilih Lokasi --</option>
+                <option value="makkah">Makkah</option>
+                <option value="madinah">Madinah</option>
+              </select>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={originQuery}
+                  onChange={(e) => {
+                    setOriginQuery(e.target.value);
+                    setSelectedOrigin(null);
+                  }}
+                  placeholder="Cari lokasi asal..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                  required
+                />
+                {isSearching && originQuery.length >= 3 && (
+                  <div className="absolute right-4 top-11 text-gray-400">
+                    <div className="animate-spin">⏳</div>
+                  </div>
+                )}
+                {originSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {originSuggestions.map((location) => (
+                      <button
+                        key={location.placeId}
+                        type="button"
+                        onClick={() => handleOriginSelect(location)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                          {location.displayName}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
             {selectedOrigin && (
               <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
             )}
           </div>
 
-          {/* Destination Location Search */}
-          <div className="relative" ref={destinationRef}>
+          {/* Destination Location */}
+          <div ref={destinationRef}>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Menuju (Lokasi Tujuan) *
             </label>
-            <input
-              type="text"
-              value={destinationQuery}
-              onChange={(e) => {
-                setDestinationQuery(e.target.value);
-                setSelectedDestination(null);
-              }}
-              placeholder="Cari lokasi tujuan..."
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-              required
-            />
-            {isSearching && destinationQuery.length >= 3 && (
-              <div className="absolute right-4 top-11 text-gray-400">
-                <div className="animate-spin">⏳</div>
-              </div>
-            )}
-            {destinationSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {destinationSuggestions.map((location) => (
-                  <button
-                    key={location.placeId}
-                    type="button"
-                    onClick={() => handleDestinationSelect(location)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                  >
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                      {location.displayName}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-            {selectedDestination && (
-              <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
+            {phaseId === 'perjalanan-antar-kota' ? (
+              <select
+                value={selectedDestination?.displayName === 'Makkah' ? 'makkah' : selectedDestination?.displayName === 'Madinah' ? 'madinah' : ''}
+                onChange={(e) => {
+                  if (e.target.value === 'makkah') {
+                    setSelectedDestination(FIXED_LOCATIONS.makkah as Location);
+                  } else if (e.target.value === 'madinah') {
+                    setSelectedDestination(FIXED_LOCATIONS.madinah as Location);
+                  } else {
+                    setSelectedDestination(null);
+                  }
+                }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                required
+              >
+                <option value="">-- Pilih Lokasi --</option>
+                <option value="makkah">Makkah</option>
+                <option value="madinah">Madinah</option>
+              </select>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={destinationQuery}
+                  onChange={(e) => {
+                    setDestinationQuery(e.target.value);
+                    setSelectedDestination(null);
+                  }}
+                  placeholder="Cari lokasi tujuan..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+                  required
+                />
+                {isSearching && destinationQuery.length >= 3 && (
+                  <div className="absolute right-4 top-11 text-gray-400">
+                    <div className="animate-spin">⏳</div>
+                  </div>
+                )}
+                {destinationSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {destinationSuggestions.map((location) => (
+                      <button
+                        key={location.placeId}
+                        type="button"
+                        onClick={() => handleDestinationSelect(location)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                          {location.displayName}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedDestination && (
+                  <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
+                )}
+              </>
             )}
           </div>
 

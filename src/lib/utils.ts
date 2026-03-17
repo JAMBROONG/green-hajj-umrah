@@ -11,7 +11,7 @@ import {
   AVG_EMISSION 
 } from './constants';
 
-// Migration helper: convert old phase IDs to new ones
+// Migration helper: convert old phase IDs to new ones and add missing new phases
 export function migratePhaseIds(journey: HajiJourney): HajiJourney {
   const oldToNewMap: Record<string, PhaseId> = {
     'penerbangan-pergi': 'keberangkatan',
@@ -23,6 +23,28 @@ export function migratePhaseIds(journey: HajiJourney): HajiJourney {
   Object.entries(journey.phases).forEach(([key, value]) => {
     const newKey = oldToNewMap[key] || key;
     migratedPhases[newKey as PhaseId] = value;
+  });
+
+  // Add any missing phases from PHASE_DEFINITIONS
+  PHASE_DEFINITIONS.forEach(phase => {
+    if (!migratedPhases[phase.id as PhaseId]) {
+      const phaseData: PhaseData = {
+        completed: false,
+        categories: {}
+      };
+
+      phase.categories.forEach(cat => {
+        phaseData.categories[cat as CategoryId] = {
+          completed: false,
+          emission: 0,
+          totalEmission: 0,
+          activities: [],
+          details: {}
+        };
+      });
+
+      migratedPhases[phase.id as PhaseId] = phaseData;
+    }
   });
 
   return {
