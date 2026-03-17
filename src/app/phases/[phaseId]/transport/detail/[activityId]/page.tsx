@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
@@ -16,6 +16,7 @@ import { MdEdit, MdDelete, MdInfoOutline } from 'react-icons/md';
 export default function TransportDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showConfirm } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const activityId = params.activityId as string;
@@ -93,7 +94,9 @@ export default function TransportDetailPage() {
   };
 
   const handleBackClick = () => {
-    router.push(`/phases/${phaseId}/transport`);
+    const tripId = searchParams.get('tripId');
+    const url = tripId ? `/phases/${phaseId}/transport?tripId=${tripId}` : `/phases/${phaseId}/transport`;
+    router.push(url);
   };
 
   return (

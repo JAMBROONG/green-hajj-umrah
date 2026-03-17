@@ -58,7 +58,8 @@ export default function HotelListPage() {
   };
 
   const handleBackClick = () => {
-    router.push(`/phases/${phaseId}`);
+    const url = tripId ? `/phases/${phaseId}?tripId=${tripId}` : `/phases/${phaseId}`;
+    router.push(url);
   };
 
   return (

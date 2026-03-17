@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
@@ -16,8 +16,10 @@ import { MdEdit, MdDelete, MdInfoOutline } from 'react-icons/md';
 export default function TransportListPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showConfirm } = useDialog();
   const phaseId = params.phaseId as PhaseId;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -93,7 +95,8 @@ export default function TransportListPage() {
   };
 
   const handleBackClick = () => {
-    router.push(`/phases/${phaseId}`);
+    const url = tripId ? `/phases/${phaseId}?tripId=${tripId}` : `/phases/${phaseId}`;
+    router.push(url);
   };
 
   // Get icon based on transport type
