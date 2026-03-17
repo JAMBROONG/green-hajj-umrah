@@ -2,7 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
-import { existsSync, readFileSync } from 'fs';
+import { readFileSync } from 'fs';
+import * as path from 'path';
 
 dotenv.config();
 
@@ -37,68 +38,30 @@ function isWithinIndonesiaBounds(lat: number, lon: number): boolean {
   );
 }
 
-function normalizeString(value: string | undefined): string | null {
-  if (!value) return null;
-  const cleaned = value
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, '\\')
-    .trim();
-  return cleaned.length ? cleaned : null;
-}
+function loadSeaportsFromJson(): ParsedSeaport[] {
+  const jsonPath = path.join(__dirname, '../public/seaports.json');
+  const content = readFileSync(jsonPath, 'utf-8');
+  const data = JSON.parse(content);
 
-function extractString(block: string, key: string): string | null {
-  const match = block.match(new RegExp(`"${key}"\\s*=>\\s*"([\\s\\S]*?)"`));
-  return normalizeString(match?.[1]);
-}
+  if (!Array.isArray(data)) {
+    throw new Error('JSON harus berupa array seaports');
+  }
 
-function extractNumber(block: string, key: string): number | null {
-  const match = block.match(new RegExp(`"${key}"\\s*=>\\s*([-+]?[0-9]*\\.?[0-9]+)`));
-  if (!match) return null;
-  const value = Number(match[1]);
-  return Number.isFinite(value) ? value : null;
-}
-
-function parseSeaportsFromSeeder(content: string): ParsedSeaport[] {
-  const itemBlocks = [...content.matchAll(/array\(\s*"id"\s*=>[\s\S]*?\),/g)].map((m) => m[0]);
-
-  return itemBlocks
-    .map((block) => {
-      const source_id = extractNumber(block, 'id');
-      const name = extractString(block, 'name');
-      const latitude = extractNumber(block, 'latitude');
-      const longitude = extractNumber(block, 'longitude');
-
-      if (!source_id || !name || latitude === null || longitude === null) {
-        return null;
-      }
-
-      return {
-        source_id,
-        name,
-        alias_name: extractString(block, 'name2'),
-        latitude,
-        longitude,
-        province: extractString(block, 'province'),
-        city: extractString(block, 'city'),
-        address: extractString(block, 'address'),
-        country_id: extractNumber(block, 'country_id'),
-        country_code: 'ID'
-      } satisfies ParsedSeaport;
-    })
-    .filter((item): item is ParsedSeaport => Boolean(item));
+  return data.map((item) => ({
+    source_id: item.source_id,
+    name: item.name,
+    alias_name: item.alias_name || null,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    province: item.province || null,
+    city: item.city || null,
+    address: item.address || null,
+    country_id: item.country_id || null,
+    country_code: item.country_code || 'ID'
+  } satisfies ParsedSeaport));
 }
 
 async function main() {
-  const seederPath = process.argv[2];
-
-  if (!seederPath) {
-    throw new Error('Path file seeder Laravel wajib diisi. Contoh: npm run db:import-seaports:laravel -- "/path/SeaportSeeder.php"');
-  }
-
-  if (!existsSync(seederPath)) {
-    throw new Error(`File tidak ditemukan: ${seederPath}`);
-  }
-
   const connectionString = process.env.DATABASE_URL || DEFAULT_DEV_DATABASE_URL;
 
   if (!connectionString) {
@@ -110,11 +73,10 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    const content = readFileSync(seederPath, 'utf-8');
-    const seaports = parseSeaportsFromSeeder(content);
+    const seaports = loadSeaportsFromJson();
 
     if (!seaports.length) {
-      throw new Error('Tidak ada data pelabuhan yang berhasil diparse dari seeder Laravel.');
+      throw new Error('Tidak ada data pelabuhan di file public/seaports.json');
     }
 
     await prisma.$executeRawUnsafe(`
@@ -205,7 +167,7 @@ async function main() {
       `;
     }
 
-    console.log(`✅ Import seaports selesai: ${seaports.length} data dari ${seederPath}`);
+    console.log(`✅ Import seaports selesai: ${seaports.length} data dari ${jsonPath}`);
     console.log(`ℹ️  Pelabuhan aktif (within Indonesia bounds): ${activeCount}`);
     console.log(`ℹ️  Pelabuhan nonaktif (out of bounds): ${inactiveCount}`);
   } finally {

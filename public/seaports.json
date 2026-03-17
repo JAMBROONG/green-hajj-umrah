@@ -1,0 +1,62 @@
+[
+  {
+    "source_id": 1,
+    "name": "Tanjung Perak",
+    "alias_name": null,
+    "latitude": -7.2167,
+    "longitude": 112.7667,
+    "province": "Jawa Timur",
+    "city": "Surabaya",
+    "address": "Jl. Tanjung Perak",
+    "country_id": null,
+    "country_code": "ID"
+  },
+  {
+    "source_id": 2,
+    "name": "Sunda Kelapa",
+    "alias_name": null,
+    "latitude": -6.1083,
+    "longitude": 106.8,
+    "province": "DKI Jakarta",
+    "city": "Jakarta",
+    "address": "Jl. Sunda Kelapa",
+    "country_id": null,
+    "country_code": "ID"
+  },
+  {
+    "source_id": 3,
+    "name": "Belawan",
+    "alias_name": null,
+    "latitude": 3.8,
+    "longitude": 98.65,
+    "province": "Sumatera Utara",
+    "city": "Medan",
+    "address": "Jl. Belawan",
+    "country_id": null,
+    "country_code": "ID"
+  },
+  {
+    "source_id": 4,
+    "name": "Cirebon",
+    "alias_name": null,
+    "latitude": -6.7,
+    "longitude": 108.35,
+    "province": "Jawa Barat",
+    "city": "Cirebon",
+    "address": "Jl. Cirebon",
+    "country_id": null,
+    "country_code": "ID"
+  },
+  {
+    "source_id": 5,
+    "name": "Semarang",
+    "alias_name": null,
+    "latitude": -6.97,
+    "longitude": 110.42,
+    "province": "Jawa Tengah",
+    "city": "Semarang",
+    "address": "Jl. Semarang",
+    "country_id": null,
+    "country_code": "ID"
+  }
+]
