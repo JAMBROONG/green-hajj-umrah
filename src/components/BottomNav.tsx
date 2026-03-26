@@ -17,7 +17,7 @@ export default function BottomNav() {
       <div className="max-w-[430px] mx-auto px-5 py-2 flex justify-around">
         <Link 
           href="/" 
-          className={`nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all ${isActive('/') && !pathname.includes('/journeys') && !pathname.includes('/carbon-market') && !pathname.includes('/analytics') ? 'active' : ''}`}
+          className={`nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all ${isActive('/') && !pathname.includes('/journeys') && !pathname.includes('/carbon-market') && !pathname.includes('/profile') ? 'active' : ''}`}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -49,15 +49,14 @@ export default function BottomNav() {
         </Link>
 
         <Link 
-          href="/analytics" 
-          className={`nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all ${isActive('/analytics') ? 'active' : ''}`}
+          href="/profile" 
+          className={`nav-item flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all ${isActive('/profile') ? 'active' : ''}`}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="20" x2="12" y2="10" />
-            <line x1="18" y1="20" x2="18" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="16" />
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
           </svg>
-          <span className="text-xs">Analitik</span>
+          <span className="text-xs">Saya</span>
         </Link>
       </div>
     </nav>
