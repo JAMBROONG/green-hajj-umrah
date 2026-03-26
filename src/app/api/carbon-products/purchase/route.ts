@@ -147,6 +147,8 @@ export async function POST(request: NextRequest) {
         user_id: userProfile.id,
         product_id: product.id,
         units: units,
+        co2_equivalent: units, // CO2 equivalent in tCO2e
+        amount: totalAmount, // Price amount
         total_price: totalAmount,
         transaction_reference: transaction.token,
         status: 'pending',
