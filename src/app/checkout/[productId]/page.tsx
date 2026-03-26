@@ -1,36 +1,90 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
-import { CARBON_PRODUCTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
-import { CarbonProductId, PaymentMethod } from '@/lib/types';
+import { PaymentMethod } from '@/lib/types';
+
+interface CarbonProduct {
+  id: string;
+  product_code: string;
+  name: string;
+  description: string;
+  price: string | number;
+  project: string;
+  category: string;
+  image_url: string;
+  color_class: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function CheckoutPage({ 
   params 
 }: { 
-  params: Promise<{ productId: CarbonProductId }> 
+  params: Promise<{ productId: string }> 
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const { totalEmission } = useHajiJourney();
   
+  const [product, setProduct] = useState<CarbonProduct | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState(Math.ceil(totalEmission / 1000));
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const product = CARBON_PRODUCTS[resolvedParams.productId];
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/carbon-products');
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const products: CarbonProduct[] = await response.json();
+        const foundProduct = products.find(p => p.product_code === resolvedParams.productId);
+        
+        if (!foundProduct) {
+          setError('Produk tidak ditemukan');
+          setProduct(null);
+        } else {
+          setProduct(foundProduct);
+          setError(null);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat produk');
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [resolvedParams.productId]);
   
-  if (!product) {
+  if (loading) {
     return (
       <div className="app-container">
         <StatusBar />
         <div className="p-5 text-center">
-          <p className="text-textMuted">Produk tidak ditemukan</p>
+          <div className="animate-spin w-8 h-8 border-4 border-primaryLight border-t-primary rounded-full mx-auto"></div>
+          <p className="text-textMuted mt-3">Memuat produk...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product || error) {
+    return (
+      <div className="app-container">
+        <StatusBar />
+        <div className="p-5 text-center">
+          <p className="text-textMuted">{error || 'Produk tidak ditemukan'}</p>
           <Link href="/carbon-market" className="text-primary text-sm underline mt-2 inline-block">
             Kembali ke Pasar Karbon
           </Link>
@@ -54,22 +108,43 @@ export default function CheckoutPage({
     setUnits(prev => Math.max(1, Math.min(100, prev + delta)));
   };
 
-  const handlePayment = () => {
-    if (!selectedPayment) return;
+  const handlePayment = async () => {
+    if (!selectedPayment || !product) return;
     
     setIsProcessing(true);
     
-    setTimeout(() => {
-      const searchParams = new URLSearchParams({
-        productId: resolvedParams.productId,
-        productName: product.name,
-        units: units.toString(),
-        total: total.toString(),
-        payment: selectedPayment
+    try {
+      // Call API to create Midtrans transaction
+      const response = await fetch('/api/carbon-products/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_code: product.product_code,
+          units: units,
+        }),
       });
-      
-      router.push(`/success?${searchParams.toString()}`);
-    }, 1500);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to process payment');
+      }
+
+      const data = await response.json();
+      console.log('Payment response:', data);
+
+      // Redirect to Midtrans payment page
+      if (data.snapUrl) {
+        window.location.href = data.snapUrl;
+      } else {
+        throw new Error('No payment URL received');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert(error instanceof Error ? error.message : 'Payment error occurred');
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -92,8 +167,8 @@ export default function CheckoutPage({
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border mb-4 hover-lift fade-in-item">
             <div className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-xs font-bold px-2 py-0.5 rounded ${product.colorClass}`}>
-                  {resolvedParams.productId}
+                <span className={`text-xs font-bold px-2 py-0.5 rounded ${product.color_class}`}>
+                  {product.product_code}
                 </span>
                 <p className="text-xs text-textMuted">Proyek: {product.project}</p>
               </div>
