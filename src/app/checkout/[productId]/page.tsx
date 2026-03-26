@@ -7,7 +7,6 @@ import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { formatCurrency } from '@/lib/utils';
-import { PaymentMethod } from '@/lib/types';
 
 interface CarbonProduct {
   id: string;
@@ -37,7 +36,6 @@ export default function CheckoutPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState(Math.ceil(totalEmission / 1000));
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -95,21 +93,12 @@ export default function CheckoutPage({
 
   const total = product.price * units;
 
-  const paymentMethods: { id: PaymentMethod; name: string; icon: string }[] = [
-    { id: 'gopay', name: 'GoPay', icon: '💚' },
-    { id: 'ovo', name: 'OVO', icon: '💜' },
-    { id: 'dana', name: 'DANA', icon: '💙' },
-    { id: 'bca', name: 'BCA Virtual Account', icon: '🏦' },
-    { id: 'mandiri', name: 'Mandiri VA', icon: '🏦' },
-    { id: 'bni', name: 'BNI VA', icon: '🏦' }
-  ];
-
   const adjustUnits = (delta: number) => {
     setUnits(prev => Math.max(1, Math.min(100, prev + delta)));
   };
 
   const handlePayment = async () => {
-    if (!selectedPayment || !product) return;
+    if (!product) return;
     
     setIsProcessing(true);
     
@@ -217,29 +206,10 @@ export default function CheckoutPage({
             </div>
           </div>
 
-          {/* Payment Method */}
-          <p className="text-sm font-medium text-textDark mb-3">Pilih metode pembayaran:</p>
-          <div className="space-y-2 mb-5">
-            {paymentMethods.map((method) => (
-              <button
-                key={method.id}
-                onClick={() => setSelectedPayment(method.id)}
-                className={`payment-method w-full bg-white rounded-xl p-4 border-2 transition-all text-left ${
-                  selectedPayment === method.id ? 'selected' : 'border-border'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{method.icon}</span>
-                  <span className="text-sm font-medium text-textDark">{method.name}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
           {/* Checkout Button */}
           <button
             onClick={handlePayment}
-            disabled={!selectedPayment || isProcessing}
+            disabled={isProcessing}
             className="btn-primary w-full py-3 rounded-xl text-white font-semibold disabled:opacity-50"
           >
             {isProcessing ? 'Memproses...' : 'Beli Sekarang'}
