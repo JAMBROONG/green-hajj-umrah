@@ -261,6 +261,23 @@ export default function Home() {
             </div>
           </Link>
 
+          <Link href="/csr-activities" className="block w-full bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+                <span className="text-2xl">🌱</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-textDark mb-0.5">Kegiatan CSR</h3>
+                <p className="text-xs text-textMuted">
+                  Kurangi emisi sambil berbuat baik
+                </p>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </div>
+          </Link>
+
           <Link href="/carbon-market" className="block w-full bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">

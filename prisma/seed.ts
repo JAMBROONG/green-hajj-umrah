@@ -188,6 +188,145 @@ async function main() {
 
   console.log('✅ Created jemaah:', fatimah.email);
 
+  // Create CSR Activities for BPKH
+  const csrActivity1 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-001' },
+    update: {},
+    create: {
+      id: 'csr-001',
+      tenant_id: bpkh.id,
+      title: 'Penanaman Pohon di Yogyakarta',
+      description: 'Kegiatan penanaman 1000 pohon di kawasan Wonosari untuk restorasi hutan dan mengurangi emisi karbon. Peserta akan belajar tentang konservasi lingkungan sambil berkontribusi pada keberlanjutan planet.',
+      category: 'reforestation',
+      location: 'Wonosari, Yogyakarta',
+      status: 'active',
+      start_date: new Date('2026-04-15'),
+      end_date: new Date('2026-04-15'),
+      registration_deadline: new Date('2026-04-10'),
+      participants_count: 45,
+      effort_hours: 4,
+      image_url: '/csr/reforestation-yogya.jpg',
+      requirements: {
+        age_min: 18,
+        physical_fitness: 'moderate',
+        equipment: 'work gloves provided'
+      },
+      contact_person: 'Ahmad Riyanto',
+      contact_phone: '+62 821-5555-6666',
+      contact_email: 'ahmad@bpkh.go.id',
+      incentives: {
+        certificate: true,
+        carbon_credits: 50,
+        meal_provided: true
+      }
+    }
+  });
+
+  const csrActivity2 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-002' },
+    update: {},
+    create: {
+      id: 'csr-002',
+      tenant_id: bpkh.id,
+      title: 'Pembersihan Pantai & Program Sampah Plastik',
+      description: 'Mari bersama-sama membersihkan pantai dari sampah plastik dan melakukan edukasi tentang pengurangan limbah plastik. Kegiatan ini bertujuan untuk melindungi ekosistem laut dan mengurangi jejak karbon.',
+      category: 'waste_management',
+      location: 'Pantai Ancol, Jakarta',
+      status: 'active',
+      start_date: new Date('2026-04-20'),
+      end_date: new Date('2026-04-20'),
+      registration_deadline: new Date('2026-04-18'),
+      participants_count: 32,
+      effort_hours: 3,
+      image_url: '/csr/beach-cleanup.jpg',
+      requirements: {
+        age_min: 16,
+        physical_fitness: 'light',
+        equipment: 'shoes and swimwear recommended'
+      },
+      contact_person: 'Siti Nurhaliza',
+      contact_phone: '+62 822-7777-8888',
+      contact_email: 'siti@bpkh.go.id',
+      incentives: {
+        certificate: true,
+        carbon_credits: 30,
+        mineral_water: true
+      }
+    }
+  });
+
+  const csrActivity3 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-003' },
+    update: {},
+    create: {
+      id: 'csr-003',
+      tenant_id: alHidayah.id,
+      title: 'Workshop Energi Terbarukan & Solar Panel Installation',
+      description: 'Workshop intensif tentang energi terbarukan dan hands-on training instalasi solar panel di rumah warga. Peserta akan belajar cara mengurangi konsumsi energi listrik sambil membantu masyarakat.',
+      category: 'energy_efficiency',
+      location: 'Depok, Jawa Barat',
+      status: 'upcoming',
+      start_date: new Date('2026-05-01'),
+      end_date: new Date('2026-05-02'),
+      registration_deadline: new Date('2026-04-25'),
+      participants_count: 0,
+      effort_hours: 8,
+      image_url: '/csr/solar-workshop.jpg',
+      requirements: {
+        age_min: 20,
+        physical_fitness: 'moderate',
+        skills: 'basic electrical knowledge preferred'
+      },
+      contact_person: 'Budi Santoso',
+      contact_phone: '+62 823-9999-0000',
+      contact_email: 'budi@alhidayah.com',
+      incentives: {
+        certificate: true,
+        carbon_credits: 100,
+        lunch_provided: true,
+        training_material: true
+      }
+    }
+  });
+
+  const csrActivity4 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-004' },
+    update: {},
+    create: {
+      id: 'csr-004',
+      tenant_id: alHidayah.id,
+      title: 'Program Konservasi Air & Rainwater Harvesting',
+      description: 'Pelatihan dan implementasi sistem rainwater harvesting di sekolah-sekolah untuk konservasi air dan mengurangi beban air tanah. Kegiatan edukatif untuk generasi muda tentang pentingnya air bersih.',
+      category: 'water_conservation',
+      location: 'Bandung, Jawa Barat',
+      status: 'completed',
+      start_date: new Date('2026-03-10'),
+      end_date: new Date('2026-03-12'),
+      registration_deadline: new Date('2026-03-08'),
+      participants_count: 28,
+      effort_hours: 6,
+      image_url: '/csr/water-conservation.jpg',
+      requirements: {
+        age_min: 18,
+        physical_fitness: 'light',
+        equipment: 'construction gloves and tools provided'
+      },
+      contact_person: 'Rina Wijaya',
+      contact_phone: '+62 824-1111-2222',
+      contact_email: 'rina@alhidayah.com',
+      incentives: {
+        certificate: true,
+        carbon_credits: 40,
+        t_shirt: true
+      }
+    }
+  });
+
+  console.log('✅ Created CSR Activity:', csrActivity1.title);
+  console.log('✅ Created CSR Activity:', csrActivity2.title);
+  console.log('✅ Created CSR Activity:', csrActivity3.title);
+  console.log('✅ Created CSR Activity:', csrActivity4.title);
+
   console.log('\n🎉 Database seeded successfully!');
   console.log('\n📝 Test Accounts (Password: password):');
   console.log('Admin: admin@batsconsulting.com / password');

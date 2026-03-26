@@ -15,8 +15,9 @@ model tenants {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  profiles profiles[]
-  trips    trips[]
+  profiles                    profiles[]
+  trips                       trips[]
+  csr_activities              csr_activities[]
 }
 
 model profiles {
@@ -31,8 +32,10 @@ model profiles {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  tenant tenants? @relation(fields: [tenant_id], references: [id])
-  trips  trips[]
+  tenant                          tenants? @relation(fields: [tenant_id], references: [id])
+  trips                           trips[]
+  csr_activity_participations     csr_activity_participations[]
+  carbon_certificate_purchases    carbon_certificate_purchases[]
 
   @@index([tenant_id])
   @@index([role])
@@ -181,9 +184,83 @@ model sessions {
   user_id       String?  @db.Uuid
   ip_address    String?  @db.VarChar(45)
   user_agent    String?  @db.Text
-  payload       String   @db.LongText
+  payload       String   @db.Text
   last_activity Int
 
   @@index([user_id])
   @@index([last_activity])
+}
+
+model csr_activities {
+  id                    String   @id @default(uuid())
+  tenant_id             String
+  title                 String
+  description           String
+  category              String
+  location              String
+  status                String   @default("upcoming")
+  start_date            DateTime
+  end_date              DateTime
+  registration_deadline DateTime
+  participants_count    Int      @default(0)
+  effort_hours          Int
+  image_url             String?
+  requirements          Json     @default("{}")
+  contact_person        String
+  contact_phone         String
+  contact_email         String
+  incentives            Json     @default("{}")
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  tenant            tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  participations    csr_activity_participations[]
+
+  @@index([tenant_id])
+  @@index([status])
+  @@index([category])
+}
+
+model csr_activity_participations {
+  id                String   @id @default(uuid())
+  user_id           String
+  csr_activity_id   String
+  type              String   @default("participation")
+  amount            Decimal? @db.Decimal(12, 2)
+  status            String   @default("pending")
+  payment_method    String?
+  transaction_reference String?
+  notes             String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  user        profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  csr_activity csr_activities @relation(fields: [csr_activity_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([csr_activity_id])
+  @@index([status])
+  @@unique([user_id, csr_activity_id])
+}
+
+model carbon_certificate_purchases {
+  id                  String   @id @default(uuid())
+  user_id             String
+  certificate_provider String  @default("IDX_CARBON")
+  co2_equivalent      Decimal  @db.Decimal(12, 2)
+  amount              Decimal  @db.Decimal(12, 2)
+  batch_id            String?
+  certificate_id      String?
+  purchase_date       DateTime @default(now())
+  status              String   @default("pending")
+  payment_method      String?
+  notes               String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  user profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([certificate_provider])
 }
