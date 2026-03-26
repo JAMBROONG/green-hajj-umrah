@@ -3,9 +3,9 @@ import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 
 // Helper to create Midtrans transaction via HTTP
-async function createMidtransTransaction(payload: any) {
-  const serverKey = process.env.MIDTRANS_SERVER_KEY
-  const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true'
+async function createMidtransTransaction(payload: any, paymentConfig: any) {
+  const serverKey = paymentConfig.midtrans_server_key
+  const isProduction = paymentConfig.is_production
   
   // Midtrans API endpoint
   const apiUrl = isProduction
@@ -152,6 +152,19 @@ export async function POST(request: NextRequest) {
 
     // For donation, create Midtrans transaction
     if (type === 'donate') {
+      // Get payment config for this tenant
+      const paymentConfig = await prisma.TenantPaymentConfig.findUnique({
+        where: { tenant_id: activity.tenant_id },
+      })
+
+      if (!paymentConfig || !paymentConfig.enabled) {
+        console.log('❌ Payment config not found or disabled for tenant:', activity.tenant_id)
+        return NextResponse.json(
+          { error: 'Payment is not configured for this tenant' },
+          { status: 400 }
+        )
+      }
+
       const roundedAmount = Math.round(amount)
       
       const transactionPayload = {
@@ -160,10 +173,10 @@ export async function POST(request: NextRequest) {
           gross_amount: roundedAmount,
         },
         customer_details: {
-          first_name: userProfile.name?.split(' ')[0] || 'User',
-          last_name: userProfile.name?.split(' ').slice(1).join(' ') || '',
+          first_name: userProfile.full_name?.split(' ')[0] || 'User',
+          last_name: userProfile.full_name?.split(' ').slice(1).join(' ') || '',
           email: userProfile.email,
-          phone: userProfile.phone || '',
+          phone: userProfile.metadata?.phone || '',
         },
         item_details: [
           {
@@ -178,7 +191,7 @@ export async function POST(request: NextRequest) {
         custom_field2: `user:${userProfile.id}`,
       }
 
-      const transaction = await createMidtransTransaction(transactionPayload)
+      const transaction = await createMidtransTransaction(transactionPayload, paymentConfig)
 
       // Create participation record with pending status
       const participation = await prisma.csr_activity_participations.create({
