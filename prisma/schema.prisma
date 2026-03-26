@@ -281,3 +281,20 @@ model TenantPaymentConfig {
 
   @@index([tenant_id])
 }
+
+model carbon_products {
+  id            String   @id @default(cuid())
+  product_code  String   @unique
+  name          String
+  description   String?
+  price         Decimal  @db.Decimal(12, 2)
+  project       String
+  category      String?
+  image_url     String?
+  color_class   String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([is_active])
+}
