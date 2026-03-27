@@ -231,6 +231,7 @@ model csr_activity_participations {
   status            String   @default("pending")
   payment_method    String?
   transaction_reference String?
+  certificate_file_url String?
   notes             String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
@@ -254,6 +255,7 @@ model carbon_certificate_purchases {
   units                 Int?
   total_price           Decimal  @db.Decimal(12, 2)
   transaction_reference String?
+  certificate_file_url  String?
   batch_id              String?
   certificate_id        String?
   purchase_date         DateTime @default(now())
