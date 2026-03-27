@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
         status: d.status,
         created_at: d.created_at,
         activity_title: d.csr_activity?.title || 'Unknown Activity',
-        certificate_file_url: d.certificate_file_url,
+        thank_you_certificate_url: d.thank_you_certificate_url,
+        participation_certificate_url: d.participation_certificate_url,
       }))
     )
   } catch (error) {

@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
         certificate_id: c.certificate_id,
         status: c.status,
         purchase_date: c.purchase_date,
-        certificate_file_url: c.certificate_file_url,
+        thank_you_certificate_url: c.thank_you_certificate_url,
+        emission_reduction_certificate_url: c.emission_reduction_certificate_url,
         product_code: c.product?.product_code,
         product_name: c.product?.name,
       }))

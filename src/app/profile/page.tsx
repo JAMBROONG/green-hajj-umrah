@@ -31,7 +31,8 @@ interface CSRDonation {
   status: string
   created_at: string
   activity_title: string
-  certificate_file_url?: string
+  thank_you_certificate_url?: string
+  participation_certificate_url?: string
 }
 
 interface Certificate {
@@ -42,7 +43,8 @@ interface Certificate {
   certificate_id: string
   status: string
   purchase_date: string
-  certificate_file_url?: string
+  thank_you_certificate_url?: string
+  emission_reduction_certificate_url?: string
   product_code?: string
   product_name?: string
 }
@@ -281,7 +283,7 @@ export default function ProfilePage() {
               {donations.length > 0 ? (
                 donations.map((donation) => (
                   <div key={donation.id} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{donation.activity_title}</h3>
                         <p className="text-sm text-primary font-bold">{donation.amount > 0 ? `Rp ${donation.amount.toLocaleString('id-ID')}` : 'Volunteer'}</p>
@@ -294,19 +296,30 @@ export default function ProfilePage() {
                         {donation.status === 'confirmed' ? 'Terkonfirmasi' : 'Menunggu'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-textMuted">
-                        {new Date(donation.created_at).toLocaleDateString('id-ID')}
-                      </p>
-                      {donation.status === 'confirmed' && donation.certificate_file_url && (
-                        <button
-                          onClick={() => handleDownloadCertificate(donation.certificate_file_url!, `sertifikat-csr-${donation.id}.pdf`)}
-                          className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
-                        >
-                          Download
-                        </button>
-                      )}
-                    </div>
+                    <p className="text-xs text-textMuted mb-3">
+                      {new Date(donation.created_at).toLocaleDateString('id-ID')}
+                    </p>
+                    
+                    {donation.status === 'confirmed' && (
+                      <div className="flex gap-2 flex-wrap">
+                        {donation.thank_you_certificate_url && (
+                          <button
+                            onClick={() => handleDownloadCertificate(donation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${donation.id}.pdf`)}
+                            className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+                          >
+                            Unduh Say Thank You
+                          </button>
+                        )}
+                        {donation.participation_certificate_url && (
+                          <button
+                            onClick={() => handleDownloadCertificate(donation.participation_certificate_url!, `sertifikat-partisipasi-csr-${donation.id}.pdf`)}
+                            className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
+                          >
+                            Unduh Sertifikat Partisipasi
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
@@ -323,7 +336,7 @@ export default function ProfilePage() {
               {certificates.length > 0 ? (
                 certificates.map((cert) => (
                   <div key={cert.id} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{cert.product_name || 'Sertifikat Karbon'}</h3>
                         <p className="text-sm text-gray-600">{cert.units || cert.co2_equivalent} tCO2e</p>
@@ -336,19 +349,30 @@ export default function ProfilePage() {
                         {cert.status === 'confirmed' || cert.status === 'completed' ? 'Aktif' : 'Menunggu'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-textMuted">
-                        Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
-                      </p>
-                      {(cert.status === 'confirmed' || cert.status === 'completed') && cert.certificate_file_url && (
-                        <button
-                          onClick={() => handleDownloadCertificate(cert.certificate_file_url!, `sertifikat-karbon-${cert.product_code || cert.id}.pdf`)}
-                          className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
-                        >
-                          Download
-                        </button>
-                      )}
-                    </div>
+                    <p className="text-xs text-textMuted mb-3">
+                      Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
+                    </p>
+                    
+                    {(cert.status === 'confirmed' || cert.status === 'completed') && (
+                      <div className="flex gap-2 flex-wrap">
+                        {cert.thank_you_certificate_url && (
+                          <button
+                            onClick={() => handleDownloadCertificate(cert.thank_you_certificate_url!, `sertifikat-ucapan-${cert.product_code || cert.id}.pdf`)}
+                            className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+                          >
+                            Unduh Say Thank You
+                          </button>
+                        )}
+                        {cert.emission_reduction_certificate_url && (
+                          <button
+                            onClick={() => handleDownloadCertificate(cert.emission_reduction_certificate_url!, `sertifikat-emisi-${cert.product_code || cert.id}.pdf`)}
+                            className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
+                          >
+                            Unduh Sertifikat Emisi
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
