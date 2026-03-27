@@ -160,19 +160,6 @@ export default function CarbonMarketPage() {
               </div>
             )}
           </div>
-
-          {/* Info Footer */}
-          <div className="mt-5 bg-blue-50 rounded-xl p-4 border border-blue-200">
-            <div className="flex items-start gap-2">
-              <span className="text-lg">ℹ️</span>
-              <div className="flex-1">
-                <p className="text-xs font-medium text-blue-900 mb-1">Tentang Kredit Karbon</p>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  Kredit karbon IDX diverifikasi dan terregulasi, memastikan kontribusi Anda benar-benar membantu mengurangi emisi global.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

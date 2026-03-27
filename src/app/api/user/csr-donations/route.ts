@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
     const donations = await prisma.csr_activity_participations.findMany({
       where: { 
         user_id: user.id,
-        type: 'participate',
       },
       include: {
         csr_activity: {
@@ -35,10 +34,12 @@ export async function GET(request: NextRequest) {
       donations.map((d) => ({
         id: d.id,
         csr_activity_id: d.csr_activity_id,
+        type: d.type,
         amount: parseFloat(d.amount?.toString() || '0'),
         status: d.status,
         created_at: d.created_at,
         activity_title: d.csr_activity?.title || 'Unknown Activity',
+        certificate_file_url: d.certificate_file_url,
       }))
     )
   } catch (error) {

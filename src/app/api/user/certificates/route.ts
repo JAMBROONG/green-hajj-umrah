@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const certificates = await prisma.carbon_certificate_purchases.findMany({
       where: { user_id: user.id },
       orderBy: { purchase_date: 'desc' },
+      include: { product: true },
     })
 
     return NextResponse.json(
@@ -28,9 +29,13 @@ export async function GET(request: NextRequest) {
         id: c.id,
         co2_equivalent: parseFloat(c.co2_equivalent.toString()),
         amount: parseFloat(c.amount.toString()),
+        units: c.units,
         certificate_id: c.certificate_id,
         status: c.status,
         purchase_date: c.purchase_date,
+        certificate_file_url: c.certificate_file_url,
+        product_code: c.product?.product_code,
+        product_name: c.product?.name,
       }))
     )
   } catch (error) {

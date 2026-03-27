@@ -26,19 +26,25 @@ interface Trip {
 interface CSRDonation {
   id: string
   csr_activity_id: string
+  type: string
   amount: number
   status: string
   created_at: string
   activity_title: string
+  certificate_file_url?: string
 }
 
 interface Certificate {
   id: string
   co2_equivalent: number
   amount: number
+  units?: number
   certificate_id: string
   status: string
   purchase_date: string
+  certificate_file_url?: string
+  product_code?: string
+  product_name?: string
 }
 
 export default function ProfilePage() {
@@ -95,6 +101,20 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDownloadCertificate = (fileUrl: string, fileName: string) => {
+    if (!fileUrl) {
+      alert('Sertifikat belum tersedia')
+      return
+    }
+    
+    const link = document.createElement('a')
+    link.href = fileUrl
+    link.download = fileName || 'certificate.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const handleLogout = async () => {
@@ -264,7 +284,7 @@ export default function ProfilePage() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{donation.activity_title}</h3>
-                        <p className="text-sm text-primary font-bold">Rp {donation.amount.toLocaleString('id-ID')}</p>
+                        <p className="text-sm text-primary font-bold">{donation.amount > 0 ? `Rp ${donation.amount.toLocaleString('id-ID')}` : 'Volunteer'}</p>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ml-2 ${
                         donation.status === 'confirmed'
@@ -274,9 +294,19 @@ export default function ProfilePage() {
                         {donation.status === 'confirmed' ? 'Terkonfirmasi' : 'Menunggu'}
                       </span>
                     </div>
-                    <p className="text-xs text-textMuted">
-                      {new Date(donation.created_at).toLocaleDateString('id-ID')}
-                    </p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-textMuted">
+                        {new Date(donation.created_at).toLocaleDateString('id-ID')}
+                      </p>
+                      {donation.status === 'confirmed' && donation.certificate_file_url && (
+                        <button
+                          onClick={() => handleDownloadCertificate(donation.certificate_file_url!, `sertifikat-csr-${donation.id}.pdf`)}
+                          className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
+                        >
+                          Download
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -295,20 +325,30 @@ export default function ProfilePage() {
                   <div key={cert.id} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">Sertifikat Karbon</h3>
-                        <p className="text-sm text-gray-600">{cert.co2_equivalent} kg CO2</p>
+                        <h3 className="font-semibold text-gray-900">{cert.product_name || 'Sertifikat Karbon'}</h3>
+                        <p className="text-sm text-gray-600">{cert.units || cert.co2_equivalent} tCO2e</p>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        cert.status === 'active'
+                        cert.status === 'confirmed' || cert.status === 'completed'
                           ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-700'
+                          : 'bg-yellow-100 text-yellow-700'
                       }`}>
-                        {cert.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                        {cert.status === 'confirmed' || cert.status === 'completed' ? 'Aktif' : 'Menunggu'}
                       </span>
                     </div>
-                    <p className="text-xs text-textMuted">
-                      Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
-                    </p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-textMuted">
+                        Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
+                      </p>
+                      {(cert.status === 'confirmed' || cert.status === 'completed') && cert.certificate_file_url && (
+                        <button
+                          onClick={() => handleDownloadCertificate(cert.certificate_file_url!, `sertifikat-karbon-${cert.product_code || cert.id}.pdf`)}
+                          className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
+                        >
+                          Download
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
