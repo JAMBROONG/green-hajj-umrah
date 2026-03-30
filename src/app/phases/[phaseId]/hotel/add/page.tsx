@@ -1,21 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, HOTELS_DATA, HOTEL_FACTORS } from '@/lib/constants';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { HotelActivity, PhaseId, HotelStars } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { MdHotel } from 'react-icons/md';
 import { IoArrowBack } from 'react-icons/io5';
 
+interface Hotel {
+  id: number;
+  name: string;
+  factor_emission: number;
+  factor_emission_name: string;
+  address: string;
+  country_code: string;
+}
+
 export default function AddHotelPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -29,22 +40,57 @@ export default function AddHotelPage() {
     nights: 1
   });
 
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch hotels from API
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/hotels');
+        if (!response.ok) {
+          throw new Error('Failed to fetch hotels');
+        }
+        const result = await response.json();
+        setHotels(result.data || []);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch hotels');
+        setHotels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHotels();
+  }, []);
+
   // Convert hotels data to react-select options
-  const hotelOptions = HOTELS_DATA.map(hotel => ({
-    value: hotel.id,
-    label: `${hotel.name} (${hotel.city}) - ${hotel.stars} bintang`,
+  const hotelOptions = hotels.map(hotel => ({
+    value: hotel.id.toString(),
+    label: `${hotel.name} (${hotel.factor_emission_name}) - ${hotel.address}`,
     hotel: hotel
   }));
 
   type HotelOption = typeof hotelOptions[number];
 
+  // Convert factor_emission to stars (3, 4, or 5)
+  const getStarsFromFactor = (factor: number): HotelStars => {
+    if (factor >= 50) return 5;
+    if (factor >= 35) return 4;
+    return 3;
+  };
+
   const handleHotelChange = (option: HotelOption | null) => {
     if (option) {
+      const stars = getStarsFromFactor(option.hotel.factor_emission);
       setFormData({
         ...formData,
-        hotelId: option.hotel.id,
+        hotelId: option.hotel.id.toString(),
         hotelName: option.hotel.name,
-        stars: option.hotel.stars
+        stars: stars
       });
     }
   };
@@ -72,8 +118,10 @@ export default function AddHotelPage() {
       return;
     }
 
-    const factor = HOTEL_FACTORS[formData.stars as keyof typeof HOTEL_FACTORS] || 15;
-    const emission = formData.nights * factor;
+    // Get the selected hotel to get its factor_emission
+    const selectedHotel = hotels.find(h => h.id.toString() === formData.hotelId);
+    const factor = selectedHotel?.factor_emission || 25; // Default to 25 if not found
+    const emission = formData.nights * Number(factor);
 
     const newActivity: HotelActivity = {
       id: uuidv4(),
@@ -104,11 +152,13 @@ export default function AddHotelPage() {
     });
 
     // Navigate back
-    router.push(`/phases/${phaseId}/hotel`);
+    const url = tripId ? `/phases/${phaseId}/hotel?tripId=${tripId}` : `/phases/${phaseId}/hotel`;
+    router.push(url);
   };
 
   const handleCancel = () => {
-    router.push(`/phases/${phaseId}/hotel`);
+    const url = tripId ? `/phases/${phaseId}/hotel?tripId=${tripId}` : `/phases/${phaseId}/hotel`;
+    router.push(url);
   };
 
   if (!phase) {
@@ -137,6 +187,13 @@ export default function AddHotelPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            ⚠️ {error}
+          </div>
+        )}
+
         {/* Hotel Selection */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -147,11 +204,12 @@ export default function AddHotelPage() {
             inputId={`hotel-select-input-${phaseId}`}
             options={hotelOptions}
             onChange={handleHotelChange}
-            placeholder="Cari hotel..."
+            placeholder={loading ? "Memuat hotel..." : "Cari hotel..."}
             className="react-select-container"
             classNamePrefix="react-select"
             isClearable
             isSearchable
+            isDisabled={loading}
             styles={{
               control: (base) => ({
                 ...base,
@@ -222,7 +280,11 @@ export default function AddHotelPage() {
           <div className="p-4 bg-primaryLight rounded-xl">
             <p className="text-sm text-gray-600 mb-1">Estimasi Emisi</p>
             <p className="text-2xl font-bold text-primary">
-              {(formData.nights * (HOTEL_FACTORS[formData.stars as keyof typeof HOTEL_FACTORS] || 15)).toFixed(2)} kg CO₂e
+              {(() => {
+                const hotel = hotels.find(h => h.id.toString() === formData.hotelId);
+                const factor = hotel?.factor_emission || 25;
+                return (formData.nights * Number(factor)).toFixed(2);
+              })()} kg CO₂e
             </p>
           </div>
         )}

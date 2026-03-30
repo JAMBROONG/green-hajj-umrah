@@ -36,6 +36,7 @@ export async function GET(_request: NextRequest) {
         full_name: profile.full_name,
         email: profile.email,
         tenant_id: profile.tenant_id,
+        metadata: profile.metadata,
         tenant: profile.tenant,
       },
     });
@@ -89,6 +90,7 @@ export async function PUT(request: NextRequest) {
         full_name: updatedProfile.full_name,
         email: updatedProfile.email,
         tenant_id: updatedProfile.tenant_id,
+        metadata: updatedProfile.metadata,
         tenant: updatedProfile.tenant,
       },
     });

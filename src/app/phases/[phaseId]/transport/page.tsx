@@ -172,7 +172,7 @@ export default function TransportListPage() {
         </div>
         <div className="mt-4 p-3 bg-white/10 rounded-xl backdrop-blur">
           <p className="text-sm text-white/80">Total Emisi</p>
-          <p className="text-2xl font-bold">{formatEmission(totalEmission)}</p>
+          <p className="text-2xl font-bold">{formatEmission(totalEmission)} kg co2e</p>
         </div>
       </div>
 
@@ -221,7 +221,7 @@ export default function TransportListPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-primary">
-                      {formatEmission(activity.emission)}
+                      {formatEmission(activity.emission)} kg co2e
                     </p>
                     <div className="flex gap-2 mt-2 flex-wrap justify-end">
                       <button

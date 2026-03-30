@@ -19,6 +19,7 @@ model tenants {
   trips                       trips[]
   csr_activities              csr_activities[]
   payment_config              TenantPaymentConfig?
+  carbon_payment_config       CarbonPaymentConfig? @relation("carbon_payment")
 }
 
 model profiles {
@@ -288,6 +289,22 @@ model TenantPaymentConfig {
   updated_at            DateTime @updatedAt
 
   tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id])
+}
+
+model CarbonPaymentConfig {
+  id                    String   @id @default(cuid())
+  tenant_id             String   @unique
+  midtrans_server_key   String
+  midtrans_client_key   String
+  midtrans_merchant_id  String
+  is_production         Boolean  @default(false)
+  enabled               Boolean  @default(true)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  tenant tenants @relation("carbon_payment", fields: [tenant_id], references: [id], onDelete: Cascade)
 
   @@index([tenant_id])
 }

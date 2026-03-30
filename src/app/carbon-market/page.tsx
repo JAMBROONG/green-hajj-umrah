@@ -81,10 +81,6 @@ export default function CarbonMarketPage() {
             <p className="text-xs text-textMuted leading-relaxed mb-3">
               Netralisir emisi CO2e dari perjalanan ibadah Anda dengan membeli kredit karbon terverifikasi dari IDX Carbon.
             </p>
-            <div className="bg-white rounded-lg p-3">
-              <p className="text-xs text-textMuted mb-1">Jejak karbon Anda saat ini:</p>
-              <p className="text-lg font-bold text-primary">{totalTon} Ton CO2e</p>
-            </div>
           </div>
 
           {/* Emission Summary */}

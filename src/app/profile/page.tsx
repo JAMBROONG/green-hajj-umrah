@@ -58,6 +58,13 @@ export default function ProfilePage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'trips' | 'donations' | 'certificates' | 'account'>('dashboard')
+  const [showEditNameModal, setShowEditNameModal] = useState(false)
+  const [showEditPhoneModal, setShowEditPhoneModal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [savingName, setSavingName] = useState(false)
+  const [savingPhone, setSavingPhone] = useState(false)
+  const [userPhone, setUserPhone] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -73,6 +80,13 @@ export default function ProfilePage() {
   const fetchUserData = async () => {
     try {
       setLoading(true)
+      
+      // Fetch profile to get phone number
+      const profileRes = await fetch('/api/auth/profile')
+      if (profileRes.ok) {
+        const profileData = await profileRes.json()
+        setUserPhone(profileData.profile?.metadata?.phone || '')
+      }
       
       // Fetch stats
       const statsRes = await fetch('/api/user/stats')
@@ -121,6 +135,75 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/auth/signin' })
+  }
+
+  const handleOpenEditName = () => {
+    setEditName(session?.user?.name || '')
+    setShowEditNameModal(true)
+  }
+
+  const handleOpenEditPhone = () => {
+    setEditPhone(userPhone || '')
+    setShowEditPhoneModal(true)
+  }
+
+  const handleSaveName = async () => {
+    if (!editName.trim()) {
+      alert('Nama tidak boleh kosong')
+      return
+    }
+
+    setSavingName(true)
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: editName.trim() }),
+      })
+
+      if (response.ok) {
+        alert('Nama berhasil diperbarui')
+        setShowEditNameModal(false)
+        // Refresh session
+        router.refresh()
+      } else {
+        alert('Gagal menyimpan nama')
+      }
+    } catch (error) {
+      console.error('Error saving name:', error)
+      alert('Terjadi kesalahan')
+    } finally {
+      setSavingName(false)
+    }
+  }
+
+  const handleSavePhone = async () => {
+    if (!editPhone.trim()) {
+      alert('Nomor telepon tidak boleh kosong')
+      return
+    }
+
+    setSavingPhone(true)
+    try {
+      const response = await fetch('/api/user/profile/phone', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: editPhone.trim() }),
+      })
+
+      if (response.ok) {
+        alert('Nomor telepon berhasil diperbarui')
+        setUserPhone(editPhone.trim())
+        setShowEditPhoneModal(false)
+      } else {
+        alert('Gagal menyimpan nomor telepon')
+      }
+    } catch (error) {
+      console.error('Error saving phone:', error)
+      alert('Terjadi kesalahan')
+    } finally {
+      setSavingPhone(false)
+    }
   }
 
   if (status === 'loading' || loading) {
@@ -394,7 +477,10 @@ export default function ProfilePage() {
                     <p className="text-xs text-textMuted">Nama Lengkap</p>
                     <p className="font-semibold text-gray-900">{session.user?.name || '-'}</p>
                   </div>
-                  <button className="text-primary hover:text-primary/80 transition">
+                  <button 
+                    onClick={handleOpenEditName}
+                    className="text-primary hover:text-primary/80 transition"
+                  >
                     <FaEdit />
                   </button>
                 </div>
@@ -411,9 +497,12 @@ export default function ProfilePage() {
                   <FaPhone className="text-primary text-lg" />
                   <div className="flex-1">
                     <p className="text-xs text-textMuted">Nomor Telepon</p>
-                    <p className="font-semibold text-gray-900">-</p>
+                    <p className="font-semibold text-gray-900">{userPhone || '-'}</p>
                   </div>
-                  <button className="text-primary hover:text-primary/80 transition">
+                  <button 
+                    onClick={handleOpenEditPhone}
+                    className="text-primary hover:text-primary/80 transition"
+                  >
                     <FaEdit />
                   </button>
                 </div>
@@ -438,6 +527,68 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav />
+
+      {/* Edit Name Modal */}
+      {showEditNameModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h2 className="text-xl font-bold text-gray-900">Edit Nama Lengkap</h2>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Masukkan nama lengkap"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditNameModal(false)}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-900 hover:bg-gray-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveName}
+                disabled={savingName}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+              >
+                {savingName ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Phone Modal */}
+      {showEditPhoneModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h2 className="text-xl font-bold text-gray-900">Edit Nomor Telepon</h2>
+            <input
+              type="tel"
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              placeholder="Masukkan nomor telepon (misal: +62 821-1234-5678)"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditPhoneModal(false)}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-900 hover:bg-gray-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSavePhone}
+                disabled={savingPhone}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+              >
+                {savingPhone ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

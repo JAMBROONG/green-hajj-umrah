@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
@@ -13,8 +13,10 @@ import { FaStar, FaCalendarAlt } from 'react-icons/fa';
 export default function HotelListPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showConfirm } = useDialog();
   const phaseId = params.phaseId as PhaseId;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -28,11 +30,13 @@ export default function HotelListPage() {
   }
 
   const handleAddClick = () => {
-    router.push(`/phases/${phaseId}/hotel/add`);
+    const url = tripId ? `/phases/${phaseId}/hotel/add?tripId=${tripId}` : `/phases/${phaseId}/hotel/add`;
+    router.push(url);
   };
 
   const handleEditClick = (activityId: string) => {
-    router.push(`/phases/${phaseId}/hotel/edit/${activityId}`);
+    const url = tripId ? `/phases/${phaseId}/hotel/edit/${activityId}?tripId=${tripId}` : `/phases/${phaseId}/hotel/edit/${activityId}`;
+    router.push(url);
   };
 
   const handleDeleteClick = (activityId: string) => {
@@ -82,7 +86,7 @@ export default function HotelListPage() {
         </div>
         <div className="mt-4 p-3 bg-white/10 rounded-xl backdrop-blur">
           <p className="text-sm text-white/80">Total Emisi</p>
-          <p className="text-2xl font-bold">{formatEmission(totalEmission)}</p>
+          <p className="text-2xl font-bold">{formatEmission(totalEmission)} kg co2e</p>
         </div>
       </div>
 
@@ -138,7 +142,7 @@ export default function HotelListPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-primary">
-                      {formatEmission(activity.emission)}
+                      {formatEmission(activity.emission)} kg co2e
                     </p>
                     <div className="flex gap-2 mt-2">
                       <button

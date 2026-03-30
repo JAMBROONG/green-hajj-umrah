@@ -53,8 +53,34 @@ export default function CSRActivitiesPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [paymentConfigured, setPaymentConfigured] = useState<boolean | null>(null)
+
+  // Check payment config on mount
+  useEffect(() => {
+    const checkPaymentConfig = async () => {
+      try {
+        const response = await fetch('/api/payment-config/check')
+        if (!response.ok) {
+          throw new Error('Failed to check payment config')
+        }
+        const data = await response.json()
+        setPaymentConfigured(data.configured)
+      } catch (err) {
+        console.error('Failed to check payment config:', err)
+        setPaymentConfigured(false)
+      }
+    }
+
+    checkPaymentConfig()
+  }, [])
 
   useEffect(() => {
+    // Only fetch activities if payment is configured
+    if (!paymentConfigured) {
+      setLoading(false)
+      return
+    }
+
     const fetchActivities = async () => {
       try {
         setLoading(true)
@@ -84,7 +110,7 @@ export default function CSRActivitiesPage() {
     }
 
     fetchActivities()
-  }, [selectedCategory, selectedStatus])
+  }, [selectedCategory, selectedStatus, paymentConfigured])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -117,6 +143,7 @@ export default function CSRActivitiesPage() {
         </div>
 
         {/* Filters */}
+        {paymentConfigured ? (
         <div className="px-5 pt-4 space-y-3">
           <div>
             <label className="block text-xs font-semibold text-textDark mb-2">
@@ -152,9 +179,21 @@ export default function CSRActivitiesPage() {
             </select>
           </div>
         </div>
+        ) : (
+          <div className="px-5 pt-8">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+              <p className="text-2xl mb-3">⚙️</p>
+              <h3 className="text-sm font-semibold text-amber-900 mb-2">Konfigurasi Pembayaran Diperlukan</h3>
+              <p className="text-xs text-amber-800 mb-4 leading-relaxed">
+                Fitur kegiatan CSR memerlukan pengaturan Midtrans. Hubungi administrator untuk mengonfigurasi payment gateway.
+              </p>
+              <p className="text-xs text-amber-700 font-medium">Hubungi: support@example.com</p>
+            </div>
+          </div>
+        )}
 
         {/* Loading State */}
-        {loading && (
+        {paymentConfigured && loading && (
           <div className="px-5 pt-8 text-center">
             <div className="inline-block">
               <div className="w-8 h-8 border-4 border-border rounded-full border-t-primary animate-spin"></div>
@@ -164,7 +203,7 @@ export default function CSRActivitiesPage() {
         )}
 
         {/* Activities Grid */}
-        {!loading && activities.length > 0 && (
+        {paymentConfigured && !loading && activities.length > 0 && (
           <div className="px-5 pt-8 space-y-6 pb-6">
             {activities.map((activity) => (
               <Link

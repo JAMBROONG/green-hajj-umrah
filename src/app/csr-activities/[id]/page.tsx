@@ -62,7 +62,6 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
   const [activity, setActivity] = useState<CSRActivity | null>(null)
   const [loading, setLoading] = useState(true)
   const [donationAmount, setDonationAmount] = useState<string>('')
-  const [participationType, setParticipationType] = useState<'volunteer' | 'donate'>('donate')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -92,7 +91,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
   const handleDonate = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (participationType === 'donate' && !donationAmount) {
+    if (!donationAmount) {
       alert('Masukkan jumlah donasi')
       return
     }
@@ -304,53 +303,8 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
             <h3 className="text-sm font-bold text-textDark mb-4">Ikuti Kegiatan</h3>
 
             <form onSubmit={handleDonate} className="space-y-4">
-              {/* Participation Type */}
-              <div>
-                <label className="block text-xs font-semibold text-textDark mb-2">
-                  Tipe Partisipasi
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-primaryLight transition-colors"
-                    style={{
-                      backgroundColor: participationType === 'volunteer' ? '#E8F5F0' : 'transparent'
-                    }}>
-                    <input
-                      type="radio"
-                      name="type"
-                      value="volunteer"
-                      checked={participationType === 'volunteer'}
-                      onChange={(e) => setParticipationType(e.target.value as 'volunteer' | 'donate')}
-                      className="w-4 h-4"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-textDark">Volunteer</p>
-                      <p className="text-xs text-textMuted">Ikuti kegiatan secara langsung</p>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
-                    style={{
-                      backgroundColor: participationType === 'donate' ? '#EFF6FF' : 'transparent'
-                    }}>
-                    <input
-                      type="radio"
-                      name="type"
-                      value="donate"
-                      checked={participationType === 'donate'}
-                      onChange={(e) => setParticipationType(e.target.value as 'volunteer' | 'donate')}
-                      className="w-4 h-4"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-textDark">Donasi</p>
-                      <p className="text-xs text-textMuted">Bantu kegiatan dengan donasi</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
               {/* Donation Amount */}
-              {participationType === 'donate' && (
-                <div>
+              <div>
                   <label className="block text-xs font-semibold text-textDark mb-2">
                     Jumlah Donasi (Rp)
                   </label>
@@ -385,23 +339,18 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                     ))}
                   </div>
                 </div>
-              )}
 
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={submitting || (participationType === 'donate' && !donationAmount)}
+                disabled={submitting || !donationAmount}
                 className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all mt-6 ${
-                  submitting || (participationType === 'donate' && !donationAmount)
+                  submitting || !donationAmount
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-primary hover:bg-primary-dark active:scale-95'
                 }`}
               >
-                {submitting
-                  ? 'Memproses...'
-                  : participationType === 'volunteer'
-                  ? 'Daftar Sebagai Volunteer'
-                  : 'Lanjut ke Pembayaran'}
+                {submitting ? 'Memproses...' : 'Lanjut ke Pembayaran'}
               </button>
             </form>
           </div>

@@ -8,7 +8,6 @@ import { useSession } from 'next-auth/react';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { getGreeting, formatEmission, formatCurrency } from '@/lib/utils';
-import { IoSettings } from 'react-icons/io5';
 import { HiLightBulb } from 'react-icons/hi';
 import { FaPlus, FaKaaba, FaMosque, FaLeaf, FaCalendarAlt } from 'react-icons/fa';
 import { GiPlantSeed } from 'react-icons/gi';
@@ -105,12 +104,6 @@ export default function Home() {
                 {greeting}, {userName}
               </h1>
             </div>
-            <button 
-              onClick={() => router.push('/settings')}
-              className="w-10 h-10 rounded-full bg-primaryLight flex items-center justify-center hover:bg-primary/20 transition-colors"
-            >
-              <IoSettings className="text-xl text-primary" />
-            </button>
           </div>
         </div>
 

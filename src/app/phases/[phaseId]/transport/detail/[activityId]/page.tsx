@@ -201,7 +201,7 @@ export default function TransportDetailPage() {
               <p className="text-sm text-green-700 font-semibold">Total Emisi CO₂e</p>
             </div>
             <p className="text-3xl font-bold text-green-600">
-              {formatEmission(activity.emission)}
+              {formatEmission(activity.emission)} kg co2e
             </p>
           </div>
 
