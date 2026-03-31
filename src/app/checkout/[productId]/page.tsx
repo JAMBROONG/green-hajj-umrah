@@ -23,6 +23,27 @@ interface CarbonProduct {
   updated_at: string;
 }
 
+interface MidtransSnapResponse {
+  transaction_status: string
+  transaction_id: string
+  [key: string]: unknown
+}
+
+// Extend window to include snap
+declare global {
+  interface Window {
+    snap: {
+      setClientKey: (key: string) => void
+      pay: (token: string, callbacks: {
+        onSuccess?: (result: MidtransSnapResponse) => void
+        onPending?: (result: MidtransSnapResponse) => void
+        onError?: (result: MidtransSnapResponse) => void
+        onClose?: () => void
+      }) => void
+    }
+  }
+}
+
 export default function CheckoutPage({ 
   params 
 }: { 
@@ -37,6 +58,49 @@ export default function CheckoutPage({
   const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState(Math.ceil(totalEmission / 1000));
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Load Midtrans Snap JavaScript and set Client Key
+  useEffect(() => {
+    const loadMidtrans = async () => {
+      try {
+        // Get payment config to know if production or sandbox
+        const configResponse = await fetch('/api/carbon-products/config');
+        if (!configResponse.ok) {
+          console.warn('Failed to fetch Midtrans config');
+          return;
+        }
+        
+        const config = await configResponse.json();
+        const isProduction = config.isProduction;
+        const clientKey = config.clientKey;
+
+        // Load Midtrans Snap script
+        const scriptSrc = isProduction
+          ? 'https://app.midtrans.com/snap/snap.js'
+          : 'https://app.sandbox.midtrans.com/snap/snap.js';
+
+        const script = document.createElement('script');
+        script.src = scriptSrc;
+        script.async = true;
+        script.onload = () => {
+          if (window.snap && clientKey) {
+            window.snap.setClientKey(clientKey);
+          }
+        };
+        document.head.appendChild(script);
+
+        return () => {
+          if (document.head.contains(script)) {
+            document.head.removeChild(script);
+          }
+        };
+      } catch (error) {
+        console.warn('Failed to load Midtrans Snap:', error);
+      }
+    };
+
+    loadMidtrans();
+  }, []);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -91,7 +155,7 @@ export default function CheckoutPage({
     );
   }
 
-  const total = product.price * units;
+  const total = (typeof product.price === 'string' ? parseInt(product.price) : product.price) * units;
 
   const adjustUnits = (delta: number) => {
     setUnits(prev => Math.max(1, Math.min(100, prev + delta)));
@@ -123,11 +187,30 @@ export default function CheckoutPage({
       const data = await response.json();
       console.log('Payment response:', data);
 
-      // Redirect to Midtrans payment page
-      if (data.snapUrl) {
-        window.location.href = data.snapUrl;
+      // Use Midtrans Snap to open payment window
+      if (data.snapToken && window.snap) {
+        window.snap.pay(data.snapToken, {
+          onSuccess: function(result: MidtransSnapResponse) {
+            console.log('✅ Payment success:', result);
+            // Payment successful, redirect to transaction detail
+            router.push(`/profile?tab=certificates&purchased=${data.id}`);
+          },
+          onPending: function(result: MidtransSnapResponse) {
+            console.log('⏳ Payment pending:', result);
+            // Keep waiting for payment
+          },
+          onError: function(result: MidtransSnapResponse) {
+            console.log('❌ Payment error:', result);
+            alert('Pembayaran gagal. Silakan coba lagi.');
+            setIsProcessing(false);
+          },
+          onClose: function() {
+            console.log('❌ Payment cancelled by user');
+            setIsProcessing(false);
+          }
+        });
       } else {
-        throw new Error('No payment URL received');
+        throw new Error('Midtrans Snap not available');
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -162,7 +245,7 @@ export default function CheckoutPage({
                 <p className="text-xs text-textMuted">Proyek: {product.project}</p>
               </div>
               <h3 className="text-base font-bold text-textDark mb-1">{product.name}</h3>
-              <p className="text-sm text-primary font-semibold">{formatCurrency(product.price)} / tCO2e</p>
+                <p className="text-sm text-primary font-semibold">{formatCurrency(typeof product.price === 'string' ? parseInt(product.price) : product.price)} / tCO2e</p>
             </div>
           </div>
 

@@ -106,8 +106,8 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
         },
         body: JSON.stringify({
           csr_activity_id: activityId,
-          type: participationType,
-          amount: participationType === 'donate' ? parseFloat(donationAmount) : null,
+          type: 'donate',
+          amount: parseFloat(donationAmount),
         }),
       })
 
@@ -119,13 +119,15 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
       
       console.log('Participation response:', data)
 
-      if (participationType === 'volunteer') {
-        // Volunteer registration successful
-        alert('✅ Pendaftaran sebagai volunteer berhasil! Terima kasih atas kontribusimu.')
-        router.push('/csr-activities')
-      } else if (participationType === 'donate' && data.snapUrl) {
-        // Redirect to Midtrans payment page
+      // Redirect to Midtrans payment page for donation payment
+      if (data.snapUrl) {
         window.location.href = data.snapUrl
+      } else if (data.snapToken) {
+        // Alternative: use Snap popup
+        window.location.href = `https://app.sandbox.midtrans.com/snap/v1/transactions/${data.snapToken}`
+      } else {
+        alert('✅ Donasi Anda berhasil terdaftar!')
+        router.push('/csr-activities')
       }
     } catch (error) {
       console.error('Error:', error)

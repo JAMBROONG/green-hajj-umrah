@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
@@ -51,13 +51,22 @@ interface Certificate {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session, status } = useSession()
   const [stats, setStats] = useState<UserStats | null>(null)
   const [trips, setTrips] = useState<Trip[]>([])
   const [donations, setDonations] = useState<CSRDonation[]>([])
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'trips' | 'donations' | 'certificates' | 'account'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'trips' | 'donations' | 'certificates' | 'account'>(() => {
+    const tabParam = searchParams?.get('tab') as any
+    return (tabParam === 'certificates' || tabParam === 'donations' || tabParam === 'trips' || tabParam === 'account') 
+      ? tabParam 
+      : 'dashboard'
+  })
+  const [purchasedId, setPurchasedId] = useState<string | null>(() => {
+    return searchParams?.get('purchased') || null
+  })
   const [showEditNameModal, setShowEditNameModal] = useState(false)
   const [showEditPhoneModal, setShowEditPhoneModal] = useState(false)
   const [editName, setEditName] = useState('')
@@ -417,47 +426,68 @@ export default function ProfilePage() {
           {activeTab === 'certificates' && (
             <div className="space-y-3">
               {certificates.length > 0 ? (
-                certificates.map((cert) => (
-                  <div key={cert.id} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{cert.product_name || 'Sertifikat Karbon'}</h3>
-                        <p className="text-sm text-gray-600">{cert.units || cert.co2_equivalent} tCO2e</p>
+                certificates.map((cert) => {
+                  const isNewPurchase = purchasedId === cert.id
+                  
+                  return (
+                    <div 
+                      key={cert.id} 
+                      className={`bg-white rounded-lg p-4 hover:shadow-md transition-shadow ${
+                        isNewPurchase ? 'border-2 border-green-500 shadow-lg' : 'border border-border'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">{cert.product_name || 'Sertifikat Karbon'}</h3>
+                            {isNewPurchase && <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Baru!</span>}
+                          </div>
+                          <p className="text-sm text-gray-600">{cert.units || cert.co2_equivalent} tCO2e</p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          cert.status === 'confirmed' || cert.status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {cert.status === 'confirmed' || cert.status === 'completed' ? 'Aktif' : 'Menunggu'}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        cert.status === 'confirmed' || cert.status === 'completed'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {cert.status === 'confirmed' || cert.status === 'completed' ? 'Aktif' : 'Menunggu'}
-                      </span>
+                      <p className="text-xs text-textMuted mb-3">
+                        Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
+                      </p>
+                      
+                      {(cert.status === 'confirmed' || cert.status === 'completed') ? (
+                        <div className="flex gap-2 flex-wrap">
+                          {cert.thank_you_certificate_url ? (
+                            <button
+                              onClick={() => handleDownloadCertificate(cert.thank_you_certificate_url!, `sertifikat-ucapan-${cert.product_code || cert.id}.pdf`)}
+                              className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+                            >
+                              📥 Unduh Say Thank You
+                            </button>
+                          ) : (
+                            <div className="text-xs text-textMuted">Sertifikat Say Thank You akan tersedia segera</div>
+                          )}
+                          {cert.emission_reduction_certificate_url ? (
+                            <button
+                              onClick={() => handleDownloadCertificate(cert.emission_reduction_certificate_url!, `sertifikat-emisi-${cert.product_code || cert.id}.pdf`)}
+                              className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
+                            >
+                              📥 Unduh Sertifikat Emisi
+                            </button>
+                          ) : (
+                            <div className="text-xs text-textMuted">Sertifikat Emisi sedang diproses</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded flex items-center gap-2">
+                          <span>⏳</span>
+                          <span>Pembayaran Anda sedang diproses. Sertifikat akan tersedia setelah konfirmasi.</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-textMuted mb-3">
-                      Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
-                    </p>
-                    
-                    {(cert.status === 'confirmed' || cert.status === 'completed') && (
-                      <div className="flex gap-2 flex-wrap">
-                        {cert.thank_you_certificate_url && (
-                          <button
-                            onClick={() => handleDownloadCertificate(cert.thank_you_certificate_url!, `sertifikat-ucapan-${cert.product_code || cert.id}.pdf`)}
-                            className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                          >
-                            Unduh Say Thank You
-                          </button>
-                        )}
-                        {cert.emission_reduction_certificate_url && (
-                          <button
-                            onClick={() => handleDownloadCertificate(cert.emission_reduction_certificate_url!, `sertifikat-emisi-${cert.product_code || cert.id}.pdf`)}
-                            className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
-                          >
-                            Unduh Sertifikat Emisi
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))
+                  )
+                })
               ) : (
                 <div className="text-center py-8">
                   <p className="text-textMuted">Belum ada sertifikat karbon</p>
