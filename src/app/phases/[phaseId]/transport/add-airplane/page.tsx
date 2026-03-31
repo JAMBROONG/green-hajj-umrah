@@ -6,7 +6,7 @@ import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
-import { fetchAirports, toIndonesiaSelectOptions, getSaudiFallbackOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
+import { fetchAirports, toIndonesiaSelectOptions, getSaudiAirportOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
 import { v4 as uuidv4 } from 'uuid';
 import Select from 'react-select';
 import { FaPlane } from 'react-icons/fa';
@@ -23,19 +23,22 @@ export default function AddAirplaneTransportPage() {
 
   const [formData, setFormData] = useState({
     type: 'pesawat-ekonomi',
-    date: new Date().toISOString().split('T')[0]
+    date: typeof window !== 'undefined' ? new Date().toISOString().split('T')[0] : ''
   });
 
   const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportSelectOption | null>(null);
   const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportSelectOption | null>(null);
   const [groupedAirportOptions, setGroupedAirportOptions] = useState<{ label: string; options: AirportSelectOption[] }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadAirportOptions = async () => {
       try {
+        setIsLoading(true);
         const indonesiaAirports = await fetchAirports({ country: 'Indonesia' });
+        const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
         const indonesiaOptions = toIndonesiaSelectOptions(indonesiaAirports);
-        const saudiOptions = getSaudiFallbackOptions();
+        const saudiOptions = getSaudiAirportOptions(saudiAirports);
 
         setGroupedAirportOptions([
           { label: 'Indonesia', options: indonesiaOptions },
@@ -43,9 +46,17 @@ export default function AddAirplaneTransportPage() {
         ]);
       } catch (error) {
         console.error('Failed to load airports:', error);
-        setGroupedAirportOptions([
-          { label: 'Saudi Arabia', options: getSaudiFallbackOptions() }
-        ]);
+        // Fallback: try to load just Saudi Arabia
+        try {
+          const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
+          const saudiOptions = getSaudiAirportOptions(saudiAirports);
+          setGroupedAirportOptions([{ label: 'Saudi Arabia', options: saudiOptions }]);
+        } catch (innerError) {
+          console.error('Failed to load Saudi airports:', innerError);
+          setGroupedAirportOptions([]);
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -176,6 +187,7 @@ export default function AddAirplaneTransportPage() {
               placeholder="Cari atau pilih bandara asal..."
               isClearable
               isSearchable
+              isDisabled={isLoading}
               className="react-select-container"
               classNamePrefix="react-select"
               styles={{
@@ -216,6 +228,7 @@ export default function AddAirplaneTransportPage() {
               placeholder="Cari atau pilih bandara tujuan..."
               isClearable
               isSearchable
+              isDisabled={isLoading}
               className="react-select-container"
               classNamePrefix="react-select"
               styles={{

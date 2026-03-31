@@ -358,36 +358,24 @@ async function main() {
 
   console.log('✅ Created Payment Config for Al-Hidayah');
 
-  // Create Carbon Payment Configs for Midtrans (Carbon Product Purchases)
-  const bpkhCarbonPaymentConfig = await prisma.CarbonPaymentConfig.upsert({
-    where: { tenant_id: bpkh.id },
-    update: {},
-    create: {
-      tenant_id: bpkh.id,
-      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-8BJEkiPcyzmBYPA2',
-      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-KH4EicmFlyZA6EBWuCwuK93o',
-      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G000566228',
-      is_production: false,
-      enabled: true,
-    },
-  });
-
-  console.log('✅ Created Carbon Payment Config for BPKH');
-
-  const alHidayahCarbonPaymentConfig = await prisma.CarbonPaymentConfig.upsert({
-    where: { tenant_id: alHidayah.id },
-    update: {},
-    create: {
-      tenant_id: alHidayah.id,
-      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-8BJEkiPcyzmBYPA2',
-      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-KH4EicmFlyZA6EBWuCwuK93o',
-      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G000566228',
-      is_production: false,
-      enabled: true,
-    },
-  });
-
-  console.log('✅ Created Carbon Payment Config for Al-Hidayah');
+  // Create Global Carbon Payment Config for Midtrans (Carbon Product Purchases)
+  // This is now a single global config, not per-tenant
+  const existingCarbonConfig = await prisma.carbonPaymentConfig.findFirst();
+  
+  if (!existingCarbonConfig) {
+    await prisma.carbonPaymentConfig.create({
+      data: {
+        midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-8BJEkiPcyzmBYPA2',
+        midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-KH4EicmFlyZA6EBWuCwuK93o',
+        midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G000566228',
+        is_production: false,
+        enabled: true,
+      },
+    });
+    console.log('✅ Created Global Carbon Payment Config');
+  } else {
+    console.log('✅ Global Carbon Payment Config already exists');
+  }
 
   console.log('\n🎉 Database seeded successfully!');
   console.log('\n📝 Test Accounts (Password: password):');

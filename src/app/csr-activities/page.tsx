@@ -180,15 +180,9 @@ export default function CSRActivitiesPage() {
           </div>
         </div>
         ) : (
-          <div className="px-5 pt-8">
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-              <p className="text-2xl mb-3">⚙️</p>
-              <h3 className="text-sm font-semibold text-amber-900 mb-2">Konfigurasi Pembayaran Diperlukan</h3>
-              <p className="text-xs text-amber-800 mb-4 leading-relaxed">
-                Fitur kegiatan CSR memerlukan pengaturan Midtrans. Hubungi administrator untuk mengonfigurasi payment gateway.
-              </p>
-              <p className="text-xs text-amber-700 font-medium">Hubungi: support@example.com</p>
-            </div>
+          <div className="px-5 pt-8 text-center">
+            <p className="text-2xl mb-2">🔍</p>
+            <p className="text-sm text-textMuted">Produk tidak tersedia</p>
           </div>
         )}
 

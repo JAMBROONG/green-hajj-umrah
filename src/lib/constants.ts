@@ -250,33 +250,3 @@ export const WASTE_FACTOR = 0.5;
 // Flight emissions (kg CO2e per passenger)
 export const FLIGHT_EMISSION_PERGI = 1500; // ID → KSA
 export const FLIGHT_EMISSION_PULANG = 1500; // KSA → ID
-
-// Airports with coordinates for flight distance calculation
-export const AIRPORTS = {
-  // Indonesia Airports
-  'CGK': { name: 'Soekarno-Hatta International Airport', city: 'Jakarta', country: 'Indonesia', lat: -6.1256, lon: 106.6560 },
-  'SUB': { name: 'Juanda International Airport', city: 'Surabaya', country: 'Indonesia', lat: -7.3798, lon: 112.7869 },
-  'DPS': { name: 'Ngurah Rai International Airport', city: 'Bali', country: 'Indonesia', lat: -8.7467, lon: 115.1671 },
-  'UPG': { name: 'Sultan Hasanuddin International Airport', city: 'Makassar', country: 'Indonesia', lat: -5.0616, lon: 119.5540 },
-  'KNO': { name: 'Kualanamu International Airport', city: 'Medan', country: 'Indonesia', lat: 3.6422, lon: 98.8853 },
-  'BDO': { name: 'Husein Sastranegara International Airport', city: 'Bandung', country: 'Indonesia', lat: -6.9006, lon: 107.5764 },
-  'PLM': { name: 'Sultan Mahmud Badaruddin II Airport', city: 'Palembang', country: 'Indonesia', lat: -2.8976, lon: 104.6997 },
-  'BPN': { name: 'Sultan Aji Muhammad Sulaiman Airport', city: 'Balikpapan', country: 'Indonesia', lat: -1.2683, lon: 116.8945 },
-  'PKU': { name: 'Sultan Syarif Kasim II Airport', city: 'Pekanbaru', country: 'Indonesia', lat: 0.4608, lon: 101.4450 },
-  'SOC': { name: 'Adisumarmo International Airport', city: 'Solo', country: 'Indonesia', lat: -7.5161, lon: 110.7569 },
-  'JOG': { name: 'Adisucipto International Airport', city: 'Yogyakarta', country: 'Indonesia', lat: -7.7881, lon: 110.4317 },
-  'SRG': { name: 'Ahmad Yani International Airport', city: 'Semarang', country: 'Indonesia', lat: -6.9714, lon: 110.3750 },
-  'PDG': { name: 'Minangkabau International Airport', city: 'Padang', country: 'Indonesia', lat: -0.7868, lon: 100.2808 },
-  'BTH': { name: 'Hang Nadim International Airport', city: 'Batam', country: 'Indonesia', lat: 1.1210, lon: 104.1186 },
-  
-  // Saudi Arabia Airports
-  'JED': { name: 'King Abdulaziz International Airport', city: 'Jeddah', country: 'Saudi Arabia', lat: 21.6796, lon: 39.1564 },
-  'MED': { name: 'Prince Mohammad bin Abdulaziz Airport', city: 'Madinah', country: 'Saudi Arabia', lat: 24.5534, lon: 39.7050 },
-  'RUH': { name: 'King Khalid International Airport', city: 'Riyadh', country: 'Saudi Arabia', lat: 24.9577, lon: 46.6988 },
-  'DMM': { name: 'King Fahd International Airport', city: 'Dammam', country: 'Saudi Arabia', lat: 26.4712, lon: 49.7979 },
-  'TUU': { name: 'Tabuk Regional Airport', city: 'Tabuk', country: 'Saudi Arabia', lat: 28.3654, lon: 36.6189 },
-  'AHB': { name: 'Abha Regional Airport', city: 'Abha', country: 'Saudi Arabia', lat: 18.2404, lon: 42.6566 },
-  'TIF': { name: 'Taif Regional Airport', city: 'Taif', country: 'Saudi Arabia', lat: 21.4834, lon: 40.5444 }
-} as const;
-
-export type AirportCode = keyof typeof AIRPORTS;

@@ -1,4 +1,3 @@
-import { AIRPORTS } from '@/lib/constants';
 
 export interface AirportOption {
   id: number;
@@ -39,17 +38,17 @@ export const toIndonesiaSelectOptions = (airports: AirportOption[]): AirportSele
     .sort((a, b) => a.label.localeCompare(b.label));
 };
 
-export const getSaudiFallbackOptions = (): AirportSelectOption[] => {
-  return Object.entries(AIRPORTS)
-    .filter(([, airport]) => airport.country === 'Saudi Arabia')
-    .map(([code, airport]) => ({
-      value: `SA-${code}`,
-      label: `${code} - ${airport.name}`,
+export const getSaudiAirportOptions = (airports: AirportOption[]): AirportSelectOption[] => {
+  return airports
+    .map((airport) => ({
+      value: `SA-${airport.id}`,
+      label: buildAirportLabel(airport),
       country: airport.country,
       name: airport.name,
       lat: airport.lat,
       lon: airport.lon
-    }));
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 };
 
 export const findAirportByName = (

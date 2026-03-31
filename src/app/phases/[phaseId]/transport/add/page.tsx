@@ -7,7 +7,7 @@ import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
-import { fetchAirports, toIndonesiaSelectOptions, getSaudiFallbackOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
+import { fetchAirports, toIndonesiaSelectOptions, getSaudiAirportOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
 import { fetchSeaports, toSeaportSelectOptions, calculateSeaportDistanceKm, SeaportSelectOption } from '@/lib/seaportHelper';
 import { v4 as uuidv4 } from 'uuid';
 import Select from 'react-select';
@@ -26,7 +26,7 @@ export default function AddTransportPage() {
 
   const [formData, setFormData] = useState({
     type: 'mobil',
-    date: new Date().toISOString().split('T')[0]
+    date: typeof window !== 'undefined' ? new Date().toISOString().split('T')[0] : ''
   });
 
   // Check if selected type is airplane
@@ -60,8 +60,9 @@ export default function AddTransportPage() {
     const loadAirportOptions = async () => {
       try {
         const indonesiaAirports = await fetchAirports({ country: 'Indonesia' });
+        const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
         const indonesiaOptions = toIndonesiaSelectOptions(indonesiaAirports);
-        const saudiOptions = getSaudiFallbackOptions();
+        const saudiOptions = getSaudiAirportOptions(saudiAirports);
 
         setGroupedAirportOptions([
           { label: 'Indonesia', options: indonesiaOptions },
@@ -69,7 +70,15 @@ export default function AddTransportPage() {
         ]);
       } catch (error) {
         console.error('Failed to load airports:', error);
-        setGroupedAirportOptions([{ label: 'Saudi Arabia', options: getSaudiFallbackOptions() }]);
+        // Fallback: try to load just Saudi Arabia
+        try {
+          const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
+          const saudiOptions = getSaudiAirportOptions(saudiAirports);
+          setGroupedAirportOptions([{ label: 'Saudi Arabia', options: saudiOptions }]);
+        } catch (innerError) {
+          console.error('Failed to load Saudi airports:', innerError);
+          setGroupedAirportOptions([]);
+        }
       }
     };
 
