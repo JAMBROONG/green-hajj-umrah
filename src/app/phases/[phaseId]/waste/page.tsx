@@ -29,11 +29,13 @@ export default function WasteListPage() {
   }
 
   const handleAddClick = () => {
-    router.push(`/phases/${phaseId}/waste/add`);
+    const url = tripId ? `/phases/${phaseId}/waste/add?tripId=${tripId}` : `/phases/${phaseId}/waste/add`;
+    router.push(url);
   };
 
   const handleEditClick = (activityId: string) => {
-    router.push(`/phases/${phaseId}/waste/edit/${activityId}`);
+    const url = tripId ? `/phases/${phaseId}/waste/edit/${activityId}?tripId=${tripId}` : `/phases/${phaseId}/waste/edit/${activityId}`;
+    router.push(url);
   };
 
   const handleDeleteClick = (activityId: string) => {

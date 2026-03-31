@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { WasteActivity, PhaseId } from '@/lib/types';
@@ -14,7 +14,9 @@ import { IoArrowBack } from 'react-icons/io5';
 export default function AddWastePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const phaseId = params.phaseId as PhaseId;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -95,11 +97,13 @@ export default function AddWastePage() {
     });
 
     // Navigate back
-    router.push(`/phases/${phaseId}/waste`);
+    const url = tripId ? `/phases/${phaseId}/waste?tripId=${tripId}` : `/phases/${phaseId}/waste`;
+    router.push(url);
   };
 
   const handleCancel = () => {
-    router.push(`/phases/${phaseId}/waste`);
+    const url = tripId ? `/phases/${phaseId}/waste?tripId=${tripId}` : `/phases/${phaseId}/waste`;
+    router.push(url);
   };
 
   if (!phase) {
@@ -187,8 +191,9 @@ export default function AddWastePage() {
             type="number"
             step="0.1"
             min="0"
+            max="50"
             value={formData.amount}
-            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, amount: (Math.min(50, Math.max(0, parseFloat(e.target.value) || 0))).toString() })}
             placeholder="Masukkan jumlah dalam kg"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required

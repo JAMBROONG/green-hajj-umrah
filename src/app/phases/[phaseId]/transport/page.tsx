@@ -36,14 +36,14 @@ export default function TransportListPage() {
     // Route to appropriate form based on phase transport type
     const transportType = phase.transportTypes;
     
-    if (transportType === 'airplane') {
-      router.push(`/phases/${phaseId}/transport/add-airplane`);
-    } else if (transportType === 'ground') {
-      router.push(`/phases/${phaseId}/transport/add-ground`);
-    } else {
-      // 'mixed' - show combined form
-      router.push(`/phases/${phaseId}/transport/add`);
-    }
+    const baseUrl = transportType === 'airplane' 
+      ? `/phases/${phaseId}/transport/add-airplane`
+      : transportType === 'ground'
+      ? `/phases/${phaseId}/transport/add-ground`
+      : `/phases/${phaseId}/transport/add`;
+    
+    const url = tripId ? `${baseUrl}?tripId=${tripId}` : baseUrl;
+    router.push(url);
   };
 
   const handleEditClick = (activityId: string) => {
@@ -54,18 +54,20 @@ export default function TransportListPage() {
     // Route to appropriate edit form based on transport type
     const transportType = phase.transportTypes;
     
+    let baseUrl: string;
     if (transportType === 'airplane') {
-      router.push(`/phases/${phaseId}/transport/edit-airplane/${activityId}`);
+      baseUrl = `/phases/${phaseId}/transport/edit-airplane/${activityId}`;
     } else if (transportType === 'ground') {
-      router.push(`/phases/${phaseId}/transport/edit-ground/${activityId}`);
+      baseUrl = `/phases/${phaseId}/transport/edit-ground/${activityId}`;
     } else {
       // Mixed - route based on actual activity type
-      if (isAirplane) {
-        router.push(`/phases/${phaseId}/transport/edit-airplane/${activityId}`);
-      } else {
-        router.push(`/phases/${phaseId}/transport/edit/${activityId}`);
-      }
+      baseUrl = isAirplane 
+        ? `/phases/${phaseId}/transport/edit-airplane/${activityId}`
+        : `/phases/${phaseId}/transport/edit/${activityId}`;
     }
+    
+    const url = tripId ? `${baseUrl}?tripId=${tripId}` : baseUrl;
+    router.push(url);
   };
 
   const handleDeleteClick = (activityId: string) => {
@@ -91,7 +93,8 @@ export default function TransportListPage() {
   };
 
   const handleDetailClick = (activityId: string) => {
-    router.push(`/phases/${phaseId}/transport/detail/${activityId}`);
+    const url = tripId ? `/phases/${phaseId}/transport/detail/${activityId}?tripId=${tripId}` : `/phases/${phaseId}/transport/detail/${activityId}`;
+    router.push(url);
   };
 
   const handleBackClick = () => {

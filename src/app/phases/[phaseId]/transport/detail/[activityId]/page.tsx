@@ -20,6 +20,7 @@ export default function TransportDetailPage() {
   const { showConfirm } = useDialog();
   const phaseId = params.phaseId as PhaseId;
   const activityId = params.activityId as string;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -62,11 +63,12 @@ export default function TransportDetailPage() {
   const handleEditClick = () => {
     const isAirplane = activity.type === 'pesawat-ekonomi' || activity.type === 'pesawat-bisnis';
     
-    if (isAirplane) {
-      router.push(`/phases/${phaseId}/transport/edit-airplane/${activityId}`);
-    } else {
-      router.push(`/phases/${phaseId}/transport/edit/${activityId}`);
-    }
+    const baseUrl = isAirplane 
+      ? `/phases/${phaseId}/transport/edit-airplane/${activityId}`
+      : `/phases/${phaseId}/transport/edit/${activityId}`;
+    
+    const url = tripId ? `${baseUrl}?tripId=${tripId}` : baseUrl;
+    router.push(url);
   };
 
   const handleDeleteClick = () => {
@@ -83,7 +85,8 @@ export default function TransportDetailPage() {
           emission: totalEmission
         });
 
-        router.push(`/phases/${phaseId}/transport`);
+        const url = tripId ? `/phases/${phaseId}/transport?tripId=${tripId}` : `/phases/${phaseId}/transport`;
+        router.push(url);
       },
       {
         title: 'Hapus Aktivitas',

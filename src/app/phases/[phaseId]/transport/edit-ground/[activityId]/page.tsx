@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
@@ -263,11 +263,13 @@ function EditGroundTransportForm({
       emission: totalEmission
     });
 
-    router.push(`/phases/${phaseId}/transport`);
+    const url = tripId ? `/phases/${phaseId}/transport?tripId=${tripId}` : `/phases/${phaseId}/transport`;
+    router.push(url);
   };
 
   const handleCancel = () => {
-    router.push(`/phases/${phaseId}/transport`);
+    const url = tripId ? `/phases/${phaseId}/transport?tripId=${tripId}` : `/phases/${phaseId}/transport`;
+    router.push(url);
   };
 
   return (

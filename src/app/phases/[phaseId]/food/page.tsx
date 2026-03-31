@@ -29,11 +29,13 @@ export default function FoodListPage() {
   }
 
   const handleAddClick = () => {
-    router.push(`/phases/${phaseId}/food/add`);
+    const url = tripId ? `/phases/${phaseId}/food/add?tripId=${tripId}` : `/phases/${phaseId}/food/add`;
+    router.push(url);
   };
 
   const handleEditClick = (activityId: string) => {
-    router.push(`/phases/${phaseId}/food/edit/${activityId}`);
+    const url = tripId ? `/phases/${phaseId}/food/edit/${activityId}?tripId=${tripId}` : `/phases/${phaseId}/food/edit/${activityId}`;
+    router.push(url);
   };
 
   const handleDeleteClick = (activityId: string) => {

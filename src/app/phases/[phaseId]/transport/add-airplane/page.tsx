@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
@@ -15,8 +15,10 @@ import { IoArrowBack } from 'react-icons/io5';
 export default function AddAirplaneTransportPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -112,11 +114,13 @@ export default function AddAirplaneTransportPage() {
       emission: totalEmission
     });
 
-    router.push(`/phases/${phaseId}/transport`);
+    const url = tripId ? `/phases/${phaseId}/transport?tripId=${tripId}` : `/phases/${phaseId}/transport`;
+    router.push(url);
   };
 
   const handleCancel = () => {
-    router.push(`/phases/${phaseId}/transport`);
+    const url = tripId ? `/phases/${phaseId}/transport?tripId=${tripId}` : `/phases/${phaseId}/transport`;
+    router.push(url);
   };
 
   if (!phase) {

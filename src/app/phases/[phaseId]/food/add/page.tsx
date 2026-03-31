@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
@@ -15,8 +15,10 @@ import { IoArrowBack } from 'react-icons/io5';
 export default function AddFoodPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showWarning } = useDialog();
   const phaseId = params.phaseId as PhaseId;
+  const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -98,11 +100,13 @@ export default function AddFoodPage() {
     });
 
     // Navigate back
-    router.push(`/phases/${phaseId}/food`);
+    const url = tripId ? `/phases/${phaseId}/food?tripId=${tripId}` : `/phases/${phaseId}/food`;
+    router.push(url);
   };
 
   const handleCancel = () => {
-    router.push(`/phases/${phaseId}/food`);
+    const url = tripId ? `/phases/${phaseId}/food?tripId=${tripId}` : `/phases/${phaseId}/food`;
+    router.push(url);
   };
 
   if (!phase) {
@@ -188,9 +192,10 @@ export default function AddFoodPage() {
           <input
             type="number"
             min="1"
+            max="10"
             step="1"
             value={formData.servings}
-            onChange={(e) => setFormData({ ...formData, servings: parseInt(e.target.value) || 1 })}
+            onChange={(e) => setFormData({ ...formData, servings: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />
