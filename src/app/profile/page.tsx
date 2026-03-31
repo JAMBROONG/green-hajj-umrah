@@ -67,6 +67,8 @@ export default function ProfilePage() {
   const [purchasedId, setPurchasedId] = useState<string | null>(() => {
     return searchParams?.get('purchased') || null
   })
+  const [selectedDonation, setSelectedDonation] = useState<CSRDonation | null>(null)
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null)
   const [showEditNameModal, setShowEditNameModal] = useState(false)
   const [showEditPhoneModal, setShowEditPhoneModal] = useState(false)
   const [editName, setEditName] = useState('')
@@ -144,6 +146,38 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/auth/signin' })
+  }
+
+  const handleContinuePayment = async (csr_activity_id: string, amount: number) => {
+    try {
+      const response = await fetch('/api/csr-activities/participate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          csr_activity_id,
+          type: 'donate',
+          amount,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Gagal memulai pembayaran')
+      }
+
+      const data = await response.json()
+      
+      if (data.snapUrl) {
+        window.location.href = data.snapUrl
+      } else {
+        alert('Terjadi kesalahan. Silakan coba lagi.')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert(error instanceof Error ? error.message : 'Terjadi kesalahan')
+    }
   }
 
   const handleOpenEditName = () => {
@@ -374,7 +408,11 @@ export default function ProfilePage() {
             <div className="space-y-3">
               {donations.length > 0 ? (
                 donations.map((donation) => (
-                  <div key={donation.id} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div 
+                    key={donation.id} 
+                    onClick={() => setSelectedDonation(donation)}
+                    className="bg-white border border-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary"
+                  >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{donation.activity_title}</h3>
@@ -396,7 +434,10 @@ export default function ProfilePage() {
                       <div className="flex gap-2 flex-wrap">
                         {donation.thank_you_certificate_url && (
                           <button
-                            onClick={() => handleDownloadCertificate(donation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${donation.id}.pdf`)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownloadCertificate(donation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${donation.id}.pdf`)
+                            }}
                             className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                           >
                             Unduh Say Thank You
@@ -404,7 +445,10 @@ export default function ProfilePage() {
                         )}
                         {donation.participation_certificate_url && (
                           <button
-                            onClick={() => handleDownloadCertificate(donation.participation_certificate_url!, `sertifikat-partisipasi-csr-${donation.id}.pdf`)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownloadCertificate(donation.participation_certificate_url!, `sertifikat-partisipasi-csr-${donation.id}.pdf`)
+                            }}
                             className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
                           >
                             Unduh Sertifikat Partisipasi
@@ -432,7 +476,8 @@ export default function ProfilePage() {
                   return (
                     <div 
                       key={cert.id} 
-                      className={`bg-white rounded-lg p-4 hover:shadow-md transition-shadow ${
+                      onClick={() => setSelectedCertificate(cert)}
+                      className={`bg-white rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary ${
                         isNewPurchase ? 'border-2 border-green-500 shadow-lg' : 'border border-border'
                       }`}
                     >
@@ -460,7 +505,10 @@ export default function ProfilePage() {
                         <div className="flex gap-2 flex-wrap">
                           {cert.thank_you_certificate_url ? (
                             <button
-                              onClick={() => handleDownloadCertificate(cert.thank_you_certificate_url!, `sertifikat-ucapan-${cert.product_code || cert.id}.pdf`)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDownloadCertificate(cert.thank_you_certificate_url!, `sertifikat-ucapan-${cert.product_code || cert.id}.pdf`)
+                              }}
                               className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                             >
                               📥 Unduh Say Thank You
@@ -470,7 +518,10 @@ export default function ProfilePage() {
                           )}
                           {cert.emission_reduction_certificate_url ? (
                             <button
-                              onClick={() => handleDownloadCertificate(cert.emission_reduction_certificate_url!, `sertifikat-emisi-${cert.product_code || cert.id}.pdf`)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDownloadCertificate(cert.emission_reduction_certificate_url!, `sertifikat-emisi-${cert.product_code || cert.id}.pdf`)
+                              }}
                               className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
                             >
                               📥 Unduh Sertifikat Emisi
@@ -589,33 +640,174 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Edit Phone Modal */}
-      {showEditPhoneModal && (
+      {/* CSR Donation Detail Modal */}
+      {selectedDonation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
-          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
-            <h2 className="text-xl font-bold text-gray-900">Edit Nomor Telepon</h2>
-            <input
-              type="tel"
-              value={editPhone}
-              onChange={(e) => setEditPhone(e.target.value)}
-              placeholder="Masukkan nomor telepon (misal: +62 821-1234-5678)"
-              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowEditPhoneModal(false)}
-                className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-900 hover:bg-gray-50 transition"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleSavePhone}
-                disabled={savingPhone}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
-              >
-                {savingPhone ? 'Menyimpan...' : 'Simpan'}
-              </button>
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Detail Donasi CSR</h2>
+              <button onClick={() => setSelectedDonation(null)} className="text-2xl text-gray-400 hover:text-gray-600">×</button>
             </div>
+            
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-textMuted mb-1">Kegiatan</p>
+                <p className="font-semibold text-gray-900">{selectedDonation.activity_title}</p>
+              </div>
+              
+              <div>
+                <p className="text-xs text-textMuted mb-1">Jumlah Donasi</p>
+                <p className="text-lg font-bold text-primary">{selectedDonation.amount > 0 ? `Rp ${selectedDonation.amount.toLocaleString('id-ID')}` : 'Volunteer'}</p>
+              </div>
+              
+              <div>
+                <p className="text-xs text-textMuted mb-1">Status</p>
+                <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
+                  selectedDonation.status === 'confirmed'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {selectedDonation.status === 'confirmed' ? 'Terkonfirmasi' : 'Menunggu'}
+                </span>
+              </div>
+              
+              <div>
+                <p className="text-xs text-textMuted mb-1">Tanggal Donasi</p>
+                <p className="text-gray-900">{new Date(selectedDonation.created_at).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+            </div>
+            
+            {selectedDonation.status === 'confirmed' && (
+              <div className="space-y-2 pt-4 border-t border-border">
+                {selectedDonation.thank_you_certificate_url && (
+                  <button
+                    onClick={() => {
+                      handleDownloadCertificate(selectedDonation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${selectedDonation.id}.pdf`)
+                    }}
+                    className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                  >
+                    📥 Unduh Say Thank You
+                  </button>
+                )}
+                {selectedDonation.participation_certificate_url && (
+                  <button
+                    onClick={() => {
+                      handleDownloadCertificate(selectedDonation.participation_certificate_url!, `sertifikat-partisipasi-csr-${selectedDonation.id}.pdf`)
+                    }}
+                    className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition"
+                  >
+                    📥 Unduh Sertifikat Partisipasi
+                  </button>
+                )}
+              </div>
+            )}
+
+            {selectedDonation.status === 'pending' && (
+              <div className="pt-4 border-t border-border">
+                <button
+                  onClick={() => {
+                    setSelectedDonation(null)
+                    handleContinuePayment(selectedDonation.csr_activity_id, selectedDonation.amount)
+                  }}
+                  className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition font-semibold"
+                >
+                  💳 Lanjut Pembayaran
+                </button>
+              </div>
+            )}
+            
+            <button
+              onClick={() => setSelectedDonation(null)}
+              className="w-full text-sm px-4 py-2 border border-border rounded-lg hover:bg-gray-50 transition"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Certificate Detail Modal */}
+      {selectedCertificate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Detail Sertifikat Karbon</h2>
+              <button onClick={() => setSelectedCertificate(null)} className="text-2xl text-gray-400 hover:text-gray-600">×</button>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-textMuted mb-1">Produk</p>
+                <p className="font-semibold text-gray-900">{selectedCertificate.product_name || 'Sertifikat Karbon'}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-textMuted mb-1">Jumlah</p>
+                  <p className="font-semibold text-gray-900">{selectedCertificate.units || selectedCertificate.co2_equivalent} tCO2e</p>
+                </div>
+                <div>
+                  <p className="text-xs text-textMuted mb-1">Harga</p>
+                  <p className="font-semibold text-primary">Rp {selectedCertificate.amount.toLocaleString('id-ID')}</p>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-xs text-textMuted mb-1">Status</p>
+                <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
+                  selectedCertificate.status === 'confirmed' || selectedCertificate.status === 'completed'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {selectedCertificate.status === 'confirmed' || selectedCertificate.status === 'completed' ? 'Aktif' : 'Menunggu'}
+                </span>
+              </div>
+              
+              <div>
+                <p className="text-xs text-textMuted mb-1">Tanggal Pembelian</p>
+                <p className="text-gray-900">{new Date(selectedCertificate.purchase_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+            </div>
+            
+            {(selectedCertificate.status === 'confirmed' || selectedCertificate.status === 'completed') ? (
+              <div className="space-y-2 pt-4 border-t border-border">
+                {selectedCertificate.thank_you_certificate_url ? (
+                  <button
+                    onClick={() => {
+                      handleDownloadCertificate(selectedCertificate.thank_you_certificate_url!, `sertifikat-ucapan-${selectedCertificate.product_code || selectedCertificate.id}.pdf`)
+                    }}
+                    className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                  >
+                    📥 Unduh Say Thank You
+                  </button>
+                ) : (
+                  <div className="text-xs text-textMuted bg-gray-50 p-3 rounded text-center">Sertifikat Say Thank You akan tersedia segera</div>
+                )}
+                {selectedCertificate.emission_reduction_certificate_url ? (
+                  <button
+                    onClick={() => {
+                      handleDownloadCertificate(selectedCertificate.emission_reduction_certificate_url!, `sertifikat-emisi-${selectedCertificate.product_code || selectedCertificate.id}.pdf`)
+                    }}
+                    className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition"
+                  >
+                    📥 Unduh Sertifikat Emisi
+                  </button>
+                ) : (
+                  <div className="text-xs text-textMuted bg-gray-50 p-3 rounded text-center">Sertifikat Emisi sedang diproses</div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-yellow-600 bg-yellow-50 p-3 rounded">
+                ⏳ Pembayaran Anda sedang diproses. Sertifikat akan tersedia setelah konfirmasi.
+              </div>
+            )}
+            
+            <button
+              onClick={() => setSelectedCertificate(null)}
+              className="w-full text-sm px-4 py-2 border border-border rounded-lg hover:bg-gray-50 transition"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}

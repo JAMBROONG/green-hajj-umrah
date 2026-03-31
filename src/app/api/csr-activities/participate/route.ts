@@ -113,24 +113,35 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Activity found:', activity.title)
 
-    // Check if user already participated
-    const existingParticipation = await prisma.csr_activity_participations.findUnique({
+    // Check if user already has a CONFIRMED participation (only block confirmed, not pending)
+    const confirmedParticipation = await prisma.csr_activity_participations.findFirst({
       where: {
-        user_id_csr_activity_id: {
-          user_id: userProfile.id,
-          csr_activity_id,
-        },
+        user_id: userProfile.id,
+        csr_activity_id,
+        status: 'confirmed',
       },
     })
 
-    if (existingParticipation) {
-      console.log('❌ Already participated:', { user_id: userProfile.id, csr_activity_id })
+    if (confirmedParticipation) {
+      console.log('❌ Already participated (confirmed):', { user_id: userProfile.id, csr_activity_id })
       return NextResponse.json(
         { error: 'Already participated in this activity' },
         { status: 400 }
       )
     }
-    console.log('✅ No existing participation record')
+    console.log('✅ No confirmed participation record (can retry if pending)')
+
+    // For donations: clean up any pending records to allow retry
+    if (type === 'donate') {
+      await prisma.csr_activity_participations.deleteMany({
+        where: {
+          user_id: userProfile.id,
+          csr_activity_id,
+          status: 'pending',
+        },
+      })
+      console.log('✅ Cleaned up pending participation records for retry')
+    }
 
     // For volunteer, create immediately
     if (type === 'volunteer') {
