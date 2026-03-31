@@ -180,6 +180,7 @@ export default function AddAirplaneTransportPage() {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Dari (Bandara Asal) *
             </label>
+            {!isLoading && (
             <Select
               value={selectedOriginAirport}
               onChange={(option) => setSelectedOriginAirport(option as AirportSelectOption | null)}
@@ -209,6 +210,7 @@ export default function AddAirplaneTransportPage() {
               }}
               required
             />
+            )}
             {selectedOriginAirport && (
               <p className="text-xs text-green-600 mt-1">
                 ✓ {selectedOriginAirport.label}
@@ -221,6 +223,7 @@ export default function AddAirplaneTransportPage() {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Menuju (Bandara Tujuan) *
             </label>
+            {!isLoading && (
             <Select
               value={selectedDestinationAirport}
               onChange={(option) => setSelectedDestinationAirport(option as AirportSelectOption | null)}
@@ -250,6 +253,7 @@ export default function AddAirplaneTransportPage() {
               }}
               required
             />
+            )}
             {selectedDestinationAirport && (
               <p className="text-xs text-green-600 mt-1">
                 ✓ {selectedDestinationAirport.label}

@@ -3,10 +3,7 @@ import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 
 // Helper to create Midtrans transaction via HTTP
-async function createMidtransTransaction(payload: any) {
-  const serverKey = process.env.MIDTRANS_SERVER_KEY!
-  const isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true'
-  
+async function createMidtransTransaction(payload: any, serverKey: string, isProduction: boolean) {
   // Midtrans API endpoint
   const apiUrl = isProduction
     ? 'https://app.midtrans.com/snap/v1/transactions'
@@ -52,6 +49,23 @@ async function createMidtransTransaction(payload: any) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get Carbon Payment Config from database
+    const carbonConfig = await prisma.carbonPaymentConfig.findFirst()
+    
+    if (!carbonConfig) {
+      return NextResponse.json(
+        { error: 'Carbon payment configuration not found' },
+        { status: 500 }
+      )
+    }
+
+    if (!carbonConfig.enabled) {
+      return NextResponse.json(
+        { error: 'Carbon payment is currently disabled' },
+        { status: 503 }
+      )
+    }
+
     // Get user session
     const session = await auth()
     
@@ -139,7 +153,7 @@ export async function POST(request: NextRequest) {
       custom_field2: `user:${userProfile.id}`,
     }
 
-    const transaction = await createMidtransTransaction(transactionPayload)
+    const transaction = await createMidtransTransaction(transactionPayload, carbonConfig.midtrans_server_key, carbonConfig.is_production)
 
     // Create certificate purchase record with pending status
     const purchase = await prisma.carbon_certificate_purchases.create({
