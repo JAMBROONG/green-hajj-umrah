@@ -1,9 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
+    // Get current user session
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized', data: [] },
+        { status: 401 }
+      );
+    }
+
+    // Get user's profile to get tenant_id
+    const userProfile = await prisma.profiles.findUnique({
+      where: { id: session.user.id },
+      select: { tenant_id: true },
+    });
+
+    if (!userProfile?.tenant_id) {
+      return NextResponse.json(
+        { success: false, error: 'User has no tenant assigned', data: [] },
+        { status: 400 }
+      );
+    }
+
+    // Fetch hotels filtered by user's tenant_id
     const hotels = await prisma.hotels.findMany({
+      where: {
+        tenant_id: userProfile.tenant_id,
+      },
       include: {
         hotel_emission: true,
       },
@@ -25,7 +53,7 @@ export async function GET(request: NextRequest) {
       hotel_emission_id: hotel.hotel_emission_id,
     }));
 
-    console.log(`✅ Fetched ${formattedHotels.length} hotels with emission factors`);
+    console.log(`✅ Fetched ${formattedHotels.length} hotels for tenant: ${userProfile.tenant_id}`);
 
     return NextResponse.json(
       {
