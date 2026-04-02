@@ -10,51 +10,51 @@ const DEFAULT_DEV_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/
 const VEHICLE_FACTORS = [
   {
     name: 'Mobil',
-    type: 'land',
+    type: 'mobil',
     emission_factor: 0.16725,
     emission_factor_name: 'kg CO2e/km'
   },
   {
     name: 'Mobil Listrik',
-    type: 'land',
-    emission_factor: null,
+    type: 'mobil-listrik',
+    emission_factor: 0,
     emission_factor_name: 'kg CO2e/km'
   },
   {
     name: 'Bus',
-    type: 'land',
+    type: 'bus',
     emission_factor: 0.10385,
-    emission_factor_name: 'kg CO2e/passenger.km'
+    emission_factor_name: 'kg CO2e/km'
   },
   {
     name: 'Bus Listrik',
-    type: 'land',
-    emission_factor: null,
+    type: 'bus-listrik',
+    emission_factor: 0,
     emission_factor_name: 'kg CO2e/km'
   },
   {
     name: 'Kereta',
-    type: 'land',
+    type: 'kereta',
     emission_factor: 0.03546,
-    emission_factor_name: 'kg CO2e/passenger.km'
+    emission_factor_name: 'kg CO2e/km'
   },
   {
-    name: 'Pesawat (Ekonomi)',
-    type: 'airplane',
+    name: 'Pesawat Ekonomi',
+    type: 'pesawat-ekonomi',
     emission_factor: 0.10916,
-    emission_factor_name: 'kg CO2e/passenger.km'
+    emission_factor_name: 'kg CO2e/km'
   },
   {
-    name: 'Pesawat (Bisnis)',
-    type: 'airplane',
+    name: 'Pesawat Bisnis',
+    type: 'pesawat-bisnis',
     emission_factor: 0.43663,
-    emission_factor_name: 'kg CO2e/passenger.km'
+    emission_factor_name: 'kg CO2e/km'
   },
   {
-    name: 'Ferry',
-    type: 'sea',
+    name: 'Kapal',
+    type: 'kapal',
     emission_factor: 0.1127,
-    emission_factor_name: 'kg CO2e/passenger.km'
+    emission_factor_name: 'kg CO2e/km'
   }
 ] as const;
 

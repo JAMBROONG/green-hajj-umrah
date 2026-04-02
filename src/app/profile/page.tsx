@@ -88,6 +88,46 @@ export default function ProfilePage() {
     }
   }, [status])
 
+  // Verify payment status when purchased ID is in URL
+  useEffect(() => {
+    if (purchasedId) {
+      verifyPurchaseStatus()
+    }
+  }, [purchasedId])
+
+  const verifyPurchaseStatus = async () => {
+    try {
+      console.log('🔍 Verifying purchase status:', purchasedId)
+      const verifyRes = await fetch('/api/carbon-products/purchase/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ purchaseId: purchasedId }),
+      })
+
+      console.log('📊 Verify response status:', verifyRes.status)
+
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json()
+        console.log('✅ Verification result:', verifyData)
+        
+        // Refetch certificates to get updated status
+        const certsRes = await fetch('/api/user/certificates')
+        if (certsRes.ok) {
+          const updatedCerts = await certsRes.json()
+          console.log('📋 Updated certificates:', updatedCerts)
+          setCertificates(updatedCerts)
+        }
+      } else {
+        const errorData = await verifyRes.json()
+        console.error('❌ Verify error:', verifyRes.status, errorData)
+      }
+    } catch (error) {
+      console.error('❌ Error verifying purchase:', error)
+    }
+  }
+
   const fetchUserData = async () => {
     try {
       setLoading(true)

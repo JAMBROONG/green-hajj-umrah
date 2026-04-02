@@ -328,30 +328,42 @@ async function main() {
   console.log('✅ Created CSR Activity:', csrActivity4.title);
 
   // Create Tenant Payment Configs for Midtrans
-  const bpkhPaymentConfig = await prisma.TenantPaymentConfig.upsert({
+  const bpkhPaymentConfig = await prisma.tenantPaymentConfig.upsert({
     where: { tenant_id: bpkh.id },
-    update: {},
+    update: {
+      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-RKsqgPDSSn86BM5O',
+      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-Aqga0kM5mF4omcLejZV68Dmh',
+      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G454324030',
+      is_production: true,
+      enabled: true,
+    },
     create: {
       tenant_id: bpkh.id,
-      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-8BJEkiPcyzmBYPA2',
-      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-KH4EicmFlyZA6EBWuCwuK93o',
-      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G000566228',
-      is_production: false,
+      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-RKsqgPDSSn86BM5O',
+      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-Aqga0kM5mF4omcLejZV68Dmh',
+      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G454324030',
+      is_production: true,
       enabled: true,
     },
   });
 
   console.log('✅ Created Payment Config for BPKH');
 
-  const alHidayahPaymentConfig = await prisma.TenantPaymentConfig.upsert({
+  const alHidayahPaymentConfig = await prisma.tenantPaymentConfig.upsert({
     where: { tenant_id: alHidayah.id },
-    update: {},
+    update: {
+      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-RKsqgPDSSn86BM5O',
+      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-Aqga0kM5mF4omcLejZV68Dmh',
+      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G454324030',
+      is_production: true,
+      enabled: true,
+    },
     create: {
       tenant_id: alHidayah.id,
-      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-8BJEkiPcyzmBYPA2',
-      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-KH4EicmFlyZA6EBWuCwuK93o',
-      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G000566228',
-      is_production: false,
+      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-RKsqgPDSSn86BM5O',
+      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-Aqga0kM5mF4omcLejZV68Dmh',
+      midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G454324030',
+      is_production: true,
       enabled: true,
     },
   });
@@ -362,19 +374,31 @@ async function main() {
   // This is now a single global config, not per-tenant
   const existingCarbonConfig = await prisma.carbonPaymentConfig.findFirst();
   
-  if (!existingCarbonConfig) {
+  if (existingCarbonConfig) {
+    // Update existing config
+    await prisma.carbonPaymentConfig.update({
+      where: { id: existingCarbonConfig.id },
+      data: {
+        midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-RKsqgPDSSn86BM5O',
+        midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-Aqga0kM5mF4omcLejZV68Dmh',
+        midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G454324030',
+        is_production: true,
+        enabled: true,
+      },
+    });
+    console.log('✅ Updated Global Carbon Payment Config');
+  } else {
+    // Create new config if doesn't exist
     await prisma.carbonPaymentConfig.create({
       data: {
-        midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-8BJEkiPcyzmBYPA2',
-        midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-KH4EicmFlyZA6EBWuCwuK93o',
-        midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G000566228',
-        is_production: false,
+        midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || 'Mid-client-RKsqgPDSSn86BM5O',
+        midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || 'Mid-server-Aqga0kM5mF4omcLejZV68Dmh',
+        midtrans_merchant_id: process.env.MIDTRANS_MERCHANT_ID || 'G454324030',
+        is_production: true,
         enabled: true,
       },
     });
     console.log('✅ Created Global Carbon Payment Config');
-  } else {
-    console.log('✅ Global Carbon Payment Config already exists');
   }
 
   console.log('\n🎉 Database seeded successfully!');

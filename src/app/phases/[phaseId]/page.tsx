@@ -98,9 +98,10 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
     0
   );
 
-  const completedCategories = phase.categories.filter(
-    cat => phaseData.categories[cat as CategoryId]?.completed
-  ).length;
+  const completedCategories = phase.categories.filter(catId => {
+    const catData = phaseData.categories[catId as CategoryId];
+    return catData?.completed || ((catData?.totalEmission ?? catData?.emission) || 0) > 0;
+  }).length;
   const progress = (completedCategories / phase.categories.length) * 100;
 
   return (

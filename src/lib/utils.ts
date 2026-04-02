@@ -249,6 +249,16 @@ export function formatEmission(emission: number, unit: 'kg' | 'ton' = 'kg'): str
   return emission.toFixed(2);
 }
 
+// Truncate number to 2 decimal places without rounding
+export function truncateToTwoDecimals(num: number): number {
+  return Math.floor(num * 100) / 100;
+}
+
+// Format number to 2 decimal places without rounding (as string)
+export function formatTruncated(num: number): string {
+  return truncateToTwoDecimals(num).toFixed(2);
+}
+
 export function formatCurrency(amount: number): string {
   return 'Rp ' + amount.toLocaleString('id-ID');
 }

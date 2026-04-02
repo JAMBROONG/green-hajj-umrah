@@ -5,59 +5,159 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/green_hajj_db?schema=public';
+
+const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const HOTELS = [
-  // Madinah Hotels (5-star)
-  { name: 'Hilton Madinah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Mövenpick Hotel Madinah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'The Oberoi Madinah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'InterContinental Dar Al Iman', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Pullman ZamZam Madinah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  // Madinah Hotels (4-star)
-  { name: 'Anwar Al Madinah Mövenpick', factor_emission: 35, factor_emission_name: '4 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Dar Al Taqwa Hotel', factor_emission: 35, factor_emission_name: '4 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Al Haram Hotel', factor_emission: 35, factor_emission_name: '4 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  // Madinah Hotels (3-star)
-  { name: 'Elaf Al Mashaer Hotel', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Al Aqeeq Hotel', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Madinah, Saudi Arabia', country_code: 'SA' },
-  // Makkah Hotels (5-star)
-  { name: 'Fairmont Makkah Clock Royal Tower', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Swissôtel Makkah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Raffles Makkah Palace', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Conrad Makkah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Anjum Hotel Makkah', factor_emission: 50, factor_emission_name: '5 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  // Makkah Hotels (4-star)
-  { name: 'Dar Al Tawhid Intercontinental', factor_emission: 35, factor_emission_name: '4 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Elaf Kinda Hotel', factor_emission: 35, factor_emission_name: '4 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Al Safwah Royale Orchid', factor_emission: 35, factor_emission_name: '4 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  // Makkah Hotels (3-star)
-  { name: 'Al Marwa Rayhaan by Rotana', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  { name: 'Makarem Ajyad Makkah', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Makkah, Saudi Arabia', country_code: 'SA' },
-  // Indonesia Asrama/Hotels (3-star)
-  { name: 'Asrama Haji Jakarta', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Jakarta, Indonesia', country_code: 'ID' },
-  { name: 'Asrama Haji Surabaya', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Surabaya, Indonesia', country_code: 'ID' },
-  { name: 'Pondok Gede Haji', factor_emission: 25, factor_emission_name: '3 Bintang', address: 'Jakarta, Indonesia', country_code: 'ID' },
-];
-
 async function main() {
-  console.log('🌱 Seeding hotels...');
-
   try {
-    for (const hotel of HOTELS) {
-      const created = await prisma.hotels.create({
-        data: hotel,
+    console.log('🗑️  Clearing hotels and hotel_emission tables...');
+    await prisma.hotels.deleteMany({});
+    await prisma.hotel_emission.deleteMany({});
+    console.log('✅ Cleared!');
+
+    // Create hotel emission factors by country
+    console.log('📝 Creating hotel emission factors by country...');
+    const emissionFactorsData = [
+      { country: 'SA', emission_factor: 50.0 }, // Saudi Arabia - 5 star
+      { country: 'SA', emission_factor: 35.0 }, // Saudi Arabia - 4 star
+      { country: 'SA', emission_factor: 25.0 }, // Saudi Arabia - 3 star
+      { country: 'ID', emission_factor: 25.0 }, // Indonesia
+      { country: 'AE', emission_factor: 45.0 }, // UAE
+      { country: 'TR', emission_factor: 30.0 }, // Turkey
+      { country: 'EG', emission_factor: 28.0 }, // Egypt
+    ];
+
+    const createdEmissions = await Promise.all(
+      emissionFactorsData.map((factor) =>
+        prisma.hotel_emission.create({
+          data: factor,
+        })
+      )
+    );
+
+    console.log(`✅ Created ${createdEmissions.length} emission factor records`);
+
+    // Map country and rating to emission factor ID
+    const emissionFactorMap: Record<string, number> = {};
+    let saCounterFive = 0;
+    let saCounterFour = 0;
+    let saCounterThree = 0;
+
+    createdEmissions.forEach((factor) => {
+      // Convert Decimal to string and then to number for comparison
+      const emissionValue = parseFloat(String(factor.emission_factor));
+      
+      if (factor.country === 'SA' && emissionValue === 50) {
+        emissionFactorMap['SA-5'] = factor.id;
+      } else if (factor.country === 'SA' && emissionValue === 35) {
+        emissionFactorMap['SA-4'] = factor.id;
+      } else if (factor.country === 'SA' && emissionValue === 25) {
+        emissionFactorMap['SA-3'] = factor.id;
+      } else if (factor.country === 'ID') {
+        emissionFactorMap['ID'] = factor.id;
+      } else if (factor.country === 'AE') {
+        emissionFactorMap['AE'] = factor.id;
+      } else if (factor.country === 'TR') {
+        emissionFactorMap['TR'] = factor.id;
+      } else if (factor.country === 'EG') {
+        emissionFactorMap['EG'] = factor.id;
+      }
+    });
+
+    // Create hotels with references to emission factors
+    console.log('📝 Seeding hotel data...');
+
+    const hotelsData = [
+      // Madinah Hotels (5-star)
+      { name: 'Hilton Madinah', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'Mövenpick Hotel Madinah', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'The Oberoi Madinah', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'InterContinental Dar Al Iman', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'Pullman ZamZam Madinah', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      // Madinah Hotels (4-star)
+      { name: 'Anwar Al Madinah Mövenpick', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-4' },
+      { name: 'Dar Al Taqwa Hotel', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-4' },
+      { name: 'Al Haram Hotel', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-4' },
+      // Madinah Hotels (3-star)
+      { name: 'Elaf Al Mashaer Hotel', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-3' },
+      { name: 'Al Aqeeq Hotel', address: 'Madinah, Saudi Arabia', country: 'SA', ratingKey: 'SA-3' },
+      // Makkah Hotels (5-star)
+      { name: 'Fairmont Makkah Clock Royal Tower', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'Swissôtel Makkah', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'Raffles Makkah Palace', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'Conrad Makkah', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      { name: 'Anjum Hotel Makkah', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-5' },
+      // Makkah Hotels (4-star)
+      { name: 'Dar Al Tawhid Intercontinental', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-4' },
+      { name: 'Elaf Kinda Hotel', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-4' },
+      { name: 'Al Safwah Royale Orchid', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-4' },
+      // Makkah Hotels (3-star)
+      { name: 'Al Marwa Rayhaan by Rotana', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-3' },
+      { name: 'Makarem Ajyad Makkah', address: 'Makkah, Saudi Arabia', country: 'SA', ratingKey: 'SA-3' },
+      // Indonesia Asrama/Hotels (3-star)
+      { name: 'Asrama Haji Jakarta', address: 'Jakarta, Indonesia', country: 'ID', ratingKey: 'ID' },
+      { name: 'Asrama Haji Surabaya', address: 'Surabaya, Indonesia', country: 'ID', ratingKey: 'ID' },
+      { name: 'Pondok Gede Haji', address: 'Jakarta, Indonesia', country: 'ID', ratingKey: 'ID' },
+    ];
+
+    for (const hotel of hotelsData) {
+      await prisma.hotels.create({
+        data: {
+          name: hotel.name,
+          address: hotel.address,
+          country: hotel.country,
+          hotel_emission_id: emissionFactorMap[hotel.ratingKey],
+        },
       });
-      console.log(`✅ Created hotel: ${created.name}`);
     }
-    console.log(`✅ Total ${HOTELS.length} hotels seeded!`);
-  } catch (error) {
-    console.error('❌ Error seeding hotels:', error);
+
+    console.log(`✅ Seeded ${hotelsData.length} hotels`);
+
+    console.log('\n🎯 Final data:');
+    const allHotels = await prisma.hotels.findMany({
+      include: {
+        hotel_emission: true,
+      },
+    });
+
+    const hotelsByCountry: Record<string, any[]> = {};
+    allHotels.forEach((h) => {
+      if (!hotelsByCountry[h.country]) {
+        hotelsByCountry[h.country] = [];
+      }
+      hotelsByCountry[h.country].push(h);
+    });
+
+    Object.entries(hotelsByCountry).forEach(([country, hotels]) => {
+      console.log(`\n  ${country}:`);
+      hotels.forEach((h) => {
+        console.log(`    - ${h.name} (Emission Factor: ${h.hotel_emission?.emission_factor} kg CO2e)`);
+      });
+    });
+
+    console.log('\n✨ Hotel emission factors:');
+    const allEmissions = await prisma.hotel_emission.findMany();
+    const emissionsByCountry: Record<string, (number | any)[]> = {};
+    allEmissions.forEach((e: any) => {
+      if (!emissionsByCountry[e.country]) {
+        emissionsByCountry[e.country] = [];
+      }
+      emissionsByCountry[e.country].push(e.emission_factor);
+    });
+
+    Object.entries(emissionsByCountry).forEach(([country, factors]) => {
+      console.log(`  ${country}: ${Array.from(new Set(factors.map(f => f.toString()))).join(', ')} kg CO2e`);
+    });
+
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+main().catch(e => {
+  console.error('❌ Error:', e.message);
+  process.exit(1);
+});

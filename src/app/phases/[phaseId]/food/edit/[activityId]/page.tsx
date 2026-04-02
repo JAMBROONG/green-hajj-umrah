@@ -87,6 +87,8 @@ type EditFoodFormProps = {
 
 function EditFoodForm({ phaseId, activityId, phaseName, activity, activities }: EditFoodFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tripId = searchParams.get('tripId');
   const { showWarning } = useDialog();
   const { updateCategory } = useHajiJourney();
   const [foodOptions, setFoodOptions] = useState<FoodSelectOption[]>([]);

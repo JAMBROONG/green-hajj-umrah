@@ -124,28 +124,28 @@ export const CATEGORY_DEFINITIONS = {
 export const CARBON_PRODUCTS = {
   'IDTBS': { 
     name: 'Technology Based Solution', 
-    price: 58800, 
+    price: 1, 
     project: 'Restorasi Gambut',
     image: '/IDTBS.jpg',
     colorClass: 'text-primary bg-primaryLight'
   },
   'IDTBS-RE': { 
     name: 'TBS Renewable Energy', 
-    price: 73200, 
+    price: 1, 
     project: 'PLTS & PLTB',
     image: '/IDTBS-RE.jpg',
     colorClass: 'text-blue-600 bg-blue-50'
   },
   'IDTBSA': { 
     name: 'TBS Authorized', 
-    price: 95000, 
+    price: 1, 
     project: 'Konservasi Hutan',
     image: '/IDTBSA.jpg',
     colorClass: 'text-green-600 bg-green-50'
   },
   'IDTBSA-RE': { 
     name: 'TBSA Renewable Energy', 
-    price: 144000, 
+    price: 1, 
     project: 'Energi Hijau Premium',
     image: '/IDTBSA-RE.jpg',
     colorClass: 'text-purple-600 bg-purple-50'
@@ -205,16 +205,16 @@ export const TARGET_EMISSION = 4000;
 export const AVG_EMISSION = 3500;
 
 // Emission Factors
-export const TRANSPORT_FACTORS = {
-  bus: 0.089,
-  'bus-listrik': 0.040,
-  mobil: 0.171,
-  'mobil-listrik': 0.053,
-  kapal: 0.115,
-  kereta: 0.041,
-  'pesawat-ekonomi': 0.255,  // kg CO2e per km per passenger
-  'pesawat-bisnis': 0.434    // kg CO2e per km per passenger
-} as const;
+// export const TRANSPORT_FACTORS = {
+//   bus: 0.10385,
+//   'bus-listrik': 0.03,
+//   mobil: 0.16725,
+//   'mobil-listrik': 0.05,
+//   kapal: 0.1127,
+//   kereta: 0.03546,
+//   'pesawat-ekonomi': 0.10916,
+//   'pesawat-bisnis': 0.43663
+// } as const;
 
 export const HOTEL_FACTORS = {
   3: 15,

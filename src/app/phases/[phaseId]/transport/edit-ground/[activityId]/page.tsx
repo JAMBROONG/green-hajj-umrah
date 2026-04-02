@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
+import { useEmissionFactors } from '@/hooks/useEmissionFactors';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
+import { formatTruncated } from '@/lib/utils';
 
 // Fixed locations for perjalanan-antar-kota
 const FIXED_LOCATIONS = {
@@ -55,6 +57,7 @@ function EditGroundTransportForm({
 }: EditGroundTransportFormProps) {
   const router = useRouter();
   const { showWarning } = useDialog();
+  const { factors: emissionFactors } = useEmissionFactors();
 
   const [formData, setFormData] = useState({
     type: activity.type || 'mobil',
@@ -229,7 +232,7 @@ function EditGroundTransportForm({
 
     const distance = calculatedDistance;
     const passengers = 1;
-    const factor = TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0;
+    const factor = (emissionFactors && emissionFactors[formData.type]) || 0;
     const emission = distance * factor;
 
     const updatedActivity: TransportActivity = {
@@ -467,7 +470,7 @@ function EditGroundTransportForm({
                 {calculatedDistance.toFixed(1)} km
               </p>
               <p className="text-xs text-blue-600 mt-1">
-                Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO₂
+                Estimasi emisi: {formatTruncated(estimatedEmission)} kg CO₂
               </p>
             </div>
           )}

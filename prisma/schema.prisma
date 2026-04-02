@@ -19,6 +19,7 @@ model tenants {
   trips                       trips[]
   csr_activities              csr_activities[]
   payment_config              TenantPaymentConfig?
+  hotels                      hotels[]
   // carbon_payment_config is now global, not per-tenant
 }
 
@@ -130,17 +131,34 @@ model seaports {
 }
 
 model hotels {
-  id                   Int      @id @default(autoincrement())
-  name                 String
-  factor_emission      Decimal  @db.Decimal(10, 4)
-  factor_emission_name String
-  address              String
-  country_code         String
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  name              String
+  address           String
+  tenant_id         String?
+  hotel_emission_id Int?
+  country           String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 
-  @@index([country_code])
+  tenant          tenants?         @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  hotel_emission  hotel_emission?  @relation(fields: [hotel_emission_id], references: [id], onDelete: SetNull)
+
+  @@index([tenant_id])
+  @@index([hotel_emission_id])
+  @@index([country])
   @@index([name])
+}
+
+model hotel_emission {
+  id               Int      @id @default(autoincrement())
+  country          String
+  emission_factor  Decimal  @db.Decimal(10, 4)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  hotels hotels[]
+
+  @@index([country])
 }
 
 model jenis_kendaraan {

@@ -4,12 +4,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
+import { useEmissionFactors } from '@/hooks/useEmissionFactors';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { fetchAirports, toIndonesiaSelectOptions, getSaudiAirportOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
 import { v4 as uuidv4 } from 'uuid';
 import Select from 'react-select';
 import { FaPlane } from 'react-icons/fa';
+import { formatTruncated } from '@/lib/utils';
 import { IoArrowBack } from 'react-icons/io5';
 
 export default function AddAirplaneTransportPage() {
@@ -20,6 +22,7 @@ export default function AddAirplaneTransportPage() {
   const phaseId = params.phaseId as PhaseId;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { factors: emissionFactors } = useEmissionFactors();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
 
@@ -70,6 +73,12 @@ export default function AddAirplaneTransportPage() {
     return calculateFlightDistanceKm(selectedOriginAirport, selectedDestinationAirport);
   }, [selectedOriginAirport, selectedDestinationAirport]);
 
+  // Memoized emission calculation that updates when factors load
+  const estimatedEmission = useMemo(() => {
+    if (!calculatedDistance || !emissionFactors) return 0;
+    return calculatedDistance * ((emissionFactors[formData.type]) || 0);
+  }, [calculatedDistance, emissionFactors, formData.type]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -80,7 +89,7 @@ export default function AddAirplaneTransportPage() {
 
     const distance = calculatedDistance;
     const passengers = 1;
-    const factor = TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0;
+    const factor = (emissionFactors && emissionFactors[formData.type]) || 0;
     const emission = distance * factor;
 
     const newActivity: TransportActivity = {
@@ -275,7 +284,7 @@ export default function AddAirplaneTransportPage() {
                 {calculatedDistance.toFixed(1)} km
               </p>
               <p className="text-xs text-blue-600 mt-1">
-                Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO₂
+                Estimasi emisi: {formatTruncated(estimatedEmission)} kg CO₂
               </p>
             </div>
           )}

@@ -82,11 +82,7 @@ export default function CheckoutPage({
         const script = document.createElement('script');
         script.src = scriptSrc;
         script.async = true;
-        script.onload = () => {
-          if (window.snap && clientKey) {
-            window.snap.setClientKey(clientKey);
-          }
-        };
+        script.setAttribute('data-client-key', clientKey);
         document.head.appendChild(script);
 
         return () => {
@@ -190,8 +186,27 @@ export default function CheckoutPage({
       // Use Midtrans Snap to open payment window
       if (data.snapToken && window.snap) {
         window.snap.pay(data.snapToken, {
-          onSuccess: function(result: MidtransSnapResponse) {
+          onSuccess: async function(result: MidtransSnapResponse) {
             console.log('✅ Payment success:', result);
+            
+            // Verify payment status with backend
+            try {
+              const verifyResponse = await fetch('/api/carbon-products/purchase/verify', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ purchaseId: data.id }),
+              });
+
+              if (verifyResponse.ok) {
+                const verifyData = await verifyResponse.json();
+                console.log('✅ Payment verified:', verifyData.status);
+              }
+            } catch (err) {
+              console.warn('⚠️ Failed to verify payment:', err);
+            }
+
             // Payment successful, redirect to transaction detail
             router.push(`/profile?tab=certificates&purchased=${data.id}`);
           },

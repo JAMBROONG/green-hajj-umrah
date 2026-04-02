@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
+import { useEmissionFactors } from '@/hooks/useEmissionFactors';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { fetchAirports, toIndonesiaSelectOptions, getSaudiAirportOptions, findAirportByName, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
@@ -12,6 +13,7 @@ import { fetchSeaports, toSeaportSelectOptions, findSeaportByName, calculateSeap
 import Select from 'react-select';
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
+import { formatTruncated } from '@/lib/utils';
 
 export default function EditTransportPage() {
   const params = useParams();
@@ -22,6 +24,7 @@ export default function EditTransportPage() {
   const activityId = params.activityId as string;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { factors: emissionFactors } = useEmissionFactors();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const canUseSeaTransport = phaseId === 'pra-keberangkatan';
@@ -254,6 +257,12 @@ export default function EditTransportPage() {
 
   const calculatedDistance = isAirplane ? airplaneDistance : isSeaTransport ? seaDistance : groundDistance;
 
+  // Memoized emission calculation that updates when factors load
+  const estimatedEmission = useMemo(() => {
+    if (!calculatedDistance || !emissionFactors) return 0;
+    return calculatedDistance * ((emissionFactors[selectedTransportType]) || 0);
+  }, [calculatedDistance, emissionFactors, selectedTransportType]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -305,7 +314,7 @@ export default function EditTransportPage() {
     const distance = calculatedDistance;
     const passengers = 1; // For individual use
     
-    const factor = TRANSPORT_FACTORS[selectedTransportType as keyof typeof TRANSPORT_FACTORS] || 0;
+    const factor = (emissionFactors && emissionFactors[selectedTransportType]) || 0;
     const emission = distance * factor;
 
     const updatedActivity: TransportActivity = {
@@ -720,7 +729,7 @@ export default function EditTransportPage() {
                 </p>
                 {selectedTransportType && (
                   <p className="text-xs text-blue-600 mt-1">
-                    Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[selectedTransportType as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO2e
+                    Estimasi emisi: {formatTruncated(estimatedEmission)} kg CO2e
                   </p>
                 )}
               </>

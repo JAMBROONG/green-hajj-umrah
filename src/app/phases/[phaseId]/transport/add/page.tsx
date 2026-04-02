@@ -4,11 +4,13 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
-import { PHASE_DEFINITIONS, TRANSPORT_FACTORS } from '@/lib/constants';
+import { useEmissionFactors } from '@/hooks/useEmissionFactors';
+import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
 import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
 import { fetchAirports, toIndonesiaSelectOptions, getSaudiAirportOptions, calculateFlightDistanceKm, AirportSelectOption } from '@/lib/airportHelper';
 import { fetchSeaports, toSeaportSelectOptions, calculateSeaportDistanceKm, SeaportSelectOption } from '@/lib/seaportHelper';
+import { formatTruncated } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import Select from 'react-select';
 import { FaCar } from 'react-icons/fa';
@@ -22,6 +24,7 @@ export default function AddTransportPage() {
   const phaseId = params.phaseId as PhaseId;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { factors: emissionFactors } = useEmissionFactors();
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const canUseSeaTransport = phaseId === 'pra-keberangkatan';
@@ -168,6 +171,12 @@ export default function AddTransportPage() {
 
   const calculatedDistance = isAirplane ? airplaneDistance : isSeaTransport ? seaDistance : groundDistance;
 
+  // Memoized emission calculation that updates when factors load
+  const estimatedEmission = useMemo(() => {
+    if (!calculatedDistance || !emissionFactors) return 0;
+    return calculatedDistance * ((emissionFactors[formData.type]) || 0);
+  }, [calculatedDistance, emissionFactors, formData.type]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -219,7 +228,7 @@ export default function AddTransportPage() {
     const distance = calculatedDistance;
     const passengers = 1; // For individual use
     
-    const factor = TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0;
+    const factor = (emissionFactors && emissionFactors[formData.type]) || 0;
     const emission = distance * factor;
 
     const newActivity: TransportActivity = {
@@ -644,7 +653,7 @@ export default function AddTransportPage() {
               {calculatedDistance.toFixed(1)} km
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              Estimasi emisi: {(calculatedDistance * (TRANSPORT_FACTORS[formData.type as keyof typeof TRANSPORT_FACTORS] || 0)).toFixed(2)} kg CO₂
+              Estimasi emisi: {formatTruncated(estimatedEmission)} kg CO₂
             </p>
           </div>
         )}
