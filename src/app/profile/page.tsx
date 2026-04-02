@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
-import { FaSignOutAlt, FaUser, FaPhone, FaEnvelope, FaCalendar, FaEdit } from 'react-icons/fa'
+import { useDialog } from '@/contexts/DialogContext'
+import { FaSignOutAlt, FaUser, FaPhone, FaEnvelope, FaCalendar, FaEdit, FaLock } from 'react-icons/fa'
 
 interface UserStats {
   totalTrips: number
@@ -53,6 +54,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
+  const { showSuccess, showError } = useDialog()
   const [stats, setStats] = useState<UserStats | null>(null)
   const [trips, setTrips] = useState<Trip[]>([])
   const [donations, setDonations] = useState<CSRDonation[]>([])
@@ -76,6 +78,7 @@ export default function ProfilePage() {
   const [savingName, setSavingName] = useState(false)
   const [savingPhone, setSavingPhone] = useState(false)
   const [userPhone, setUserPhone] = useState('')
+  const [displayName, setDisplayName] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -84,6 +87,7 @@ export default function ProfilePage() {
     }
 
     if (status === 'authenticated') {
+      setDisplayName(session?.user?.name || '')
       fetchUserData()
     }
   }, [status])
@@ -132,11 +136,12 @@ export default function ProfilePage() {
     try {
       setLoading(true)
       
-      // Fetch profile to get phone number
+      // Fetch profile to get phone number and name
       const profileRes = await fetch('/api/auth/profile')
       if (profileRes.ok) {
         const profileData = await profileRes.json()
         setUserPhone(profileData.profile?.metadata?.phone || '')
+        setDisplayName(profileData.profile?.full_name || session?.user?.name || '')
       }
       
       // Fetch stats
@@ -172,7 +177,7 @@ export default function ProfilePage() {
 
   const handleDownloadCertificate = (fileUrl: string, fileName: string) => {
     if (!fileUrl) {
-      alert('Sertifikat belum tersedia')
+      showError('Sertifikat belum tersedia')
       return
     }
     
@@ -212,16 +217,16 @@ export default function ProfilePage() {
       if (data.snapUrl) {
         window.location.href = data.snapUrl
       } else {
-        alert('Terjadi kesalahan. Silakan coba lagi.')
+        showError('Terjadi kesalahan. Silakan coba lagi.')
       }
     } catch (error) {
       console.error('Error:', error)
-      alert(error instanceof Error ? error.message : 'Terjadi kesalahan')
+      showError(error instanceof Error ? error.message : 'Terjadi kesalahan')
     }
   }
 
   const handleOpenEditName = () => {
-    setEditName(session?.user?.name || '')
+    setEditName(displayName || '')
     setShowEditNameModal(true)
   }
 
@@ -232,7 +237,7 @@ export default function ProfilePage() {
 
   const handleSaveName = async () => {
     if (!editName.trim()) {
-      alert('Nama tidak boleh kosong')
+      showError('Nama tidak boleh kosong')
       return
     }
 
@@ -245,16 +250,17 @@ export default function ProfilePage() {
       })
 
       if (response.ok) {
-        alert('Nama berhasil diperbarui')
+        const data = await response.json()
+        // Update display name immediately from API response
+        setDisplayName(data.profile?.full_name || editName.trim())
+        showSuccess('Nama berhasil diperbarui')
         setShowEditNameModal(false)
-        // Refresh session
-        router.refresh()
       } else {
-        alert('Gagal menyimpan nama')
+        showError('Gagal menyimpan nama')
       }
     } catch (error) {
       console.error('Error saving name:', error)
-      alert('Terjadi kesalahan')
+      showError('Terjadi kesalahan')
     } finally {
       setSavingName(false)
     }
@@ -262,7 +268,7 @@ export default function ProfilePage() {
 
   const handleSavePhone = async () => {
     if (!editPhone.trim()) {
-      alert('Nomor telepon tidak boleh kosong')
+      showError('Nomor telepon tidak boleh kosong')
       return
     }
 
@@ -275,15 +281,16 @@ export default function ProfilePage() {
       })
 
       if (response.ok) {
-        alert('Nomor telepon berhasil diperbarui')
+        // Update phone number immediately
         setUserPhone(editPhone.trim())
+        showSuccess('Nomor telepon berhasil diperbarui')
         setShowEditPhoneModal(false)
       } else {
-        alert('Gagal menyimpan nomor telepon')
+        showError('Gagal menyimpan nomor telepon')
       }
     } catch (error) {
       console.error('Error saving phone:', error)
-      alert('Terjadi kesalahan')
+      showError('Terjadi kesalahan')
     } finally {
       setSavingPhone(false)
     }
@@ -321,7 +328,7 @@ export default function ProfilePage() {
                 <FaUser className="text-2xl" />
               </div>
               <div className="flex-1">
-                <h1 className="text-xl font-bold">{session.user?.name || 'User'}</h1>
+                <h1 className="text-xl font-bold">{displayName || session.user?.name || 'User'}</h1>
                 <p className="text-white/80 text-sm">{session.user?.email}</p>
               </div>
             </div>
@@ -596,7 +603,7 @@ export default function ProfilePage() {
                   <FaUser className="text-primary text-lg" />
                   <div className="flex-1">
                     <p className="text-xs text-textMuted">Nama Lengkap</p>
-                    <p className="font-semibold text-gray-900">{session.user?.name || '-'}</p>
+                    <p className="font-semibold text-gray-900">{displayName || '-'}</p>
                   </div>
                   <button 
                     onClick={handleOpenEditName}
@@ -631,7 +638,11 @@ export default function ProfilePage() {
 
               {/* Account Actions */}
               <div className="space-y-2">
-                <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-3 rounded-lg transition-colors">
+                <button 
+                  onClick={() => router.push('/settings/change-password')}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FaLock className="w-4 h-4" />
                   Ubah Password
                 </button>
                 <button 
@@ -674,6 +685,37 @@ export default function ProfilePage() {
                 className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
               >
                 {savingName ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Phone Modal */}
+      {showEditPhoneModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h2 className="text-xl font-bold text-gray-900">Edit Nomor Telepon</h2>
+            <input
+              type="tel"
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              placeholder="Masukkan nomor telepon"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditPhoneModal(false)}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-gray-900 hover:bg-gray-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSavePhone}
+                disabled={savingPhone}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+              >
+                {savingPhone ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { FaArrowLeft, FaUser, FaSignOutAlt, FaBuilding, FaInfo } from 'react-icons/fa';
+import { FaArrowLeft, FaUser, FaSignOutAlt, FaBuilding, FaInfo, FaLock } from 'react-icons/fa';
 import { IoSettings } from 'react-icons/io5';
 
 export default function SettingsPage() {
@@ -65,6 +65,16 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <FaUser className="text-gray-400" />
                   <span className="text-gray-700">Edit Profil</span>
+                </div>
+                <span className="text-gray-400">›</span>
+              </button>
+              <button
+                onClick={() => router.push('/settings/change-password')}
+                className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FaLock className="text-gray-400" />
+                  <span className="text-gray-700">Ubah Password</span>
                 </div>
                 <span className="text-gray-400">›</span>
               </button>
