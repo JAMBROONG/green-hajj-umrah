@@ -187,10 +187,16 @@ export default function CheckoutPage({
       if (data.snapToken && window.snap) {
         window.snap.pay(data.snapToken, {
           onSuccess: async function(result: MidtransSnapResponse) {
-            console.log('✅ Payment success:', result);
+            console.log('✅✅✅ PAYMENT SUCCESS ✅✅✅', result);
+            alert('✅ Pembayaran Sukses!');
+            
+            // DEBUG: Jangan redirect dulu, cuma console
+            console.log('📦 Purchase ID:', data.id);
+            console.log('📊 Result:', JSON.stringify(result, null, 2));
             
             // Verify payment status with backend
             try {
+              console.log('🔍 Calling verify endpoint...');
               const verifyResponse = await fetch('/api/carbon-products/purchase/verify', {
                 method: 'POST',
                 headers: {
@@ -199,15 +205,24 @@ export default function CheckoutPage({
                 body: JSON.stringify({ purchaseId: data.id }),
               });
 
+              console.log('📡 Verify response status:', verifyResponse.status);
+              
               if (verifyResponse.ok) {
                 const verifyData = await verifyResponse.json();
-                console.log('✅ Payment verified:', verifyData.status);
+                console.log('✅ Payment verified:', JSON.stringify(verifyData, null, 2));
+                alert(`Status: ${verifyData.status}`);
+              } else {
+                const errorData = await verifyResponse.json();
+                console.log('❌ Verify failed:', errorData);
+                alert(`Verify error: ${errorData.error}`);
               }
             } catch (err) {
               console.warn('⚠️ Failed to verify payment:', err);
+              alert(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
             }
 
-            // Payment successful, redirect to transaction detail
+            // DEBUG: Redirect to profile
+            console.log('🚀 Redirecting to profile...');
             router.push(`/profile?tab=certificates&purchased=${data.id}`);
           },
           onPending: function(result: MidtransSnapResponse) {

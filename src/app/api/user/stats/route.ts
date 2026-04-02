@@ -39,14 +39,10 @@ export async function GET(request: NextRequest) {
     // Calculate total CO2
     const trips = await prisma.trips.findMany({
       where: { user_id: user.id },
-      include: {
-        emissions: true,
-      },
     })
 
     const totalCO2Emitted = trips.reduce((sum, trip) => {
-      const tripEmissions = trip.emissions?.reduce((t, e) => t + parseFloat(e.co2_emitted || '0'), 0) || 0
-      return sum + tripEmissions
+      return sum + parseFloat(trip.total_emission.toString() || '0')
     }, 0)
 
     const certs = await prisma.carbon_certificate_purchases.findMany({

@@ -93,21 +93,26 @@ export default function ProfilePage() {
   }, [status])
 
   // Verify payment status when purchased ID is in URL
+  // With polling retry if still pending
   useEffect(() => {
     if (purchasedId) {
-      verifyPurchaseStatus()
+      verifyPurchaseStatus(0, purchasedId)
     }
   }, [purchasedId])
 
-  const verifyPurchaseStatus = async () => {
+  const verifyPurchaseStatus = async (retryCount: number = 0, purchaseIdOverride?: string) => {
+    const maxRetries = 5
+    const retryDelay = 2000 // 2 seconds between retries
+    const verifyingPurchaseId = purchaseIdOverride || purchasedId
+
     try {
-      console.log('🔍 Verifying purchase status:', purchasedId)
+      console.log(`🔍 Verifying purchase status (attempt ${retryCount + 1}/${maxRetries}):`, verifyingPurchaseId)
       const verifyRes = await fetch('/api/carbon-products/purchase/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ purchaseId: purchasedId }),
+        body: JSON.stringify({ purchaseId: verifyingPurchaseId }),
       })
 
       console.log('📊 Verify response status:', verifyRes.status)
@@ -122,13 +127,37 @@ export default function ProfilePage() {
           const updatedCerts = await certsRes.json()
           console.log('📋 Updated certificates:', updatedCerts)
           setCertificates(updatedCerts)
+          
+          // Check if status is still pending
+          const purchasedCert = updatedCerts.find((c: Certificate) => c.id === verifyingPurchaseId)
+          if (purchasedCert && purchasedCert.status === 'pending' && retryCount < maxRetries) {
+            console.log(`⏳ Status still pending, retrying in ${retryDelay}ms...`)
+            setTimeout(() => verifyPurchaseStatus(retryCount + 1, purchaseIdOverride), retryDelay)
+          } else if (purchasedCert) {
+            console.log(`✅ Final status: ${purchasedCert.status}`)
+            if (purchasedCert.status === 'confirmed' || purchasedCert.status === 'completed') {
+              showSuccess('✅ Pembayaran berhasil! Sertifikat disimpan.')
+            }
+          }
         }
       } else {
         const errorData = await verifyRes.json()
         console.error('❌ Verify error:', verifyRes.status, errorData)
+        
+        // Retry if not a fatal error
+        if (retryCount < maxRetries && (verifyRes.status === 500 || verifyRes.status === 503)) {
+          console.log(`⏳ Server error, retrying in ${retryDelay}ms...`)
+          setTimeout(() => verifyPurchaseStatus(retryCount + 1, purchaseIdOverride), retryDelay)
+        }
       }
     } catch (error) {
       console.error('❌ Error verifying purchase:', error)
+      
+      // Retry on network error
+      if (retryCount < maxRetries) {
+        console.log(`⏳ Network error, retrying in ${retryDelay}ms...`)
+        setTimeout(() => verifyPurchaseStatus(retryCount + 1, purchaseIdOverride), retryDelay)
+      }
     }
   }
 

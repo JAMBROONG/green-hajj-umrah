@@ -32,11 +32,17 @@ export async function POST(request: NextRequest) {
       include: { user: true },
     })
 
+    // Get order_id from metadata first
+    const metadata = purchase?.metadata as Record<string, unknown> | undefined
+
     console.log('📦 Purchase Record:', {
       found: !!purchase,
+      id: purchase?.id,
       status: purchase?.status,
       userId: purchase?.user_id,
-      metadata: purchase?.metadata,
+      orderId: metadata?.order_id,
+      snapUrl: metadata?.snap_url ? 'exists' : 'missing',
+      metadataKeys: Object.keys(metadata || {}),
     })
 
     if (!purchase) {
@@ -67,9 +73,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get order_id from metadata
-    const metadata = purchase.metadata as Record<string, unknown>
     const orderId = metadata?.order_id as string
+
+    console.log('🔍 Extracted order ID from metadata:', orderId)
 
     if (!orderId) {
       return NextResponse.json(
@@ -80,10 +86,10 @@ export async function POST(request: NextRequest) {
 
     // Call Midtrans status API
     const apiUrl = carbonConfig.is_production
-      ? `https://app.midtrans.com/snap/v1/transactions/${orderId}/status`
-      : `https://app.sandbox.midtrans.com/snap/v1/transactions/${orderId}/status`
+      ? `https://api.midtrans.com/v2/${orderId}/status`
+      : `https://api.sandbox.midtrans.com/v2/${orderId}/status`
 
-    const auth = Buffer.from(`${carbonConfig.midtrans_server_key}:`).toString('base64')
+    const authHeader = Buffer.from(`${carbonConfig.midtrans_server_key}:`).toString('base64')
 
     console.log('🔍 Checking payment status for order:', orderId)
     console.log('📡 API URL:', apiUrl)
@@ -91,21 +97,43 @@ export async function POST(request: NextRequest) {
     const statusResponse = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${auth}`,
+        'Authorization': `Basic ${authHeader}`,
         'Accept': 'application/json',
       },
     })
 
-    if (!statusResponse.ok) {
-      console.error('❌ Midtrans API error:', statusResponse.status, statusResponse.statusText)
-    }
-
     const statusData = await statusResponse.json()
 
-    console.log('✅ Midtrans status response:', {
+    if (!statusResponse.ok) {
+      console.error('❌ Midtrans API error:', statusResponse.status, statusResponse.statusText)
+      console.error('❌ Response body:', JSON.stringify(statusData, null, 2))
+      
+      // If order not found at Midtrans, that's a problem
+      if (statusResponse.status === 404) {
+        console.error('❌ Order ID not found at Midtrans! Order:', orderId)
+        console.error('❌ This means the order was never created at Midtrans, or the order_id format is wrong')
+        return NextResponse.json(
+          { error: 'Order not found at payment gateway' },
+          { status: 404 }
+        )
+      }
+      
+      // For other errors, still try to parse response
+      if (statusData.error_messages) {
+        console.error('❌ Midtrans error messages:', statusData.error_messages)
+      }
+    }
+
+    console.log('✅ Midtrans status response (FULL):', JSON.stringify(statusData, null, 2))
+    console.log('✅ Midtrans status response (PARSED):', {
       order_id: statusData.order_id,
+      transaction_id: statusData.transaction_id,
       transaction_status: statusData.transaction_status,
+      transaction_time: statusData.transaction_time,
       status_code: statusData.status_code,
+      payment_type: statusData.payment_type,
+      fraud_status: statusData.fraud_status,
+      gross_amount: statusData.gross_amount,
       error: statusData.error_messages,
     })
 
@@ -116,11 +144,14 @@ export async function POST(request: NextRequest) {
       newStatus = 'completed'
     } else if (statusData.transaction_status === 'deny' || statusData.transaction_status === 'cancel' || statusData.transaction_status === 'expire') {
       newStatus = 'failed'
+    } else {
+      console.log('⏳ Payment still pending at Midtrans:', statusData.transaction_status)
     }
 
     console.log('📋 Status determination:', {
-      transactionStatus: statusData.transaction_status,
+      midtransStatus: statusData.transaction_status,
       newStatus,
+      fraudStatus: statusData.fraud_status,
     })
 
     // Update purchase if status changed
@@ -149,7 +180,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       status: 'pending',
-      message: 'Payment still pending',
+      message: 'Payment still pending at Midtrans',
+      midtransStatus: statusData.transaction_status,
+      orderDetails: {
+        orderId: orderId,
+        transactionId: statusData.transaction_id,
+        fraudStatus: statusData.fraud_status,
+      },
+      diagnostic: {
+        note: 'User belum menyelesaikan pembayaran di Midtrans Snap, atau menunggu confirmasi dari bank',
+        transactionTime: statusData.transaction_time,
+      },
     })
   } catch (error) {
     console.error('❌ Error verifying payment:', error)

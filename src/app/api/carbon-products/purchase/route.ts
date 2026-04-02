@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
       ],
       custom_field1: `product:${product_code}`,
       custom_field2: `user:${userProfile.id}`,
+      finish_redirect_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/profile?tab=certificates`,
     }
 
     const transaction = await createMidtransTransaction(transactionPayload, carbonConfig.midtrans_server_key, carbonConfig.is_production)
