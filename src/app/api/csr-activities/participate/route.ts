@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Activity found:', activity.title)
 
-    // Check if user already has a CONFIRMED participation (only block confirmed, not pending)
-    const confirmedParticipation = await prisma.csr_activity_participations.findFirst({
+    // Check if user already has a CONFIRMED donation (only block confirmed, not pending)
+    const confirmedDonation = await prisma.csr_activity_participations.findFirst({
       where: {
         user_id: userProfile.id,
         csr_activity_id,
@@ -122,14 +122,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (confirmedParticipation) {
-      console.log('❌ Already participated (confirmed):', { user_id: userProfile.id, csr_activity_id })
+    if (confirmedDonation) {
+      console.log('❌ Already donated (confirmed):', { user_id: userProfile.id, csr_activity_id })
       return NextResponse.json(
-        { error: 'Already participated in this activity' },
+        { error: 'Anda sudah melakukan donasi untuk kegiatan ini' },
         { status: 400 }
       )
     }
-    console.log('✅ No confirmed participation record (can retry if pending)')
+    console.log('✅ No confirmed donation record (can retry if pending)')
 
     // For donations: clean up any pending records to allow retry
     if (type === 'donate') {
@@ -140,25 +140,15 @@ export async function POST(request: NextRequest) {
           status: 'pending',
         },
       })
-      console.log('✅ Cleaned up pending participation records for retry')
+      console.log('✅ Cleaned up pending donation records for retry')
     }
 
-    // For volunteer, create immediately
+    // Volunteer registration is no longer supported - only donations
     if (type === 'volunteer') {
-      const participation = await prisma.csr_activity_participations.create({
-        data: {
-          user_id: userProfile.id,
-          csr_activity_id,
-          type: 'participation',
-          status: 'confirmed',
-        },
-      })
-
-      return NextResponse.json({
-        id: participation.id,
-        message: 'Registered as volunteer successfully',
-        requiresPayment: false,
-      })
+      return NextResponse.json(
+        { error: 'Volunteer registration is no longer available. Please make a donation instead.' },
+        { status: 400 }
+      )
     }
 
     // For donation, create Midtrans transaction
@@ -204,12 +194,12 @@ export async function POST(request: NextRequest) {
 
       const transaction = await createMidtransTransaction(transactionPayload, paymentConfig)
 
-      // Create participation record with pending status
+      // Create donation record with pending status
       const participation = await prisma.csr_activity_participations.create({
         data: {
           user_id: userProfile.id,
           csr_activity_id,
-          type: 'participate',
+          type: 'donate',
           amount: amount,
           status: 'pending',
           transaction_reference: transaction.token,
@@ -227,14 +217,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Invalid participation type' },
+      { error: 'Invalid donation type' },
       { status: 400 }
     )
   } catch (error) {
-    console.error('❌ Error creating participation:', error)
+    console.error('❌ Error processing donation:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: 'Failed to process participation', details: errorMessage },
+      { error: 'Failed to process donation', details: errorMessage },
       { status: 500 }
     )
   }

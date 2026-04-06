@@ -9,7 +9,7 @@ export async function middleware(req: NextRequest) {
   // Allow auth routes without login
   if (pathname.startsWith('/auth')) {
     // Redirect to home if already logged in
-    if (token && (pathname === '/auth/signin' || pathname === '/auth/signup')) {
+    if (token && pathname === '/auth/signin') {
       return NextResponse.redirect(new URL('/', req.url));
     }
     return NextResponse.next();

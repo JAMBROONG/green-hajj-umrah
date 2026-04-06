@@ -13,6 +13,17 @@ import { FaPlane } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
 import { formatTruncated } from '@/lib/utils';
 
+// Convert date to YYYY-MM-DD format for HTML date input
+const toDateInputValue = (date: string | Date | undefined): string => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function EditAirplaneTransportPage() {
   const params = useParams();
   const router = useRouter();
@@ -31,7 +42,7 @@ export default function EditAirplaneTransportPage() {
 
   const [formData, setFormData] = useState({
     type: activity?.type || 'pesawat-ekonomi',
-    date: activity?.date || ''
+    date: toDateInputValue(activity?.date)
   });
 
   const [selectedOriginAirport, setSelectedOriginAirport] = useState<AirportSelectOption | null | undefined>(undefined);
@@ -71,6 +82,16 @@ export default function EditAirplaneTransportPage() {
 
     loadAirportOptions();
   }, []);
+
+  // Update form data when activity data becomes available
+  useEffect(() => {
+    if (activity) {
+      setFormData({
+        type: activity.type || 'pesawat-ekonomi',
+        date: toDateInputValue(activity.date)
+      });
+    }
+  }, [activity]);
 
   const resolvedOriginAirport = useMemo(() => {
     if (selectedOriginAirport !== undefined) return selectedOriginAirport;

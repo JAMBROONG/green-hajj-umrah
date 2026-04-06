@@ -219,17 +219,16 @@ model csr_activities {
   category              String
   location              String
   status                String   @default("upcoming")
-  start_date            DateTime
-  end_date              DateTime
-  registration_deadline DateTime
-  participants_count    Int      @default(0)
-  effort_hours          Int
-  image_url             String?
-  requirements          Json     @default("{}")
-  contact_person        String
-  contact_phone         String
-  contact_email         String
-  incentives            Json     @default("{}")
+  start_date              DateTime
+  end_date                DateTime
+  activity_date           DateTime
+  total_donations_amount  Decimal  @default(0) @db.Decimal(14, 2)
+  target_donation_amount  Decimal  @db.Decimal(14, 2)
+  image_url               String?
+  contact_person          String
+  contact_phone           String
+  contact_email           String
+  incentives              Json     @default("{}")
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
@@ -245,7 +244,7 @@ model csr_activity_participations {
   id                           String   @id @default(uuid())
   user_id                      String
   csr_activity_id              String
-  type                         String   @default("participation")
+  type                         String   @default("donate")
   amount                       Decimal? @db.Decimal(12, 2)
   status                       String   @default("pending")
   payment_method               String?

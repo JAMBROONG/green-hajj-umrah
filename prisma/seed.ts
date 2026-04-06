@@ -200,17 +200,12 @@ async function main() {
       category: 'reforestation',
       location: 'Wonosari, Yogyakarta',
       status: 'active',
-      start_date: new Date('2026-04-15'),
-      end_date: new Date('2026-04-15'),
-      registration_deadline: new Date('2026-04-10'),
-      participants_count: 45,
-      effort_hours: 4,
+      start_date: new Date('2026-04-10'),
+      end_date: new Date('2026-04-20'),
+      activity_date: new Date('2026-04-15'),
+      total_donations_amount: 45000000,
+      target_donation_amount: 75000000,
       image_url: '/csr/reforestation-yogya.jpg',
-      requirements: {
-        age_min: 18,
-        physical_fitness: 'moderate',
-        equipment: 'work gloves provided'
-      },
       contact_person: 'Ahmad Riyanto',
       contact_phone: '+62 821-5555-6666',
       contact_email: 'ahmad@bpkh.go.id',
@@ -233,17 +228,12 @@ async function main() {
       category: 'waste_management',
       location: 'Pantai Ancol, Jakarta',
       status: 'active',
-      start_date: new Date('2026-04-20'),
-      end_date: new Date('2026-04-20'),
-      registration_deadline: new Date('2026-04-18'),
-      participants_count: 32,
-      effort_hours: 3,
+      start_date: new Date('2026-04-15'),
+      end_date: new Date('2026-04-25'),
+      activity_date: new Date('2026-04-20'),
+      total_donations_amount: 32000000,
+      target_donation_amount: 60000000,
       image_url: '/csr/beach-cleanup.jpg',
-      requirements: {
-        age_min: 16,
-        physical_fitness: 'light',
-        equipment: 'shoes and swimwear recommended'
-      },
       contact_person: 'Siti Nurhaliza',
       contact_phone: '+62 822-7777-8888',
       contact_email: 'siti@bpkh.go.id',
@@ -266,17 +256,12 @@ async function main() {
       category: 'energy_efficiency',
       location: 'Depok, Jawa Barat',
       status: 'upcoming',
-      start_date: new Date('2026-05-01'),
-      end_date: new Date('2026-05-02'),
-      registration_deadline: new Date('2026-04-25'),
-      participants_count: 0,
-      effort_hours: 8,
+      start_date: new Date('2026-04-25'),
+      end_date: new Date('2026-05-05'),
+      activity_date: new Date('2026-05-01'),
+      total_donations_amount: 0,
+      target_donation_amount: 80000000,
       image_url: '/csr/solar-workshop.jpg',
-      requirements: {
-        age_min: 20,
-        physical_fitness: 'moderate',
-        skills: 'basic electrical knowledge preferred'
-      },
       contact_person: 'Budi Santoso',
       contact_phone: '+62 823-9999-0000',
       contact_email: 'budi@alhidayah.com',
@@ -300,17 +285,12 @@ async function main() {
       category: 'water_conservation',
       location: 'Bandung, Jawa Barat',
       status: 'completed',
-      start_date: new Date('2026-03-10'),
-      end_date: new Date('2026-03-12'),
-      registration_deadline: new Date('2026-03-08'),
-      participants_count: 28,
-      effort_hours: 6,
+      start_date: new Date('2026-03-08'),
+      end_date: new Date('2026-03-15'),
+      activity_date: new Date('2026-03-10'),
+      total_donations_amount: 50000000,
+      target_donation_amount: 50000000,
       image_url: '/csr/water-conservation.jpg',
-      requirements: {
-        age_min: 18,
-        physical_fitness: 'light',
-        equipment: 'construction gloves and tools provided'
-      },
       contact_person: 'Rina Wijaya',
       contact_phone: '+62 824-1111-2222',
       contact_email: 'rina@alhidayah.com',
@@ -326,6 +306,192 @@ async function main() {
   console.log('✅ Created CSR Activity:', csrActivity2.title);
   console.log('✅ Created CSR Activity:', csrActivity3.title);
   console.log('✅ Created CSR Activity:', csrActivity4.title);
+
+  // Add more CSR Activities for BPKH
+  const csrActivity5 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-005' },
+    update: {},
+    create: {
+      id: 'csr-005',
+      tenant_id: bpkh.id,
+      title: 'Edukasi Literasi Lingkungan di Sekolah',
+      description: 'Program edukasi mencakup workshop, diskusi, dan kegiatan praktis tentang pelestarian lingkungan, pengurangan limbah, dan gaya hidup berkelanjutan untuk pelajar.',
+      category: 'reforestation',
+      location: 'Jakarta Pusat',
+      status: 'upcoming',
+      start_date: new Date('2026-05-10'),
+      end_date: new Date('2026-05-20'),
+      activity_date: new Date('2026-05-15'),
+      total_donations_amount: 0,
+      target_donation_amount: 35000000,
+      image_url: '/csr/education-green.jpg',
+      contact_person: 'Dr. Mahendra',
+      contact_phone: '+62 821-1234-5678',
+      contact_email: 'mahendra@bpkh.go.id',
+      incentives: {
+        certificate: true,
+        carbon_credits: 20,
+        educational_materials: true
+      }
+    }
+  });
+
+  const csrActivity6 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-006' },
+    update: {},
+    create: {
+      id: 'csr-006',
+      tenant_id: bpkh.id,
+      title: 'Audit Energi & Efisiensi Gedung',
+      description: 'Kegiatan audit energi di berbagai gedung publik untuk mengidentifikasi peluang penghematan energi dan implementasi solusi ramah lingkungan.',
+      category: 'energy_efficiency',
+      location: 'Jakarta',
+      status: 'completed',
+      start_date: new Date('2026-02-01'),
+      end_date: new Date('2026-02-20'),
+      activity_date: new Date('2026-02-10'),
+      total_donations_amount: 42000000,
+      target_donation_amount: 42000000,
+      image_url: '/csr/energy-audit.jpg',
+      contact_person: 'Ir. Budiman',
+      contact_phone: '+62 822-2345-6789',
+      contact_email: 'budiman@bpkh.go.id',
+      incentives: {
+        certificate: true,
+        carbon_credits: 60,
+        report_provided: true
+      }
+    }
+  });
+
+  // Add more CSR Activities for Al-Hidayah
+  const csrActivity7 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-007' },
+    update: {},
+    create: {
+      id: 'csr-007',
+      tenant_id: alHidayah.id,
+      title: 'Program Penanaman Mangrove Pantai',
+      description: 'Kegiatan penanaman mangrove di kawasan pantai untuk restorasi ekosistem laut, pencegahan abrasi, dan penyerapan karbon. Edukasi tentang pentingnya mangrove bagi lingkungan laut.',
+      category: 'reforestation',
+      location: 'Tangerang Selatan',
+      status: 'active',
+      start_date: new Date('2026-04-12'),
+      end_date: new Date('2026-04-25'),
+      activity_date: new Date('2026-04-18'),
+      total_donations_amount: 40000000,
+      target_donation_amount: 70000000,
+      image_url: '/csr/mangrove-planting.jpg',
+      contact_person: 'Hendri Kusuma',
+      contact_phone: '+62 824-3456-7890',
+      contact_email: 'hendri@alhidayah.com',
+      incentives: {
+        certificate: true,
+        carbon_credits: 75,
+        lunch_provided: true
+      }
+    }
+  });
+
+  const csrActivity8 = await prisma.csr_activities.upsert({
+    where: { id: 'csr-008' },
+    update: {},
+    create: {
+      id: 'csr-008',
+      tenant_id: alHidayah.id,
+      title: 'Pelatihan Pertanian Organik Berkelanjutan',
+      description: 'Program pelatihan teknik bertani organik, penggunaan pupuk alami, dan pengelolaan lahan berkelanjutan kepada petani lokal untuk meningkatkan produktivitas dan mengurangi dampak lingkungan.',
+      category: 'water_conservation',
+      location: 'Bogor',
+      status: 'upcoming',
+      start_date: new Date('2026-05-05'),
+      end_date: new Date('2026-05-10'),
+      activity_date: new Date('2026-05-07'),
+      total_donations_amount: 0,
+      target_donation_amount: 45000000,
+      image_url: '/csr/organic-farming.jpg',
+      contact_person: 'Bapak Tarno',
+      contact_phone: '+62 825-4567-8901',
+      contact_email: 'tarno@alhidayah.com',
+      incentives: {
+        certificate: true,
+        carbon_credits: 35,
+        training_seed_provided: true
+      }
+    }
+  });
+
+  console.log('✅ Created CSR Activity:', csrActivity5.title);
+  console.log('✅ Created CSR Activity:', csrActivity6.title);
+  console.log('✅ Created CSR Activity:', csrActivity7.title);
+  console.log('✅ Created CSR Activity:', csrActivity8.title);
+
+  // Create Carbon Products
+  await prisma.carbon_products.upsert({
+    where: { id: 'cp-001' },
+    update: {},
+    create: {
+      id: 'cp-001',
+      product_code: 'CP001',
+      name: 'Tree Planting Package - Small',
+      description: 'Plant 10 trees and offset 1 ton of CO2',
+      price: '100000.00',
+      project: 'Reforestation Initiative',
+      category: 'reforestation',
+      image_url: 'https://via.placeholder.com/300?text=Trees',
+      is_active: true,
+    },
+  });
+
+  await prisma.carbon_products.upsert({
+    where: { id: 'cp-002' },
+    update: {},
+    create: {
+      id: 'cp-002',
+      product_code: 'CP002',
+      name: 'Tree Planting Package - Medium',
+      description: 'Plant 25 trees and offset 2.5 tons of CO2',
+      price: '250000.00',
+      project: 'Reforestation Initiative',
+      category: 'reforestation',
+      image_url: 'https://via.placeholder.com/300?text=More+Trees',
+      is_active: true,
+    },
+  });
+
+  await prisma.carbon_products.upsert({
+    where: { id: 'cp-003' },
+    update: {},
+    create: {
+      id: 'cp-003',
+      product_code: 'CP003',
+      name: 'Solar Panel Installation',
+      description: 'Support solar panel installation offsetting 5 tons of CO2 annually',
+      price: '500000.00',
+      project: 'Renewable Energy Program',
+      category: 'renewable_energy',
+      image_url: 'https://via.placeholder.com/300?text=Solar',
+      is_active: true,
+    },
+  });
+
+  await prisma.carbon_products.upsert({
+    where: { id: 'cp-004' },
+    update: {},
+    create: {
+      id: 'cp-004',
+      product_code: 'CP004',
+      name: 'Waste Management Program',
+      description: 'Support waste reduction initiatives offsetting 2 tons of CO2',
+      price: '150000.00',
+      project: 'Circular Economy Project',
+      category: 'waste_reduction',
+      image_url: 'https://via.placeholder.com/300?text=Recycling',
+      is_active: true,
+    },
+  });
+
+  console.log('✅ Created Carbon Products');
 
   // Create Tenant Payment Configs for Midtrans
   const bpkhPaymentConfig = await prisma.tenantPaymentConfig.upsert({

@@ -17,9 +17,9 @@ interface CSRActivity {
   status: string
   start_date: string
   end_date: string
-  registration_deadline: string
-  participants_count: number
-  effort_hours: number
+  activity_date: string
+  total_donations_amount: number
+  target_donation_amount: number
   image_url: string | null
   contact_person: string
   contact_phone: string
@@ -55,18 +55,19 @@ export default function CSRActivitiesPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [paymentConfigured, setPaymentConfigured] = useState<boolean | null>(null)
 
-  // Check payment config on mount
+  // Check payment config on mount (for donation features)
   useEffect(() => {
     const checkPaymentConfig = async () => {
       try {
         const response = await fetch('/api/payment-config/check')
         if (!response.ok) {
-          throw new Error('Failed to check payment config')
+          setPaymentConfigured(false)
+          return
         }
         const data = await response.json()
         setPaymentConfigured(data.configured)
-      } catch (err) {
-        console.error('Failed to check payment config:', err)
+      } catch {
+        // Silently fail - payment config is optional
         setPaymentConfigured(false)
       }
     }
@@ -75,12 +76,6 @@ export default function CSRActivitiesPage() {
   }, [])
 
   useEffect(() => {
-    // Only fetch activities if payment is configured
-    if (!paymentConfigured) {
-      setLoading(false)
-      return
-    }
-
     const fetchActivities = async () => {
       try {
         setLoading(true)
@@ -94,6 +89,7 @@ export default function CSRActivitiesPage() {
           params.append('status', selectedStatus)
         }
 
+        // Backend auto-filters by user's tenant_id from session
         const response = await fetch(`/api/csr-activities?${params}`)
         if (!response.ok) {
           throw new Error('Failed to fetch activities')
@@ -110,7 +106,7 @@ export default function CSRActivitiesPage() {
     }
 
     fetchActivities()
-  }, [selectedCategory, selectedStatus, paymentConfigured])
+  }, [selectedCategory, selectedStatus])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -266,15 +262,15 @@ export default function CSRActivitiesPage() {
                     {/* Stats */}
                     <div className="flex gap-3 pt-3 border-t border-border">
                       <div className="flex-1">
-                        <p className="text-xs text-textMuted mb-1">Peserta</p>
+                        <p className="text-xs text-textMuted mb-1">Donasi Terkumpul</p>
                         <p className="text-sm font-semibold text-textDark">
-                          {activity.participants_count}
+                          Rp {Math.round(activity.total_donations_amount / 1000000).toLocaleString('id-ID')}jt
                         </p>
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs text-textMuted mb-1">Durasi</p>
+                        <p className="text-xs text-textMuted mb-1">Target</p>
                         <p className="text-sm font-semibold text-textDark">
-                          {activity.effort_hours}h
+                          Rp {Math.round(activity.target_donation_amount / 1000000).toLocaleString('id-ID')}jt
                         </p>
                       </div>
                     </div>

@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const session = await auth();
     
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -25,7 +25,7 @@ export async function GET() {
 
     // Get user profile to get tenant_id
     const profile = await prisma.profiles.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
       include: { tenant: true }
     });
 

@@ -17,14 +17,13 @@ interface CSRActivity {
   status: string
   start_date: string
   end_date: string
-  registration_deadline: string
-  participants_count: number
-  effort_hours: number
+  activity_date: string
+  total_donations_amount: number
+  target_donation_amount: number
   image_url: string | null
   contact_person: string
   contact_phone: string
   contact_email: string
-  requirements?: any
   incentives?: any
   created_at: string
   updated_at: string
@@ -112,12 +111,12 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
       })
 
       if (!response.ok) {
-        throw new Error('Failed to submit participation')
+        throw new Error('Failed to submit donation')
       }
 
       const data = await response.json()
       
-      console.log('Participation response:', data)
+      console.log('Donation response:', data)
 
       // Redirect to Midtrans payment page for donation payment
       if (data.snapUrl) {
@@ -250,22 +249,44 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">📅 Tanggal Mulai</span>
+              <span className="text-xs text-textMuted">📅 Tanggal Kegiatan</span>
               <span className="text-sm font-semibold text-textDark">
-                {formatDate(activity.start_date)}
+                {formatDate(activity.activity_date)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">⏰ Durasi</span>
+              <span className="text-xs text-textMuted">📋 Periode Pendaftaran</span>
               <span className="text-sm font-semibold text-textDark">
-                {activity.effort_hours} jam
+                {formatDate(activity.start_date)} s/d {formatDate(activity.end_date)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">👥 Peserta</span>
+              <span className="text-xs text-textMuted">� Target Dukungan</span>
               <span className="text-sm font-semibold text-textDark">
-                {activity.participants_count} orang
+                Rp {activity.target_donation_amount.toLocaleString('id-ID')}
               </span>
+            </div>
+          </div>
+
+          {/* Donation Progress */}
+          <div className="bg-white border border-border rounded-xl p-4 mb-6">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm font-semibold text-textDark">Progress Donasi</span>
+              <span className="text-xs text-primary font-bold">
+                {Math.round((activity.total_donations_amount / activity.target_donation_amount) * 100)}%
+              </span>
+            </div>
+            <div className="w-full bg-border rounded-full h-2 mb-2 overflow-hidden">
+              <div
+                className="bg-primary h-2 transition-all duration-300"
+                style={{
+                  width: `${Math.min((activity.total_donations_amount / activity.target_donation_amount) * 100, 100)}%`,
+                }}
+              ></div>
+            </div>
+            <div className="flex justify-between text-xs text-textMuted">
+              <span>Rp {activity.total_donations_amount.toLocaleString('id-ID')}</span>
+              <span>Rp {activity.target_donation_amount.toLocaleString('id-ID')}</span>
             </div>
           </div>
 
@@ -300,9 +321,12 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
 
-          {/* Participation Form */}
+          {/* Donation Section */}
           <div className="bg-white border border-border rounded-xl p-4 mb-8">
-            <h3 className="text-sm font-bold text-textDark mb-4">Ikuti Kegiatan</h3>
+            <h3 className="text-sm font-bold text-textDark mb-2">Dukung Kegiatan Ini</h3>
+            <p className="text-xs text-textMuted mb-4">
+              Berkontribusi dengan donasi Anda untuk membantu mewujudkan kegiatan ini dan dampak positif bagi lingkungan.
+            </p>
 
             <form onSubmit={handleDonate} className="space-y-4">
               {/* Donation Amount */}

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const csrCount = await prisma.csr_activity_participations.count({
       where: { 
         user_id: user.id,
-        type: 'participate',
+        type: 'donate',
       },
     })
 

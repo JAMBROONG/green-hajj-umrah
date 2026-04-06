@@ -492,7 +492,7 @@ export default function ProfilePage() {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{donation.activity_title}</h3>
-                        <p className="text-sm text-primary font-bold">{donation.amount > 0 ? `Rp ${donation.amount.toLocaleString('id-ID')}` : 'Volunteer'}</p>
+                        <p className="text-sm text-primary font-bold">{donation.amount > 0 ? `Rp ${donation.amount.toLocaleString('id-ID')}` : '(Donasi)'}</p>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ml-2 ${
                         donation.status === 'confirmed'
@@ -768,7 +768,7 @@ export default function ProfilePage() {
               
               <div>
                 <p className="text-xs text-textMuted mb-1">Jumlah Donasi</p>
-                <p className="text-lg font-bold text-primary">{selectedDonation.amount > 0 ? `Rp ${selectedDonation.amount.toLocaleString('id-ID')}` : 'Volunteer'}</p>
+                <p className="text-lg font-bold text-primary">{selectedDonation.amount > 0 ? `Rp ${selectedDonation.amount.toLocaleString('id-ID')}` : '(Donasi)'}</p>
               </div>
               
               <div>

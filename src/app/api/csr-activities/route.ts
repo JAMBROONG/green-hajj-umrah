@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 
 // API endpoint to fetch CSR activities with optional filtering
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth()
+    
+    // Get user's tenant_id from profile
+    let userTenantId: string | null = null
+    
+    if (session?.user?.email) {
+      const userProfile = await prisma.profiles.findUnique({
+        where: { email: session.user.email },
+      })
+      userTenantId = userProfile?.tenant_id || null
+    }
+
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     const category = searchParams.get('category')
-    const tenantId = searchParams.get('tenantId')
 
     const where: any = {}
 
@@ -19,8 +31,9 @@ export async function GET(request: NextRequest) {
       where.category = category
     }
 
-    if (tenantId) {
-      where.tenant_id = tenantId
+    // Filter by user's tenant_id
+    if (userTenantId) {
+      where.tenant_id = userTenantId
     }
 
     const activities = await prisma.csr_activities.findMany({
@@ -39,6 +52,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log('✅ CSR activities fetched successfully:', activities.length)
     return NextResponse.json(activities)
   } catch (error) {
     console.error('Error fetching CSR activities:', error)

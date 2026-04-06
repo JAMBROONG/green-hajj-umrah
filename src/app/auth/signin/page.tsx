@@ -131,15 +131,6 @@ export default function SignInPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Belum punya akun?{' '}
-            <Link href="/auth/signup" className="text-primary hover:text-primary-dark font-semibold">
-              Daftar
-            </Link>
-          </p>
-        </div>
-
         {/* Debug Panel */}
         <div className="mt-6 border-t pt-6">
           <button
