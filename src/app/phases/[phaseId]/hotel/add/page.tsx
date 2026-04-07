@@ -49,15 +49,24 @@ export default function AddHotelPage() {
     const fetchHotels = async () => {
       try {
         setLoading(true);
+        console.log('🏨 Fetching hotels from /api/hotels');
         const response = await fetch('/api/hotels');
+        console.log('📡 Hotels response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch hotels');
+          const errorData = await response.json();
+          console.error('❌ Hotels fetch error:', errorData);
+          throw new Error(errorData.error || 'Failed to fetch hotels');
         }
+        
         const result = await response.json();
+        console.log('✅ Hotels fetched:', result.data);
         setHotels(result.data || []);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch hotels');
+        const message = err instanceof Error ? err.message : 'Failed to fetch hotels';
+        console.error('🔴 Hotels error:', message);
+        setError(message);
         setHotels([]);
       } finally {
         setLoading(false);
@@ -70,7 +79,7 @@ export default function AddHotelPage() {
   // Convert hotels data to react-select options
   const hotelOptions = hotels.map(hotel => ({
     value: hotel.id.toString(),
-    label: `${hotel.name} (${hotel.factor_emission_name}) - ${hotel.address}`,
+    label: `${hotel.name} - ${hotel.address}`,
     hotel: hotel
   }));
 
@@ -187,6 +196,7 @@ export default function AddHotelPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

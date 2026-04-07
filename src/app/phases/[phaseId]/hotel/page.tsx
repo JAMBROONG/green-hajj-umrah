@@ -115,11 +115,6 @@ export default function HotelListPage() {
                     <h3 className="font-bold text-gray-900 mb-1">
                       {activity.hotelName}
                     </h3>
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(activity.stars)].map((_, i) => (
-                        <FaStar key={i} className="text-yellow-500 text-sm" />
-                      ))}
-                    </div>
                     {activity.checkIn && activity.checkOut && (
                       <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
                         <FaCalendarAlt className="text-gray-400" /> Check-in: {new Date(activity.checkIn).toLocaleDateString('id-ID', {

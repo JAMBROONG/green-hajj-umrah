@@ -56,6 +56,8 @@ function EditGroundTransportForm({
   updateCategory
 }: EditGroundTransportFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tripId = searchParams.get('tripId');
   const { showWarning } = useDialog();
   const { factors: emissionFactors } = useEmissionFactors();
 
@@ -93,6 +95,13 @@ function EditGroundTransportForm({
 
   const originRef = useRef<HTMLDivElement>(null);
   const destinationRef = useRef<HTMLDivElement>(null);
+
+  // Calculate estimated emission based on distance and vehicle type
+  const estimatedEmission = useMemo(() => {
+    if (!calculatedDistance || !emissionFactors) return 0;
+    const factor = emissionFactors[formData.type] || 0;
+    return calculatedDistance * factor;
+  }, [calculatedDistance, formData.type, emissionFactors]);
 
   // Search origin locations
   useEffect(() => {

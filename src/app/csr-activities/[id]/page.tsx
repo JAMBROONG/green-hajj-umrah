@@ -437,8 +437,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted">Rp</span>
                     <input
                       type="number"
-                      min="10000"
-                      step="10000"
+                      min="1"
                       value={donationAmount}
                       onChange={(e) => setDonationAmount(e.target.value)}
                       placeholder="100000"

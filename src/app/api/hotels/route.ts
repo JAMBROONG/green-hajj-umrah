@@ -7,16 +7,16 @@ export async function GET(request: NextRequest) {
     // Get current user session
     const session = await auth();
 
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized', data: [] },
         { status: 401 }
       );
     }
 
-    // Get user's profile to get tenant_id
+    // Get user's profile to get tenant_id using email
     const userProfile = await prisma.profiles.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
       select: { tenant_id: true },
     });
 
@@ -27,11 +27,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch hotels filtered by user's tenant_id
+    // Fetch hotels - if user has tenant, filter by tenant. Otherwise return all hotels
+    const where: any = {}
+    if (userProfile.tenant_id) {
+      where.tenant_id = userProfile.tenant_id
+    }
+
     const hotels = await prisma.hotels.findMany({
-      where: {
-        tenant_id: userProfile.tenant_id,
-      },
+      where: Object.keys(where).length > 0 ? where : undefined,
       include: {
         hotel_emission: true,
       },
@@ -41,19 +44,19 @@ export async function GET(request: NextRequest) {
       ],
     });
 
+    console.log(`🏨 Found ${hotels.length} hotels for tenant: ${userProfile.tenant_id || 'none (global)'}`);
+
     // Transform to response format with emission factor data
     const formattedHotels = hotels.map((hotel) => ({
       id: hotel.id,
       name: hotel.name,
       address: hotel.address,
       country_code: hotel.country,
-      country: hotel.country,
       factor_emission: hotel.hotel_emission?.emission_factor ? parseFloat(hotel.hotel_emission.emission_factor.toString()) : 0,
-      factor_emission_name: hotel.hotel_emission ? 'kg CO2e/malam' : 'Tidak ada data',
-      hotel_emission_id: hotel.hotel_emission_id,
+      factor_emission_name: hotel.hotel_emission ? getEmissionFactorName(parseFloat(hotel.hotel_emission.emission_factor.toString())) : 'Tidak ada data',
     }));
 
-    console.log(`✅ Fetched ${formattedHotels.length} hotels for tenant: ${userProfile.tenant_id}`);
+    console.log(`✅ Formatted ${formattedHotels.length} hotels for response`);
 
     return NextResponse.json(
       {
@@ -77,4 +80,11 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to get emission factor name based on factor value
+function getEmissionFactorName(factor: number): string {
+  if (factor >= 50) return 'Luxury'
+  if (factor >= 35) return 'Premium'
+  return 'Standard'
 }

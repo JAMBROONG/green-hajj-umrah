@@ -18,6 +18,16 @@ async function main() {
     await prisma.hotel_emission.deleteMany({});
     console.log('✅ Cleared!');
 
+    // Get tenant IDs
+    const bpkh = await prisma.tenants.findUnique({
+      where: { slug: 'bpkh' },
+    });
+    const alHidayah = await prisma.tenants.findUnique({
+      where: { slug: 'al-hidayah' },
+    });
+
+    console.log(`�, Found tenants: BPKH=${bpkh?.id}, Al-Hidayah=${alHidayah?.id}`);
+
     // Create hotel emission factors by country
     console.log('📝 Creating hotel emission factors by country...');
     const emissionFactorsData = [
@@ -104,11 +114,20 @@ async function main() {
     ];
 
     for (const hotel of hotelsData) {
+      // Assign hotels to tenants
+      let tenant_id = null;
+      if (hotel.country === 'SA') {
+        tenant_id = bpkh?.id; // Saudi Arabia hotels to BPKH
+      } else if (hotel.country === 'ID') {
+        tenant_id = alHidayah?.id; // Indonesia hotels to Al-Hidayah
+      }
+
       await prisma.hotels.create({
         data: {
           name: hotel.name,
           address: hotel.address,
           country: hotel.country,
+          tenant_id: tenant_id,
           hotel_emission_id: emissionFactorMap[hotel.ratingKey],
         },
       });
