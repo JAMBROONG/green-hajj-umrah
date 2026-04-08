@@ -8,6 +8,26 @@ import BottomNav from '@/components/BottomNav'
 import { useDialog } from '@/contexts/DialogContext'
 import { FaSignOutAlt, FaUser, FaPhone, FaEnvelope, FaCalendar, FaEdit, FaLock } from 'react-icons/fa'
 
+interface MidtransSnapResponse {
+  transaction_status: string
+  transaction_id: string
+  [key: string]: unknown
+}
+
+declare global {
+  interface Window {
+    snap: {
+      setClientKey: (key: string) => void
+      pay: (token: string, callbacks: {
+        onSuccess?: (result: MidtransSnapResponse) => void
+        onPending?: (result: MidtransSnapResponse) => void
+        onError?: (result: MidtransSnapResponse) => void
+        onClose?: () => void
+      }) => void
+    }
+  }
+}
+
 interface UserStats {
   totalTrips: number
   totalCSRDonations: number
@@ -89,6 +109,46 @@ export default function ProfilePage() {
     if (status === 'authenticated') {
       setDisplayName(session?.user?.name || '')
       fetchUserData()
+    }
+  }, [status])
+
+  // Load Midtrans Snap script for payment popup
+  useEffect(() => {
+    const loadMidtrans = async () => {
+      try {
+        const configResponse = await fetch('/api/payment-config/check')
+        if (!configResponse.ok) {
+          console.warn('Failed to fetch Midtrans config')
+          return
+        }
+
+        const config = await configResponse.json()
+        const clientKey = config.clientKey
+        const isProduction = config.isProduction || false
+
+        // Load Midtrans Snap script
+        const scriptSrc = isProduction
+          ? 'https://app.midtrans.com/snap/snap.js'
+          : 'https://app.sandbox.midtrans.com/snap/snap.js'
+
+        const script = document.createElement('script')
+        script.src = scriptSrc
+        script.async = true
+        script.setAttribute('data-client-key', clientKey)
+        document.head.appendChild(script)
+
+        return () => {
+          if (document.head.contains(script)) {
+            document.head.removeChild(script)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load Midtrans Snap:', error)
+      }
+    }
+
+    if (status === 'authenticated') {
+      loadMidtrans()
     }
   }, [status])
 
@@ -243,10 +303,66 @@ export default function ProfilePage() {
 
       const data = await response.json()
       
-      if (data.snapUrl) {
-        window.location.href = data.snapUrl
+      // Use Midtrans Snap popup (not redirect)
+      if (data.snapToken && window.snap) {
+        window.snap.pay(data.snapToken, {
+          onSuccess: async function (result: MidtransSnapResponse) {
+            console.log('✅ DONATION SUCCESS', result)
+            showSuccess('✅ Donasi Berhasil!')
+
+            // Verify payment status with backend
+            try {
+              console.log('🔍 Verifying donation...')
+              const verifyResponse = await fetch('/api/csr-activities/participate/verify', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ participationId: data.id }),
+              })
+
+              console.log('📡 Verify response status:', verifyResponse.status)
+
+              if (verifyResponse.ok) {
+                const verifyData = await verifyResponse.json()
+                console.log('✅ Donation verified:', JSON.stringify(verifyData, null, 2))
+              } else {
+                console.warn('⚠️ Verify failed')
+              }
+            } catch (err) {
+              console.warn('⚠️ Failed to verify donation:', err)
+            }
+
+            // Refresh donations list
+            try {
+              const donationsRes = await fetch('/api/user/csr-donations')
+              if (donationsRes.ok) {
+                const updatedDonations = await donationsRes.json()
+                setDonations(updatedDonations)
+                console.log('✅ Donations refreshed')
+              }
+            } catch (err) {
+              console.warn('⚠️ Failed to refresh donations:', err)
+            }
+
+            // Close modal and refresh stats
+            setSelectedDonation(null)
+            fetchUserData()
+          },
+          onPending: function (result: MidtransSnapResponse) {
+            console.log('⏳ Donation pending:', result)
+            // Keep waiting for payment
+          },
+          onError: function (result: MidtransSnapResponse) {
+            console.log('❌ Donation error:', result)
+            showError('Donasi gagal. Silakan coba lagi.')
+          },
+          onClose: function () {
+            console.log('❌ Donation cancelled by user')
+          },
+        })
       } else {
-        showError('Terjadi kesalahan. Silakan coba lagi.')
+        throw new Error('Midtrans Snap tidak tersedia. Refresh halaman dan coba lagi.')
       }
     } catch (error) {
       console.error('Error:', error)

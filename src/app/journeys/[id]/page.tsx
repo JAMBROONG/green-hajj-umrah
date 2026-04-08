@@ -212,7 +212,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
               <span className="text-sm text-textMuted">Total Emisi:</span>
             </div>
             <span className="font-bold text-primary text-base">
-              {totalEmission.toFixed(2)} kg CO₂
+              {(totalEmission / 1000).toFixed(2)} ton CO₂
             </span>
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                       <p className={`text-xs font-medium mt-1 ${
                         phaseEmission > 0 ? 'text-primary' : 'text-textMuted'
                       }`}>
-                        {phaseEmission.toFixed(2)} kg CO₂
+                        {(phaseEmission / 1000).toFixed(2)} ton CO₂
                       </p>
                     </div>
 

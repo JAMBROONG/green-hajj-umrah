@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     // For donation, create Midtrans transaction
     if (type === 'donate') {
       // Get payment config for this tenant
-      const paymentConfig = await prisma.TenantPaymentConfig.findUnique({
+      const paymentConfig = await prisma.tenantPaymentConfig.findUnique({
         where: { tenant_id: activity.tenant_id },
       })
 

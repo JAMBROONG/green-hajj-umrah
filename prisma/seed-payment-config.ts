@@ -12,7 +12,7 @@ async function seedPaymentConfig() {
   }
 
   // Check if config already exists
-  const existingConfig = await prisma.TenantPaymentConfig.findUnique({
+  const existingConfig = await prisma.tenantPaymentConfig.findUnique({
     where: { tenant_id: defaultTenant.id },
   })
 
@@ -22,7 +22,7 @@ async function seedPaymentConfig() {
   }
 
   // Create config from .env
-  const config = await prisma.TenantPaymentConfig.create({
+  const config = await prisma.tenantPaymentConfig.create({
     data: {
       tenant_id: defaultTenant.id,
       midtrans_server_key: process.env.MIDTRANS_SERVER_KEY!,

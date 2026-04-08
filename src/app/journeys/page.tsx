@@ -202,7 +202,7 @@ export default function JourneysPage() {
                         <span className="text-gray-600">Total Emisi:</span>
                       </div>
                       <span className="font-semibold text-emerald-600 text-xs">
-                        {parseFloat(trip.totalEmission.toString()).toFixed(2)} kg CO₂
+                        {(parseFloat(trip.totalEmission.toString()) / 1000).toFixed(2)} ton CO₂
                       </span>
                     </div>
                   </div>

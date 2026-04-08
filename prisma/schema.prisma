@@ -339,3 +339,10 @@ model carbon_products {
 
   @@index([is_active])
 }
+
+model service_setting {
+  id             String   @id @default(uuid())
+  idx_admin_fee  Decimal?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}

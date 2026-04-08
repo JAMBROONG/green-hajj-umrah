@@ -181,7 +181,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
                       <h4 className="text-sm font-semibold text-textDark mb-0.5">{catDef.name}</h4>
                       <p className="text-xs text-textMuted mb-1">{description}</p>
                       <p className="text-xs font-medium text-primary">
-                        {formatEmission((catData.totalEmission ?? catData.emission) || 0, 'ton')} Ton CO2e
+                        {formatEmission((catData.totalEmission ?? catData.emission) || 0, 'kg')} kg CO2e
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
