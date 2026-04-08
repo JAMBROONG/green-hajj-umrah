@@ -183,9 +183,11 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
             console.log('✅ DONATION SUCCESS', result)
             alert('✅ Donasi Berhasil!')
 
+            let verifySuccess = false
+
             // Verify payment status with backend
             try {
-              console.log('🔍 Verifying donation...')
+              console.log('🔍 Verifying donation...', { participationId: data.id })
               const verifyResponse = await fetch('/api/csr-activities/participate/verify', {
                 method: 'POST',
                 headers: {
@@ -199,15 +201,20 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
               if (verifyResponse.ok) {
                 const verifyData = await verifyResponse.json()
                 console.log('✅ Donation verified:', JSON.stringify(verifyData, null, 2))
+                verifySuccess = true
+                
+                // Wait a bit for DB to settle
+                await new Promise(resolve => setTimeout(resolve, 1000))
               } else {
-                console.warn('⚠️ Verify failed')
+                const errorData = await verifyResponse.json()
+                console.error('❌ Verify error:', { status: verifyResponse.status, error: errorData })
               }
             } catch (err) {
-              console.warn('⚠️ Failed to verify donation:', err)
+              console.error('❌ Error during verify:', err)
             }
 
-            // Redirect to profile
-            console.log('🚀 Redirecting to profile...')
+            // Redirect to profile with donation tab ONLY after verify
+            console.log('🚀 Redirecting to profile...', { verifySuccess })
             router.push(`/profile?tab=donations&donated=${data.id}`)
           },
           onPending: function (result: MidtransSnapResponse) {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
+import { generateThankYouCertificate } from '@/lib/certificate-generator'
+import * as fs from 'fs'
+import * as path from 'path'
 
 /**
  * Verify payment status and update purchase if successful
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Get purchase record
     const purchase = await prisma.carbon_certificate_purchases.findUnique({
       where: { id: purchaseId },
-      include: { user: true },
+      include: { user: true, product: true },
     })
 
     // Get order_id from metadata first
@@ -157,7 +160,7 @@ export async function POST(request: NextRequest) {
     // Update purchase if status changed
     if (newStatus !== 'pending') {
       console.log('🔄 Updating purchase status...')
-      const updatedPurchase = await prisma.carbon_certificate_purchases.update({
+      let updatedPurchase = await prisma.carbon_certificate_purchases.update({
         where: { id: purchaseId },
         data: {
           status: newStatus,
@@ -170,6 +173,69 @@ export async function POST(request: NextRequest) {
       })
 
       console.log(`✅ Purchase status updated to: ${newStatus}`)
+
+      // OPTIONAL: Generate thank you certificate if payment completed
+      if (newStatus === 'completed') {
+        console.log('📄 Generating thank you certificate...')
+        try {
+          const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
+          
+          // Create directory if not exists
+          if (!fs.existsSync(certificatesDir)) {
+            fs.mkdirSync(certificatesDir, { recursive: true })
+            console.log('📁 Created certificates directory')
+          }
+
+          const purchaseDate = new Date(purchase.created_at).toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+
+          const recipientName = purchase.user?.full_name || 'Carbon Supporter'
+          const productName = purchase.product?.name || 'Carbon Certificate'
+          const units = purchase.units || 0
+
+          let thankYouUrl: string | null = null
+
+          // Generate Thank You Certificate
+          try {
+            const thankYouBuffer = generateThankYouCertificate({
+              recipientName,
+              activityTitle: `${productName} (${units} tCO2e)`,
+              amount: parseFloat(purchase.total_price?.toString() || '0'),
+              donationDate: purchaseDate,
+            })
+            const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.pdf`
+            const thankYouPath = path.join(certificatesDir, thankYouFilename)
+            fs.writeFileSync(thankYouPath, thankYouBuffer)
+            thankYouUrl = `/certificates/${thankYouFilename}`
+            console.log('✅ Thank you certificate generated:', thankYouUrl)
+          } catch (e) {
+            console.error('❌ Failed to generate thank you certificate:', e)
+          }
+
+          // Update purchase with certificate URL
+          if (thankYouUrl) {
+            console.log('📝 Updating purchase with certificate URL...')
+            updatedPurchase = await prisma.carbon_certificate_purchases.update({
+              where: { id: purchaseId },
+              data: {
+                thank_you_certificate_url: thankYouUrl,
+                updated_at: new Date(),
+              },
+            })
+            console.log('✅ Purchase updated with certificate:', {
+              id: updatedPurchase.id,
+              thankYouUrl,
+            })
+          }
+        } catch (e) {
+          console.error('❌ Certificate generation error (non-blocking):', e)
+          // Don't block payment verification if certificate generation fails
+        }
+      }
 
       return NextResponse.json({
         status: newStatus,

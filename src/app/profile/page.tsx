@@ -312,7 +312,7 @@ export default function ProfilePage() {
 
             // Verify payment status with backend
             try {
-              console.log('🔍 Verifying donation...')
+              console.log('🔍 Verifying donation...', { participationId: data.id })
               const verifyResponse = await fetch('/api/csr-activities/participate/verify', {
                 method: 'POST',
                 headers: {
@@ -326,24 +326,70 @@ export default function ProfilePage() {
               if (verifyResponse.ok) {
                 const verifyData = await verifyResponse.json()
                 console.log('✅ Donation verified:', JSON.stringify(verifyData, null, 2))
+                showSuccess('✅ Status pembayaran diverifikasi!')
+                
+                // Wait a bit for DB to settle before refreshing
+                await new Promise(resolve => setTimeout(resolve, 500))
               } else {
-                console.warn('⚠️ Verify failed')
+                const errorData = await verifyResponse.json()
+                console.error('❌ Verify error:', { status: verifyResponse.status, error: errorData })
+                showError(`Verifikasi: ${errorData.error || errorData.details || 'Unknown error'}`)
               }
             } catch (err) {
-              console.warn('⚠️ Failed to verify donation:', err)
+              console.error('❌ Error during verify:', err)
+              showError(`Gagal verifikasi: ${err instanceof Error ? err.message : 'Error'}`)
             }
 
-            // Refresh donations list
-            try {
-              const donationsRes = await fetch('/api/user/csr-donations')
-              if (donationsRes.ok) {
-                const updatedDonations = await donationsRes.json()
-                setDonations(updatedDonations)
-                console.log('✅ Donations refreshed')
+            // Refresh donations list multiple times with exponential backoff to ensure DB is updated
+            let refreshAttempts = 0
+            const maxRefreshAttempts = 5
+            const refreshDonations = async () => {
+              try {
+                console.log(`📋 Refreshing donations (attempt ${refreshAttempts + 1}/${maxRefreshAttempts})...`)
+                const donationsRes = await fetch('/api/user/csr-donations')
+                if (donationsRes.ok) {
+                  const updatedDonations = await donationsRes.json()
+                  const targetDonation = updatedDonations.find((d: any) => d.id === data.id)
+                  
+                  console.log('✅ Donations refreshed:', {
+                    count: updatedDonations.length,
+                    targetDonation: {
+                      id: targetDonation?.id,
+                      status: targetDonation?.status,
+                      amount: targetDonation?.amount,
+                    },
+                  })
+                  
+                  setDonations(updatedDonations)
+                  
+                  // Verify the specific donation was updated to confirmed
+                  if (targetDonation?.status === 'confirmed') {
+                    console.log('✅ Donation status confirmed in DB!')
+                    showSuccess('✅ Donasi berhasil disimpan!')
+                  } else if (refreshAttempts < maxRefreshAttempts - 1) {
+                    refreshAttempts++
+                    const delayMs = 500 * (refreshAttempts + 1) // Exponential backoff: 1s, 1.5s, 2s, 2.5s, 3s
+                    console.log(`⏳ Status still ${targetDonation?.status || 'unknown'}, retrying in ${delayMs}ms...`)
+                    await new Promise(resolve => setTimeout(resolve, delayMs))
+                    await refreshDonations()
+                  } else {
+                    console.warn('⚠️ Max refresh attempts reached, status:', targetDonation?.status)
+                    showError('Donation tersimpan tapi UI belum terupdate. Refresh halaman untuk melihat perubahan.')
+                  }
+                } else {
+                  console.error('❌ Failed to fetch donations:', donationsRes.status)
+                }
+              } catch (err) {
+                console.warn('⚠️ Failed to refresh donations:', err)
+                if (refreshAttempts < maxRefreshAttempts - 1) {
+                  refreshAttempts++
+                  await new Promise(resolve => setTimeout(resolve, 500 * (refreshAttempts + 1)))
+                  await refreshDonations()
+                }
               }
-            } catch (err) {
-              console.warn('⚠️ Failed to refresh donations:', err)
             }
+            
+            await refreshDonations()
 
             // Close modal and refresh stats
             setSelectedDonation(null)
@@ -359,6 +405,162 @@ export default function ProfilePage() {
           },
           onClose: function () {
             console.log('❌ Donation cancelled by user')
+          },
+        })
+      } else {
+        throw new Error('Midtrans Snap tidak tersedia. Refresh halaman dan coba lagi.')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      showError(error instanceof Error ? error.message : 'Terjadi kesalahan')
+    }
+  }
+
+  const handleOpenCertificateModal = async (certificateId: string) => {
+    try {
+      // Refetch fresh certificate data from server
+      const response = await fetch('/api/user/carbon-certificates')
+      if (response.ok) {
+        const certificates = await response.json()
+        const freshCertificate = certificates.find((c: { id: string }) => c.id === certificateId)
+        if (freshCertificate) {
+          console.log('✅ Certificate data refreshed:', {
+            id: freshCertificate.id,
+            thankYouUrl: freshCertificate.thank_you_certificate_url ? 'exists' : 'missing',
+            emissionUrl: freshCertificate.emission_reduction_certificate_url ? 'exists' : 'missing',
+          })
+          setSelectedCertificate(freshCertificate)
+        } else {
+          // Fallback if not found
+          const localCert = certificates.find((c: { id: string }) => c.id === certificateId)
+          setSelectedCertificate(localCert)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching certificate:', err)
+    }
+  }
+
+  const handleContinuePaymentCertificate = async (purchaseId: string) => {
+    try {
+      const response = await fetch('/api/carbon-products/purchase/resume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          purchaseId,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Gagal melanjutkan pembayaran')
+      }
+
+      const data = await response.json()
+      
+      // Use Midtrans Snap popup (not redirect)
+      if (data.snapToken && window.snap) {
+        window.snap.pay(data.snapToken, {
+          onSuccess: async function (result: MidtransSnapResponse) {
+            console.log('✅ CARBON CERTIFICATE PURCHASE SUCCESS', result)
+            showSuccess('✅ Pembelian Sertifikat Karbon Berhasil!')
+
+            // Verify payment status with backend
+            try {
+              console.log('🔍 Verifying carbon purchase...', { purchaseId })
+              const verifyResponse = await fetch('/api/carbon-products/purchase/verify', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ purchaseId }),
+              })
+
+              console.log('📡 Verify response status:', verifyResponse.status)
+
+              if (verifyResponse.ok) {
+                const verifyData = await verifyResponse.json()
+                console.log('✅ Carbon purchase verified:', JSON.stringify(verifyData, null, 2))
+                showSuccess('✅ Status pembayaran diverifikasi!')
+                
+                // Wait a bit for DB to settle before refreshing
+                await new Promise(resolve => setTimeout(resolve, 500))
+              } else {
+                const errorData = await verifyResponse.json()
+                console.error('❌ Verify error:', { status: verifyResponse.status, error: errorData })
+                showError(`Verifikasi: ${errorData.error || errorData.details || 'Unknown error'}`)
+              }
+            } catch (err) {
+              console.error('❌ Error during verify:', err)
+              showError(`Gagal verifikasi: ${err instanceof Error ? err.message : 'Error'}`)
+            }
+
+            // Refresh certificates list with exponential backoff
+            let refreshAttempts = 0
+            const maxRefreshAttempts = 5
+            const refreshCertificates = async () => {
+              try {
+                console.log(`📋 Refreshing certificates (attempt ${refreshAttempts + 1}/${maxRefreshAttempts})...`)
+                const certificatesRes = await fetch('/api/user/carbon-certificates')
+                if (certificatesRes.ok) {
+                  const updatedCertificates = await certificatesRes.json()
+                  const targetCertificate = updatedCertificates.find((c: { id: string }) => c.id === purchaseId)
+                  
+                  console.log('✅ Certificates refreshed:', {
+                    count: updatedCertificates.length,
+                    targetCertificate: {
+                      id: targetCertificate?.id,
+                      status: targetCertificate?.status,
+                      amount: targetCertificate?.amount,
+                    },
+                  })
+                  
+                  if (targetCertificate?.status === 'confirmed' || targetCertificate?.status === 'completed') {
+                    console.log('✅ Certificate status confirmed in DB!')
+                    showSuccess('✅ Sertifikat karbon berhasil disimpan!')
+                  } else if (refreshAttempts < maxRefreshAttempts - 1) {
+                    refreshAttempts++
+                    const delayMs = 500 * (refreshAttempts + 1) // Exponential backoff: 1s, 1.5s, 2s, 2.5s, 3s
+                    console.log(`⏳ Status still ${targetCertificate?.status || 'unknown'}, retrying in ${delayMs}ms...`)
+                    await new Promise(resolve => setTimeout(resolve, delayMs))
+                    await refreshCertificates()
+                  } else {
+                    console.warn('⚠️ Max refresh attempts reached, status:', targetCertificate?.status)
+                    showError('Sertifikat tersimpan tapi UI belum terupdate. Refresh halaman untuk melihat perubahan.')
+                  }
+                } else {
+                  console.error('❌ Failed to fetch certificates:', certificatesRes.status)
+                }
+              } catch (err) {
+                console.warn('⚠️ Failed to refresh certificates:', err)
+                if (refreshAttempts < maxRefreshAttempts - 1) {
+                  refreshAttempts++
+                  await new Promise(resolve => setTimeout(resolve, 500 * (refreshAttempts + 1)))
+                  await refreshCertificates()
+                }
+              }
+            }
+            
+            await refreshCertificates()
+
+            // Close modal and refresh stats
+            setSelectedCertificate(null)
+            fetchUserData()
+          },
+          onPending: function (result: MidtransSnapResponse) {
+            console.log('⏳ CARBON CERTIFICATE PURCHASE PENDING', result)
+            showSuccess('⏳ Pembayaran sertifikat karbon sedang diproses...')
+          },
+          onError: function (result: MidtransSnapResponse) {
+            console.error('❌ CARBON CERTIFICATE PURCHASE ERROR', result)
+            showError('❌ Pembayaran sertifikat karbon gagal. Silakan coba lagi.')
+            setSelectedCertificate(null)
+          },
+          onClose: function () {
+            console.log('❌ CARBON CERTIFICATE PURCHASE POPUP CLOSED')
+            showError('Anda menutup popup pembayaran')
           },
         })
       } else {
@@ -632,7 +834,7 @@ export default function ProfilePage() {
                             }}
                             className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                           >
-                            Unduh Say Thank You
+                            Unduh Sertifikat Ucapan Terima Kasih
                           </button>
                         )}
                         {donation.participation_certificate_url && (
@@ -668,7 +870,7 @@ export default function ProfilePage() {
                   return (
                     <div 
                       key={cert.id} 
-                      onClick={() => setSelectedCertificate(cert)}
+                      onClick={() => handleOpenCertificateModal(cert.id)}
                       className={`bg-white rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary ${
                         isNewPurchase ? 'border-2 border-green-500 shadow-lg' : 'border border-border'
                       }`}
@@ -703,10 +905,10 @@ export default function ProfilePage() {
                               }}
                               className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                             >
-                              📥 Unduh Say Thank You
+                              📥 Unduh Sertifikat Ucapan Terima Kasih
                             </button>
                           ) : (
-                            <div className="text-xs text-textMuted">Sertifikat Say Thank You akan tersedia segera</div>
+                            <div className="text-xs text-textMuted">Sertifikat Ucapan Terima Kasih akan tersedia segera</div>
                           )}
                           {cert.emission_reduction_certificate_url ? (
                             <button
@@ -906,14 +1108,16 @@ export default function ProfilePage() {
             
             {selectedDonation.status === 'confirmed' && (
               <div className="space-y-2 pt-4 border-t border-border">
+                <p className="text-xs font-semibold text-textDark mb-3">📄 Unduh Sertifikat</p>
                 {selectedDonation.thank_you_certificate_url && (
                   <button
                     onClick={() => {
                       handleDownloadCertificate(selectedDonation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${selectedDonation.id}.pdf`)
                     }}
-                    className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                    className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition font-medium flex items-center justify-center gap-2"
                   >
-                    📥 Unduh Say Thank You
+                    <span>📥</span>
+                    <span>Unduh Sertifikat Ucapan Terima Kasih</span>
                   </button>
                 )}
                 {selectedDonation.participation_certificate_url && (
@@ -921,10 +1125,14 @@ export default function ProfilePage() {
                     onClick={() => {
                       handleDownloadCertificate(selectedDonation.participation_certificate_url!, `sertifikat-partisipasi-csr-${selectedDonation.id}.pdf`)
                     }}
-                    className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition"
+                    className="w-full text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition font-medium flex items-center justify-center gap-2"
                   >
-                    📥 Unduh Sertifikat Partisipasi
+                    <span>📥</span>
+                    <span>Unduh Sertifikat Partisipasi</span>
                   </button>
+                )}
+                {!selectedDonation.thank_you_certificate_url && !selectedDonation.participation_certificate_url && (
+                  <p className="text-xs text-textMuted italic">Sertifikat akan tersedia setelah verifikasi resmi</p>
                 )}
               </div>
             )}
@@ -938,7 +1146,7 @@ export default function ProfilePage() {
                   }}
                   className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition font-semibold"
                 >
-                  💳 Lanjut Pembayaran
+                  💳 Lanjutkan Pembayaran
                 </button>
               </div>
             )}
@@ -1005,10 +1213,10 @@ export default function ProfilePage() {
                     }}
                     className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
                   >
-                    📥 Unduh Say Thank You
+                    📥 Unduh Sertifikat Ucapan Terima Kasih
                   </button>
                 ) : (
-                  <div className="text-xs text-textMuted bg-gray-50 p-3 rounded text-center">Sertifikat Say Thank You akan tersedia segera</div>
+                  <div className="text-xs text-textMuted bg-gray-50 p-3 rounded text-center">Sertifikat Ucapan Terima Kasih akan tersedia segera</div>
                 )}
                 {selectedCertificate.emission_reduction_certificate_url ? (
                   <button
@@ -1024,8 +1232,19 @@ export default function ProfilePage() {
                 )}
               </div>
             ) : (
-              <div className="text-xs text-yellow-600 bg-yellow-50 p-3 rounded">
-                ⏳ Pembayaran Anda sedang diproses. Sertifikat akan tersedia setelah konfirmasi.
+              <div className="space-y-2 pt-4 border-t border-border">
+                <div className="text-xs text-yellow-600 bg-yellow-50 p-3 rounded text-center">
+                  ⏳ Pembayaran Anda sedang diproses. Sertifikat akan tersedia setelah konfirmasi.
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedCertificate(null)
+                    handleContinuePaymentCertificate(selectedCertificate.id)
+                  }}
+                  className="w-full text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition font-semibold"
+                >
+                  💳 Lanjutkan Pembayaran
+                </button>
               </div>
             )}
             

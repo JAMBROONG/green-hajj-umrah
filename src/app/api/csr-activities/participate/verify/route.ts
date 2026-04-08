@@ -1,25 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
+import { generateThankYouCertificate, generateParticipationCertificate } from '@/lib/certificate-generator'
+import * as fs from 'fs'
+import * as path from 'path'
 
 /**
  * Verify CSR donation payment status and update if successful
  * POST /api/csr-activities/participate/verify
  */
 export async function POST(request: NextRequest) {
+  let participationId = 'unknown'
   try {
+    console.log('🔍 [Verify] Request received')
+    
     const session = await auth()
+    console.log('🔐 [Verify] Session check:', !!session)
+    
     if (!session || !session.user) {
-      console.error('❌ Unauthorized - no session')
+      console.error('❌ [Verify] Unauthorized - no session')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('👤 [Verify] User email:', session.user.email)
+
     const body = await request.json()
-    const { participationId } = body
+    participationId = body.participationId || 'missing'
 
-    console.log('🔍 Verify CSR Donation Called:', { participationId, userEmail: session.user.email })
+    console.log('📝 [Verify] Called with:', { participationId, userEmail: session.user.email })
 
-    if (!participationId) {
+    if (!participationId || participationId === 'missing') {
+      console.error('❌ [Verify] Missing participationId')
       return NextResponse.json(
         { error: 'Participation ID required' },
         { status: 400 }
@@ -32,7 +43,7 @@ export async function POST(request: NextRequest) {
       include: { user: true },
     })
 
-    console.log('📦 Donation Record:', {
+    console.log('📦 [Verify] Donation Record:', {
       found: !!donation,
       id: donation?.id,
       status: donation?.status,
@@ -41,72 +52,161 @@ export async function POST(request: NextRequest) {
     })
 
     if (!donation) {
-      console.error('❌ Donation not found:', participationId)
+      console.error('❌ [Verify] Donation not found:', participationId)
       return NextResponse.json(
         { error: 'Donation not found' },
         { status: 404 }
       )
     }
 
-    // Only verify if still pending
-    if (donation.status !== 'pending') {
-      console.log('ℹ️ Donation already processed:', donation.status)
+    // If already confirmed, just return
+    if (donation.status === 'confirmed') {
+      console.log('ℹ️ [Verify] Donation already confirmed')
       return NextResponse.json({
-        status: donation.status,
-        message: 'Donation already processed',
+        status: 'confirmed',
+        message: 'Donation already confirmed',
+        amount: donation.amount,
+        activityId: donation.csr_activity_id,
       })
     }
 
-    // Get Tenant Payment Config
+    // Only process if pending
+    if (donation.status !== 'pending') {
+      console.log('ℹ️ [Verify] Donation status is:', donation.status)
+      return NextResponse.json({
+        status: donation.status,
+        message: 'Donation already processed',
+        amount: donation.amount,
+        activityId: donation.csr_activity_id,
+      })
+    }
+
+    // Get Activity
     const activity = await prisma.csr_activities.findUnique({
       where: { id: donation.csr_activity_id },
     })
 
     if (!activity) {
-      console.error('❌ CSR Activity not found')
+      console.error('❌ [Verify] CSR Activity not found:', donation.csr_activity_id)
       return NextResponse.json(
         { error: 'Activity not found' },
         { status: 404 }
       )
     }
 
-    const paymentConfig = await prisma.tenantPaymentConfig.findUnique({
-      where: { tenant_id: activity.tenant_id },
-    })
-
-    if (!paymentConfig) {
-      console.error('❌ Payment config not found for tenant:', activity.tenant_id)
-      return NextResponse.json(
-        { error: 'Payment configuration not found' },
-        { status: 500 }
-      )
-    }
-
     const transactionRef = donation.transaction_reference
 
-    console.log('🔍 Transaction Reference:', transactionRef)
+    console.log('🔍 [Verify] Transaction Reference:', transactionRef)
 
     if (!transactionRef) {
-      console.error('❌ No transaction reference found')
+      console.error('❌ [Verify] No transaction reference')
       return NextResponse.json(
         { error: 'Transaction reference not found' },
         { status: 400 }
       )
     }
 
-    // Check status with Midtrans using transaction_reference (snap token)
-    // In production, we'd call Midtrans API directly
-    // For now, we'll trust the payment if it reached here from successful callback
-    
-    console.log('✅ Marking donation as confirmed')
+    // STEP 1: Update status to confirmed FIRST (payment was successful)
+    console.log('✅ [Verify] Step 1: Updating donation status to confirmed')
 
-    // Update donation status to confirmed
-    const updatedDonation = await prisma.csr_activity_participations.update({
+    let updatedDonation = await prisma.csr_activity_participations.update({
       where: { id: participationId },
       data: {
         status: 'confirmed',
         payment_method: 'midtrans',
+        updated_at: new Date(),
       },
+    })
+
+    console.log('✅ [Verify] Donation status confirmed in DB:', {
+      id: updatedDonation.id,
+      status: updatedDonation.status,
+    })
+
+    // STEP 2: Try to generate and attach certificates (optional, won't block status update)
+    console.log('📄 [Verify] Step 2: Generating certificates...')
+    try {
+      const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
+      
+      // Create directory if not exists
+      if (!fs.existsSync(certificatesDir)) {
+        fs.mkdirSync(certificatesDir, { recursive: true })
+        console.log('📁 [Verify] Created certificates directory')
+      }
+
+      const donationDate = new Date(donation.created_at).toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+
+      const recipientName = donation.user?.full_name || 'Donor'
+      const activityTitle = activity.title || 'Kegiatan CSR'
+      const amount = parseFloat(donation.amount?.toString() || '0')
+
+      let thankYouUrl: string | null = null
+      let participationUrl: string | null = null
+
+      // Generate Thank You Certificate
+      try {
+        const thankYouBuffer = generateThankYouCertificate({
+          recipientName,
+          activityTitle,
+          amount,
+          donationDate,
+        })
+        const thankYouFilename = `thank-you-${participationId}-${Date.now()}.pdf`
+        const thankYouPath = path.join(certificatesDir, thankYouFilename)
+        fs.writeFileSync(thankYouPath, thankYouBuffer)
+        thankYouUrl = `/certificates/${thankYouFilename}`
+        console.log('✅ [Verify] Thank you certificate generated:', thankYouUrl)
+      } catch (e) {
+        console.error('❌ [Verify] Failed to generate thank you certificate:', e)
+      }
+
+      // Generate Participation Certificate
+      try {
+        const participationBuffer = generateParticipationCertificate({
+          recipientName,
+          activityTitle,
+          amount,
+          donationDate,
+        })
+        const participationFilename = `participation-${participationId}-${Date.now()}.pdf`
+        const participationPath = path.join(certificatesDir, participationFilename)
+        fs.writeFileSync(participationPath, participationBuffer)
+        participationUrl = `/certificates/${participationFilename}`
+        console.log('✅ [Verify] Participation certificate generated:', participationUrl)
+      } catch (e) {
+        console.error('❌ [Verify] Failed to generate participation certificate:', e)
+      }
+
+      // If at least one certificate generated, update donation with URLs
+      if (thankYouUrl || participationUrl) {
+        console.log('📝 [Verify] Updating donation with certificate URLs...')
+        updatedDonation = await prisma.csr_activity_participations.update({
+          where: { id: participationId },
+          data: {
+            ...(thankYouUrl && { thank_you_certificate_url: thankYouUrl }),
+            ...(participationUrl && { participation_certificate_url: participationUrl }),
+            updated_at: new Date(),
+          },
+        })
+        console.log('✅ [Verify] Donation updated with certificates:', {
+          id: updatedDonation.id,
+          thankYouUrl,
+          participationUrl,
+        })
+      }
+    } catch (certError) {
+      console.error('⚠️ [Verify] Certificate generation process failed:', certError)
+      // BUT status is already confirmed, so continue
+    }
+
+    // Get updated donation (with or without certificates)
+    const finalDonation = await prisma.csr_activity_participations.findUnique({
+      where: { id: participationId },
     })
 
     // Update activity total_donations_amount
@@ -119,23 +219,44 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log('✅ Donation verified and updated:', {
-      donationId: updatedDonation.id,
-      status: updatedDonation.status,
-      newActivityTotal: updatedActivity.total_donations_amount,
+    console.log('✅ [Verify] Activity updated:', {
+      id: updatedActivity.id,
+      newTotal: updatedActivity.total_donations_amount,
     })
 
     return NextResponse.json({
-      status: updatedDonation.status,
-      amount: updatedDonation.amount,
+      success: true,
+      status: finalDonation?.status,
+      amount: finalDonation?.amount,
       activityId: activity.id,
-      message: 'Donation verified successfully',
+      thankYouUrl: finalDonation?.thank_you_certificate_url,
+      participationUrl: finalDonation?.participation_certificate_url,
+      message: 'Donation confirmed successfully',
     })
   } catch (error) {
-    console.error('❌ Error verifying donation:', error)
+    console.error('❌ [Verify] Error:', {
+      participationId,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorCode: (error as any)?.code,
+    })
+    
+    if (error instanceof Error && error.message === 'aborted') {
+      console.log('ℹ️ [Verify] Request was aborted (likely client disconnected early)')
+      // Don't return error response for aborted requests
+      return NextResponse.json(
+        { error: 'Request aborted' },
+        { status: 499 }
+      )
+    }
+    
     const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: 'Failed to verify donation', details: errorMessage },
+      { 
+        success: false,
+        error: 'Failed to verify donation', 
+        details: errorMessage 
+      },
       { status: 500 }
     )
   }
