@@ -20,10 +20,13 @@ export function migratePhaseIds(journey: HajiJourney): HajiJourney {
 
   const migratedPhases: { [key in PhaseId]?: PhaseData } = {};
   
-  Object.entries(journey.phases).forEach(([key, value]) => {
-    const newKey = oldToNewMap[key] || key;
-    migratedPhases[newKey as PhaseId] = value;
-  });
+  // Guard clause: only process if phases exist
+  if (journey.phases) {
+    Object.entries(journey.phases).forEach(([key, value]) => {
+      const newKey = oldToNewMap[key] || key;
+      migratedPhases[newKey as PhaseId] = value;
+    });
+  }
 
   // Add any missing phases from PHASE_DEFINITIONS
   PHASE_DEFINITIONS.forEach(phase => {

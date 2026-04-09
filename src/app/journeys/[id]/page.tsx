@@ -248,19 +248,28 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                   href={`/phases/${phaseId}?tripId=${tripId}`}
                   className="block bg-white rounded-2xl p-4 border-2 border-border hover:shadow-lg transition-all"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                       isCompleted ? 'bg-primaryLight' : 'bg-bgMain'
                     }`}>
                       {getPhaseIcon(phaseId)}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className={`font-semibold text-sm ${
-                        isCompleted ? 'text-textDark' : 'text-textMuted'
-                      }`}>
-                        {phaseDef.name}
-                      </h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className={`font-semibold text-sm ${
+                          isCompleted ? 'text-textDark' : 'text-textMuted'
+                        }`}>
+                          {phaseDef.name}
+                        </h3>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
+                          isCompleted 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {isCompleted ? 'Selesai' : 'Belum'}
+                        </span>
+                      </div>
                       <p className="text-xs text-textMuted">{phaseDef.description}</p>
                       <p className={`text-xs font-medium mt-1 ${
                         phaseEmission > 0 ? 'text-primary' : 'text-textMuted'

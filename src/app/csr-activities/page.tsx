@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
+import { getImageUrl, getPlaceholderImage } from '@/lib/image-utils'
 import { FaArrowLeft } from 'react-icons/fa'
 
 interface CSRActivity {
@@ -206,7 +207,7 @@ export default function CSRActivitiesPage() {
                     <div
                       className="w-full h-32 bg-gray-200 bg-cover bg-center"
                       style={{
-                        backgroundImage: `url(${activity.image_url})`,
+                        backgroundImage: `url(${getImageUrl(activity.image_url)})`,
                       }}
                     ></div>
                   ) : (

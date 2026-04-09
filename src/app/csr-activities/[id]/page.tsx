@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
 import { FaArrowLeft } from 'react-icons/fa'
+import { getImageUrl } from '@/lib/image-utils'
 
 interface MidtransSnapResponse {
   transaction_status: string
@@ -307,7 +308,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
           <div
             className="w-full h-48 bg-gray-200 bg-cover bg-center"
             style={{
-              backgroundImage: `url(${activity.image_url})`,
+              backgroundImage: `url(${getImageUrl(activity.image_url)})`,
             }}
           ></div>
         ) : (

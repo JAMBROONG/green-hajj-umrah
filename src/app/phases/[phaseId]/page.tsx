@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
@@ -8,10 +8,10 @@ import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
-import { PhaseId, CategoryId } from '@/lib/types';
+import { PhaseId, CategoryId, HajiJourney } from '@/lib/types';
 import { MdHome, MdFlight, MdMosque, MdPark, MdHotel, MdRestaurant, MdRecycling } from 'react-icons/md';
 import { FaKaaba, FaBus, FaMountain, FaMoon, FaBullseye, FaRoad } from 'react-icons/fa';
-import { IoArrowBack, IoChevronForward } from 'react-icons/io5';
+import { IoArrowBack, IoChevronForward, IoCheckmarkDone } from 'react-icons/io5';
 
 function getPhaseIcon(phaseId: string) {
   switch (phaseId) {
@@ -44,6 +44,10 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
   const searchParams = useSearchParams();
   const router = useRouter();
   const tripId = searchParams.get('tripId');
+  
+  const [isMarking, setIsMarking] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [missingCategories, setMissingCategories] = useState<string[]>([]);
 
   // Redirect to journeys if no tripId
   useEffect(() => {
@@ -52,7 +56,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
     }
   }, [tripId, router]);
 
-  const { journey, isLoading } = useHajiJourney({ tripId: tripId || undefined });
+  const { journey, isLoading, updateJourney } = useHajiJourney({ tripId: tripId || undefined });
 
   if (!tripId) {
     return (
@@ -77,7 +81,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
   }
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === resolvedParams.phaseId);
-  const phaseData = journey.phases[resolvedParams.phaseId];
+  const phaseData = journey?.phases?.[resolvedParams.phaseId];
 
   if (!phase || !phaseData) {
     return (
@@ -103,6 +107,51 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
     return catData?.completed || ((catData?.totalEmission ?? catData?.emission) || 0) > 0;
   }).length;
   const progress = (completedCategories / phase.categories.length) * 100;
+
+  const handleMarkPhaseComplete = async (force: boolean = false) => {
+    try {
+      setIsMarking(true);
+      const response = await fetch(`/api/trips/${tripId}/journey/mark-phase-complete`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phaseId: resolvedParams.phaseId, force }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.warning && !force) {
+          // Show warning and ask user to confirm
+          setMissingCategories(data.missingCategories);
+          setShowWarning(true);
+          setIsMarking(false);
+          return;
+        }
+
+        // Success - update local journey data
+        if (data.journey) {
+          await updateJourney(data.journey.phases as unknown as HajiJourney);
+        }
+
+        console.log('✅ Phase marked as complete');
+        if (data.tripCompleted) {
+          alert('🎉 Selamat! Semua fase selesai. Perjalanan Anda telah ditandai sebagai selesai!');
+        } else {
+          alert('✅ Fase telah ditandai sebagai selesai');
+        }
+        router.back();
+      } else {
+        const errorMsg = data.details || data.error || 'Gagal menandai fase sebagai selesai';
+        console.error('❌ API Error:', { status: response.status, error: data });
+        alert('❌ ' + errorMsg);
+      }
+    } catch (error) {
+      console.error('Error marking phase complete:', error);
+      alert('❌ Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsMarking(false);
+    }
+  };
 
   return (
     <div className="app-container">
@@ -141,6 +190,25 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
               {completedCategories} dari {phase.categories.length} kategori telah diisi
             </p>
           </div>
+
+          {/* Mark as Complete Button */}
+          <button
+            onClick={() => handleMarkPhaseComplete(false)}
+            disabled={isMarking}
+            className="w-full bg-primary text-white font-semibold py-3 rounded-xl mb-5 flex items-center justify-center gap-2 hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isMarking ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Memproses...
+              </>
+            ) : (
+              <>
+                <IoCheckmarkDone className="text-xl" />
+                Tandai Sebagai Selesai
+              </>
+            )}
+          </button>
 
           {/* Categories */}
           <h3 className="text-sm font-semibold text-textDark mb-3">Kategori Emisi CO2e</h3>
@@ -195,6 +263,47 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
           </div>
         </div>
       </div>
+
+      {/* Warning Modal */}
+      {showWarning && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-lg">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">⚠️ Kategori Belum Lengkap</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Kategori berikut belum diisi:
+            </p>
+            <ul className="mb-6 space-y-2">
+              {missingCategories.map((cat, idx) => (
+                <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                  {cat}
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-gray-600 mb-6">
+              Anda masih bisa menandai fase ini sebagai selesai. Apakah Anda yakin?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowWarning(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  setShowWarning(false);
+                  handleMarkPhaseComplete(true); // force = true
+                }}
+                disabled={isMarking}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition disabled:opacity-50"
+              >
+                {isMarking ? 'Memproses...' : 'Lanjutkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

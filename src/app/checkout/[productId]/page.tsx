@@ -7,6 +7,7 @@ import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { formatCurrency } from '@/lib/utils';
+import { getImageUrl } from '@/lib/image-utils';
 
 interface CarbonProduct {
   id: string;
@@ -265,6 +266,20 @@ export default function CheckoutPage({
         </div>
 
         <div className="p-5">
+          {/* Product Image */}
+          {product.image_url ? (
+            <div
+              className="w-full h-40 bg-gray-200 bg-cover bg-center rounded-2xl mb-4 shadow-sm"
+              style={{
+                backgroundImage: `url(${getImageUrl(product.image_url)})`,
+              }}
+            ></div>
+          ) : (
+            <div className="w-full h-40 bg-primaryLight flex items-center justify-center text-6xl rounded-2xl mb-4 shadow-sm">
+              🌱
+            </div>
+          )}
+
           {/* Product Info */}
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border mb-4 hover-lift fade-in-item">
             <div className="p-4">
