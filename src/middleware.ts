@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET });
   const { pathname } = req.nextUrl;
 
   // Allow auth routes without login
@@ -56,7 +56,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      * - api routes
+     * - static asset extensions (images, pdf, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|pdf|ico)$).*)',
   ],
 };

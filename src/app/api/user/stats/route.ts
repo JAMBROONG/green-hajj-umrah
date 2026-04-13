@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Get certificate count
+    // Get certificate count (only active)
     const certCount = await prisma.carbon_certificate_purchases.count({
       where: { user_id: user.id },
     })
@@ -45,12 +45,19 @@ export async function GET(request: NextRequest) {
       return sum + parseFloat(trip.total_emission.toString() || '0')
     }, 0)
 
+    // Only count completed/confirmed purchases for offset.
+    // co2_equivalent is stored in tCO₂e (= units), convert to kg (×1000)
+    // so units are consistent with trip.total_emission which is in kg CO₂e.
     const certs = await prisma.carbon_certificate_purchases.findMany({
-      where: { user_id: user.id },
+      where: {
+        user_id: user.id,
+        status: { in: ['completed', 'confirmed'] },
+      },
     })
 
     const totalCO2Offset = certs.reduce((sum, cert) => {
-      return sum + parseFloat(cert.co2_equivalent.toString() || '0')
+      // co2_equivalent stored as tCO₂e → multiply by 1000 to get kg CO₂e
+      return sum + parseFloat(cert.co2_equivalent.toString() || '0') * 1000
     }, 0)
 
     return NextResponse.json({

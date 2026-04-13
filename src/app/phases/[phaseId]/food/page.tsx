@@ -67,100 +67,121 @@ export default function FoodListPage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
-      {/* Header */}
-      <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
-        <button
-          onClick={handleBackClick}
-          className="mb-4 text-white/80 hover:text-white flex items-center gap-2"
+      <div className="min-h-screen bg-gray-50 pb-24">
+        {/* Header */}
+        <div
+          className="text-white shadow-lg"
+          style={{
+            backgroundImage: "url('/bg-menu.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
         >
-          <IoArrowBack className="text-xl" /> Kembali
-        </button>
-        <div className="flex items-center gap-3 mb-2">
-          <MdRestaurant className="text-3xl text-orange-400" />
-          <div>
-            <h1 className="text-xl font-bold">{category.name}</h1>
-            <p className="text-sm text-white/80">{phase.name}</p>
-          </div>
-        </div>
-        <div className="mt-4 p-3 bg-white/10 rounded-xl backdrop-blur">
-          <p className="text-sm text-white/80">Total Emisi</p>
-          <p className="text-2xl font-bold">{formatEmission(totalEmission)} kg co2e</p>
-        </div>
-      </div>
-
-      {/* Activity List */}
-      <div className="p-6 space-y-4">
-        {activities.length === 0 ? (
-          <div className="text-center py-12">
-            <MdRestaurant className="text-6xl text-orange-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-6">Belum ada data konsumsi makanan</p>
-            <button
-              onClick={handleAddClick}
-              className="bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 flex items-center gap-2 mx-auto"
-            >
-              <IoAdd className="text-xl" /> Tambah Konsumsi
-            </button>
-          </div>
-        ) : (
-          <>
-            {activities.map((activity) => (
-              <div
-                key={activity.id}
-                className="bg-white border-2 border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow"
+          <div className="px-5 pt-5 pb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                onClick={handleBackClick}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-1">
-                      {activity.foodName}
-                    </h3>
-                    {activity.date && (
-                      <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
-                        <IoCalendarOutline /> {new Date(activity.date).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-600">
-                      Porsi: {activity.servings} porsi
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-primary">
-                      {formatEmission(activity.emission)} kg co2e
-                    </p>
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => handleEditClick(activity.id)}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-                      >
-                        <MdEdit /> Edit
-                      </button>
-                      <span className="text-gray-300">|</span>
-                      <button
-                        onClick={() => handleDeleteClick(activity.id)}
-                        className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1"
-                      >
-                        <MdDelete /> Hapus
-                      </button>
+                <IoArrowBack className="text-lg text-white" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold leading-tight">{category.name}</h1>
+                <p className="text-xs text-white/75 truncate">{phase.name}</p>
+              </div>
+            </div>
+            <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/75 mb-0.5">Total Emisi Karbon</p>
+                <p className="text-2xl font-bold">{formatEmission(totalEmission)}</p>
+                <p className="text-xs text-white/75">kg CO₂e</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                <MdRestaurant className="text-2xl text-white/80" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity List */}
+        <div className="px-5 py-4 space-y-3">
+          {activities.length === 0 ? (
+            <div className="text-center py-14">
+              <div className="w-20 h-20 rounded-full bg-orange-50 flex items-center justify-center mx-auto mb-4">
+                <MdRestaurant className="text-4xl text-orange-400" />
+              </div>
+              <p className="text-gray-700 font-semibold mb-1">Belum Ada Data Konsumsi</p>
+              <p className="text-sm text-gray-500 mb-6">Catat makanan yang Anda konsumsi selama perjalanan</p>
+              <button
+                onClick={handleAddClick}
+                className="btn-primary px-6 py-3 rounded-xl font-semibold flex items-center gap-2 mx-auto"
+              >
+                <IoAdd className="text-xl" /> Tambah Konsumsi
+              </button>
+            </div>
+          ) : (
+            <>
+              {activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100"
+                >
+                  <div className="flex">
+                    <div className="w-1.5 bg-orange-400 flex-shrink-0" />
+                    <div className="flex-1 p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1">
+                            {activity.foodName}
+                          </h3>
+                          {activity.date && (
+                            <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                              <IoCalendarOutline className="text-gray-400" />
+                              {new Date(activity.date).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-600">
+                            Porsi: <span className="font-medium">{activity.servings} porsi</span>
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-base font-bold text-primary">{formatEmission(activity.emission)}</p>
+                          <p className="text-xs text-gray-500">kg CO₂e</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-3 border-t border-gray-50">
+                        <button
+                          onClick={() => handleEditClick(activity.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition-colors"
+                        >
+                          <MdEdit /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(activity.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 transition-colors"
+                        >
+                          <MdDelete /> Hapus
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            
-            {/* Add Button */}
-            <button
-              onClick={handleAddClick}
-              className="w-full py-4 border-2 border-dashed border-primary/30 rounded-2xl text-primary font-semibold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
-            >
-              <IoAdd className="text-xl" /> Tambah Konsumsi Lainnya
-            </button>
-          </>
-        )}
-      </div>
+              ))}
+
+              {/* Add Button */}
+              <button
+                onClick={handleAddClick}
+                className="w-full py-4 border-2 border-dashed border-primary/30 rounded-2xl text-primary font-semibold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 mt-2"
+              >
+                <IoAdd className="text-xl" /> Tambah Konsumsi Lainnya
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

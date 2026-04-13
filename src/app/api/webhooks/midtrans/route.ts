@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import Midtrans from 'midtrans-client'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Midtrans = require('midtrans-client')
 
 // Initialize Midtrans Snap for verification
 const snap = new Midtrans.Snap({

@@ -1,9 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaArrowLeft, FaLock } from 'react-icons/fa';
+import { FaArrowLeft, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useDialog } from '@/contexts/DialogContext';
+import StatusBar from '@/components/StatusBar';
+import BottomNav from '@/components/BottomNav';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -40,7 +42,7 @@ export default function ChangePasswordPage() {
       newErrors.confirmPassword = 'Password tidak cocok';
     }
 
-    if (formData.currentPassword === formData.newPassword) {
+    if (formData.currentPassword === formData.newPassword && formData.newPassword) {
       newErrors.newPassword = 'Password baru tidak boleh sama dengan password saat ini';
     }
 
@@ -69,7 +71,7 @@ export default function ChangePasswordPage() {
 
       if (response.ok) {
         showSuccess('Password berhasil diubah');
-        router.push('/settings');
+        router.back();
       } else {
         const error = await response.json();
         showError(error.error || 'Gagal mengubah password');
@@ -87,7 +89,6 @@ export default function ChangePasswordPage() {
       ...prev,
       [field]: value
     }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
@@ -97,151 +98,143 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 pb-20">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
+    <div className="app-container">
+      <StatusBar />
+
+      <div className="page pb-32">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary to-primary/80 text-white pt-6 pb-6 px-5">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="text-gray-600 hover:text-gray-800 transition-colors"
+              className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition"
             >
-              <FaArrowLeft className="text-xl" />
+              <FaArrowLeft className="text-white text-sm" />
             </button>
-            <h1 className="text-2xl font-bold text-gray-800">Ubah Password</h1>
+            <h1 className="text-xl font-bold">Ubah Password</h1>
           </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 py-6 space-y-5">
+          {/* Icon card */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <FaLock className="text-primary text-xl" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">Keamanan Akun</p>
+              <p className="text-sm text-textMuted">Gunakan kombinasi huruf, angka, dan simbol untuk keamanan lebih baik</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Current Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Password Saat Ini
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasswords.current ? 'text' : 'password'}
+                  value={formData.currentPassword}
+                  onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                  placeholder="Masukkan password saat ini"
+                  className={`w-full px-4 py-3 border ${
+                    errors.currentPassword ? 'border-red-400' : 'border-border'
+                  } rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent pr-12 text-sm`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-gray-700 transition"
+                >
+                  {showPasswords.current ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              {errors.currentPassword && (
+                <p className="mt-1 text-xs text-red-500">{errors.currentPassword}</p>
+              )}
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Password Baru
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasswords.new ? 'text' : 'password'}
+                  value={formData.newPassword}
+                  onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                  placeholder="Min. 8 karakter"
+                  className={`w-full px-4 py-3 border ${
+                    errors.newPassword ? 'border-red-400' : 'border-border'
+                  } rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent pr-12 text-sm`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-gray-700 transition"
+                >
+                  {showPasswords.new ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              {errors.newPassword && (
+                <p className="mt-1 text-xs text-red-500">{errors.newPassword}</p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Konfirmasi Password Baru
+              </label>
+              <div className="relative">
+                <input
+                  type={showPasswords.confirm ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  placeholder="Ulangi password baru"
+                  className={`w-full px-4 py-3 border ${
+                    errors.confirmPassword ? 'border-red-400' : 'border-border'
+                  } rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent pr-12 text-sm`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-gray-700 transition"
+                >
+                  {showPasswords.confirm ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex-1 px-4 py-3 border border-border rounded-lg text-gray-700 font-medium text-sm hover:bg-gray-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 px-4 py-3 btn-primary rounded-lg font-medium text-sm disabled:opacity-50"
+              >
+                {isLoading ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-md mx-auto px-6 py-6">
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 space-y-6">
-          {/* Lock Icon */}
-          <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
-              <FaLock className="text-4xl text-emerald-600" />
-            </div>
-          </div>
-
-          {/* Current Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password Saat Ini *
-            </label>
-            <div className="relative">
-              <input
-                type={showPasswords.current ? 'text' : 'password'}
-                value={formData.currentPassword}
-                onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                placeholder="Masukkan password saat ini"
-                className={`w-full px-4 py-3 border ${
-                  errors.currentPassword ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent pr-12`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswords(prev => ({
-                  ...prev,
-                  current: !prev.current
-                }))}
-                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-              >
-                {showPasswords.current ? '🙈' : '👁️'}
-              </button>
-            </div>
-            {errors.currentPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>
-            )}
-          </div>
-
-          {/* New Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password Baru *
-            </label>
-            <div className="relative">
-              <input
-                type={showPasswords.new ? 'text' : 'password'}
-                value={formData.newPassword}
-                onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                placeholder="Masukkan password baru (min. 8 karakter)"
-                className={`w-full px-4 py-3 border ${
-                  errors.newPassword ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent pr-12`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswords(prev => ({
-                  ...prev,
-                  new: !prev.new
-                }))}
-                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-              >
-                {showPasswords.new ? '🙈' : '👁️'}
-              </button>
-            </div>
-            {errors.newPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
-            )}
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Konfirmasi Password *
-            </label>
-            <div className="relative">
-              <input
-                type={showPasswords.confirm ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                placeholder="Konfirmasi password baru"
-                className={`w-full px-4 py-3 border ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                } rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent pr-12`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswords(prev => ({
-                  ...prev,
-                  confirm: !prev.confirm
-                }))}
-                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-              >
-                {showPasswords.confirm ? '🙈' : '👁️'}
-              </button>
-            </div>
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-            )}
-          </div>
-
-          {/* Info Text */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              💡 Password minimal 8 karakter. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan lebih baik.
-            </p>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
-            >
-              {isLoading ? 'Memproses...' : 'Ubah Password'}
-            </button>
-          </div>
-        </form>
-      </div>
+      <BottomNav />
     </div>
   );
 }

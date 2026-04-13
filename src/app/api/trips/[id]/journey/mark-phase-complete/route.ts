@@ -65,8 +65,11 @@ export async function PUT(
       return NextResponse.json({ error: "Journey data not found" }, { status: 404 });
     }
 
-    const phases = journeyData.phases as Record<string, any>;
-    const phaseData = phases[phaseId];
+    // Journey is stored as HajiJourney = { currentPhase, phases: { 'pra-keberangkatan': PhaseData, ... } }
+    // Legacy data may be stored flat. Handle both.
+    const storedData = journeyData.phases as Record<string, any>;
+    const phasesMap: Record<string, any> = storedData?.phases || storedData;
+    const phaseData = phasesMap[phaseId];
 
     if (!phaseData) {
       return NextResponse.json({ error: "Phase not found" }, { status: 404 });
@@ -83,7 +86,7 @@ export async function PUT(
       'transport': 'Transportasi',
       'hotel': 'Hotel',
       'food': 'Makanan',
-      'waste': 'Sampah'
+      'waste': 'Limbah'
     };
 
     allCategoryIds.forEach(catId => {
@@ -118,22 +121,27 @@ export async function PUT(
       completed: true
     };
 
-    const updatedPhases = {
-      ...phases,
+    const updatedPhasesMap = {
+      ...phasesMap,
       [phaseId]: updatedPhaseData
     };
+
+    // Reconstruct the full stored object preserving currentPhase etc.
+    const updatedJourneyObject = storedData?.phases
+      ? { ...storedData, phases: updatedPhasesMap }
+      : updatedPhasesMap;
 
     // Update journey data
     const updatedJourneyData = await prisma.journey_data.update({
       where: { trip_id: id },
       data: {
-        phases: updatedPhases as Prisma.InputJsonValue,
+        phases: updatedJourneyObject as Prisma.InputJsonValue,
       },
     });
 
     // Check if ALL phases are completed -> auto-complete trip
-    const allPhasesCompleted = Object.values(updatedPhases).every(
-      (phase: PhaseData) => phase.completed === true
+    const allPhasesCompleted = Object.values(updatedPhasesMap).every(
+      (phase: any) => phase?.completed === true
     );
 
     if (allPhasesCompleted) {

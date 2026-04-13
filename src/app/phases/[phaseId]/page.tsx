@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
+import { useDialog } from '@/contexts/DialogContext';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { PHASE_DEFINITIONS, CATEGORY_DEFINITIONS } from '@/lib/constants';
 import { formatEmission } from '@/lib/utils';
@@ -48,6 +49,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
   const [isMarking, setIsMarking] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [missingCategories, setMissingCategories] = useState<string[]>([]);
+  const { showSuccess, showError } = useDialog();
 
   // Redirect to journeys if no tripId
   useEffect(() => {
@@ -135,67 +137,93 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
 
         console.log('✅ Phase marked as complete');
         if (data.tripCompleted) {
-          alert('🎉 Selamat! Semua fase selesai. Perjalanan Anda telah ditandai sebagai selesai!');
+          showSuccess('🎉 Selamat! Semua fase selesai. Perjalanan Anda telah ditandai sebagai selesai!');
         } else {
-          alert('✅ Fase telah ditandai sebagai selesai');
+          showSuccess('Fase telah ditandai sebagai selesai');
         }
-        router.back();
+        router.push(`/journeys/${tripId}`);
       } else {
         const errorMsg = data.details || data.error || 'Gagal menandai fase sebagai selesai';
         console.error('❌ API Error:', { status: response.status, error: data });
-        alert('❌ ' + errorMsg);
+        showError(errorMsg);
       }
     } catch (error) {
       console.error('Error marking phase complete:', error);
-      alert('❌ Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      showError('Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsMarking(false);
     }
   };
 
+  const accentColor: Record<string, string> = {
+    transport: 'bg-blue-500',
+    hotel: 'bg-purple-500',
+    food: 'bg-orange-400',
+    waste: 'bg-green-500',
+  };
+
   return (
     <div className="app-container">
       <StatusBar />
-      
-      <div className="page pb-24">
+
+      <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
-        <div className="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
-          <Link href={`/journeys/${tripId}`} className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center">
-            <IoArrowBack className="text-xl" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-textDark">{phase.name}</h1>
-            <p className="text-xs text-textMuted">{phase.description}</p>
+        <div
+          className="text-white shadow-lg"
+          style={{
+            backgroundImage: "url('/bg-menu.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="px-5 pt-5 pb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Link
+                href={`/journeys/${tripId}`}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+              >
+                <IoArrowBack className="text-lg text-white" />
+              </Link>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-bold leading-tight">{phase.name}</h1>
+                <p className="text-xs text-white/75 truncate">{phase.description}</p>
+              </div>
+            </div>
+
+            {/* Emission Summary */}
+            <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-white/75 mb-0.5">Total Emisi Fase</p>
+                <p className="text-2xl font-bold">{formatEmission(phaseEmission, 'ton')}</p>
+                <p className="text-xs text-white/75">Ton CO₂e</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                {getPhaseIcon(phase.id)}
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3">
+              <div className="flex justify-between items-center mb-1.5">
+                <p className="text-xs text-white/75">Progress Pengisian</p>
+                <p className="text-xs font-semibold text-white">{completedCategories}/{phase.categories.length}</p>
+              </div>
+              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="p-5">
-          {/* Phase Summary */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-border mb-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center">
-                {getPhaseIcon(phase.id)}
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-textMuted mb-0.5">Total Emisi Fase</p>
-                <h2 className="text-xl font-bold text-textDark number-display">
-                  {formatEmission(phaseEmission, 'ton')} Ton CO2e
-                </h2>
-              </div>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-            </div>
-            <p className="text-xs text-textMuted mt-2">
-              {completedCategories} dari {phase.categories.length} kategori telah diisi
-            </p>
-          </div>
-
+        <div className="px-5 py-4">
           {/* Mark as Complete Button */}
           <button
             onClick={() => handleMarkPhaseComplete(false)}
             disabled={isMarking}
-            className="w-full bg-primary text-white font-semibold py-3 rounded-xl mb-5 flex items-center justify-center gap-2 hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full btn-primary font-semibold py-3 rounded-xl mb-5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isMarking ? (
               <>
@@ -205,21 +233,20 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
             ) : (
               <>
                 <IoCheckmarkDone className="text-xl" />
-                Tandai Sebagai Selesai
+                Tandai Fase Selesai
               </>
             )}
           </button>
 
           {/* Categories */}
-          <h3 className="text-sm font-semibold text-textDark mb-3">Kategori Emisi CO2e</h3>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Kategori Emisi</p>
           <div className="space-y-3">
             {phase.categories.map((catId, index) => {
               const catDef = CATEGORY_DEFINITIONS[catId as CategoryId];
               const catData = phaseData.categories[catId as CategoryId];
-              
+
               if (!catDef || !catData) return null;
 
-              // Get dynamic description for transport category based on phase transport type
               let description: string = catDef.description;
               if (catId === 'transport' && phase.transportTypes) {
                 if (phase.transportTypes === 'airplane') {
@@ -231,30 +258,41 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
                 }
               }
 
-              const status = catData.completed ? 'completed' : (((catData.totalEmission ?? catData.emission) || 0) > 0 ? 'in-progress' : 'pending');
-              const statusText = status === 'completed' ? 'Selesai' : (status === 'in-progress' ? 'Diisi' : 'Belum');
+              const emission = (catData.totalEmission ?? catData.emission) || 0;
+              const status = catData.completed ? 'completed' : (emission > 0 ? 'in-progress' : 'pending');
+              const statusLabel = status === 'completed' ? 'Selesai' : (status === 'in-progress' ? 'Diisi' : 'Belum');
+              const statusClass = status === 'completed'
+                ? 'bg-green-100 text-green-700'
+                : status === 'in-progress'
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-gray-100 text-gray-500';
 
               return (
                 <Link
                   key={catId}
                   href={`/phases/${resolvedParams.phaseId}/${catId}?tripId=${tripId}`}
-                  className="block bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item"
+                  className="block bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-all fade-in-item"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="category-icon bg-primaryLight">
-                      {getCategoryIcon(catId)}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-semibold text-textDark mb-0.5">{catDef.name}</h4>
-                      <p className="text-xs text-textMuted mb-1">{description}</p>
-                      <p className="text-xs font-medium text-primary">
-                        {formatEmission((catData.totalEmission ?? catData.emission) || 0, 'kg')} kg CO2e
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className={`phase-badge ${status}`}>{statusText}</span>
-                      <IoChevronForward className="text-xl text-textMuted" />
+                  <div className="flex">
+                    <div className={`w-1.5 flex-shrink-0 ${accentColor[catId] ?? 'bg-primary'}`} />
+                    <div className="flex-1 flex items-center gap-3 p-4">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
+                        {getCategoryIcon(catId)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-gray-900 mb-0.5">{catDef.name}</h4>
+                        <p className="text-xs text-gray-500 truncate">{description}</p>
+                        <p className="text-xs font-semibold text-primary mt-1">
+                          {formatEmission(emission, 'kg')} kg CO₂e
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
+                          {statusLabel}
+                        </span>
+                        <IoChevronForward className="text-base text-gray-400" />
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -267,36 +305,37 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
       {/* Warning Modal */}
       {showWarning && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-lg">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">⚠️ Kategori Belum Lengkap</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Kategori berikut belum diisi:
-            </p>
-            <ul className="mb-6 space-y-2">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-1">Kategori Belum Lengkap</h3>
+            <p className="text-xs text-gray-500 text-center mb-4">Kategori berikut belum diisi:</p>
+            <ul className="mb-4 space-y-2 bg-gray-50 rounded-xl p-3">
               {missingCategories.map((cat, idx) => (
                 <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-orange-500 rounded-full flex-shrink-0"></span>
                   {cat}
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-gray-600 mb-6">
-              Anda masih bisa menandai fase ini sebagai selesai. Apakah Anda yakin?
+            <p className="text-xs text-gray-500 text-center mb-5">
+              Anda masih bisa menandai fase ini sebagai selesai. Lanjutkan?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowWarning(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50 transition"
               >
                 Batal
               </button>
               <button
                 onClick={() => {
                   setShowWarning(false);
-                  handleMarkPhaseComplete(true); // force = true
+                  handleMarkPhaseComplete(true);
                 }}
                 disabled={isMarking}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 btn-primary rounded-xl text-sm font-medium disabled:opacity-50"
               >
                 {isMarking ? 'Memproses...' : 'Lanjutkan'}
               </button>

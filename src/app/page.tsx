@@ -9,7 +9,7 @@ import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { getGreeting, formatEmission, formatCurrency } from '@/lib/utils';
 import { HiLightBulb } from 'react-icons/hi';
-import { FaPlus, FaKaaba, FaMosque, FaLeaf, FaCalendarAlt } from 'react-icons/fa';
+import { FaPlus, FaKaaba, FaMosque, FaLeaf, FaCalendarAlt, FaMapMarkerAlt, FaCheckCircle } from 'react-icons/fa';
 import { GiPlantSeed } from 'react-icons/gi';
 
 interface Trip {
@@ -28,6 +28,7 @@ export default function Home() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState('Selamat pagi');
+  const [userStats, setUserStats] = useState<{ totalCO2Emitted: number; totalCO2Offset: number } | null>(null);
   const userName = session?.user?.name || 'Pengguna';
 
   useEffect(() => {
@@ -41,7 +42,19 @@ export default function Home() {
 
   useEffect(() => {
     loadTrips();
+    loadUserStats();
   }, []);
+
+  const loadUserStats = async () => {
+    try {
+      const response = await fetch('/api/user/stats');
+      if (response.ok) {
+        setUserStats(await response.json());
+      }
+    } catch {
+      // silently ignore
+    }
+  };
 
   const loadTrips = async () => {
     try {
@@ -95,29 +108,143 @@ export default function Home() {
       <StatusBar />
       
       <div className="page pb-24">
-        {/* Header */}
-        <div className="bg-white px-5 py-4 border-b border-border shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-textMuted mb-0.5">Green Haj & Umrah</p>
-              <h1 id="greetingText" className="text-lg font-bold text-textDark">
-                {greeting}, {userName}
+        {/* Hero — bg-home.png covers greeting + summary card, fades to white at bottom */}
+        <div
+          className="relative w-full overflow-hidden"
+          style={{
+            backgroundImage: "url('/bg-home.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+          }}
+        >
+          {/* Dark overlay top→mid for text legibility */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 55%, rgba(255,255,255,0) 100%)',
+            }}
+          />
+          {/* Fade to white at the bottom */}
+          <div
+            className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, transparent 0%, #ffffff 100%)' }}
+          />
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Greeting */}
+            <div className="px-5 pt-10 pb-4">
+              <p className="text-xs text-white/80 mb-0.5 drop-shadow">Green Haj &amp; Umrah</p>
+              <h1 id="greetingText" className="text-2xl font-bold text-white drop-shadow">
+                {greeting},<br />{userName}
               </h1>
+            </div>
+
+            {/* Total Emisi Summary — sits on top of hero bg */}
+            <div className="px-5 pb-8 fade-in-item">
+              <div
+                className="relative rounded-2xl overflow-hidden text-white shadow-xl"
+                style={{ backgroundImage: "url('/bg-quote.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+              >
+                {/* Gold glow overlay — bottom-right */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse 60% 60% at 95% 110%, rgba(234,179,8,0.45) 0%, transparent 70%)' }}
+                />
+                <div className="relative z-10">
+                  <div className="px-5 pt-5 pb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FaLeaf className="text-green-300 text-xs" />
+                      <p className="text-xs text-white/80">Total jejak emisi CO2e</p>
+                    </div>
+                    <h2 className="text-3xl font-bold number-display drop-shadow">{totalTon} Ton CO₂e</h2>
+                  </div>
+                  <div className="mx-5 border-t border-yellow-400/40" />
+                  <div className="px-5 py-3 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <FaMapMarkerAlt className="text-yellow-300 text-xs" />
+                      <span className="text-white/90 text-xs">{trips.length} Perjalanan</span>
+                    </div>
+                    <div className="w-px h-4 bg-yellow-400/50" />
+                    <div className="flex items-center gap-1.5">
+                      <FaCheckCircle className="text-yellow-300 text-xs" />
+                      <span className="text-white/90 text-xs">{ongoingTrips.length} Berlangsung</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Total Emisi Summary */}
-        <div className="px-5 pt-5">
-          <div className="bg-primary rounded-2xl p-5 text-white shadow-lg fade-in-item">
-            <p className="text-xs opacity-90 mb-1">Total jejak emisi CO2e</p>
-            <h2 className="text-3xl font-bold mb-2 number-display">{totalTon} Ton CO2e</h2>
-            <div className="mt-3 flex items-center justify-between text-sm">
-              <span className="opacity-75">{trips.length} perjalanan</span>
-              <span className="opacity-75">{ongoingTrips.length} berlangsung</span>
+        {/* Carbon Offset Nudge */}
+        {userStats && (() => {
+          const net = (userStats.totalCO2Emitted || 0) - (userStats.totalCO2Offset || 0);
+          const isNeutral = net <= 0;
+          return (
+            <div className="px-5 pt-4 pb-1 fade-in-item" style={{ animationDelay: '0.08s' }}>
+              <div
+                className={`rounded-2xl overflow-hidden shadow-md ${
+                  isNeutral
+                    ? 'bg-gradient-to-br from-emerald-500 to-green-600'
+                    : 'bg-gradient-to-br from-orange-500 to-red-500'
+                }`}
+              >
+                <div className="px-5 pt-4 pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs text-white/80 mb-0.5">
+                        {isNeutral ? '🌿 Status Karbon Anda' : '⚠️ Perlu Offset Karbon'}
+                      </p>
+                      {isNeutral ? (
+                        <p className="text-lg font-bold text-white leading-tight">Selamat, Anda sudah Carbon Netral!</p>
+                      ) : (
+                        <>
+                          <p className="text-2xl font-bold text-white leading-tight">
+                            {(net / 1000).toFixed(2)} <span className="text-base font-normal">ton CO₂e</span>
+                          </p>
+                          <p className="text-xs text-white/80 mt-0.5">masih perlu dioffset</p>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                      <FaLeaf className="text-white text-lg" />
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  {!isNeutral && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs text-white/75 mb-1">
+                        <span>Sudah dioffset: {((userStats.totalCO2Offset || 0) / 1000).toFixed(2)} ton</span>
+                        <span>Total: {((userStats.totalCO2Emitted || 0) / 1000).toFixed(2)} ton</span>
+                      </div>
+                      <div className="h-1.5 bg-white/30 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-white rounded-full transition-all"
+                          style={{ width: `${Math.min(100, ((userStats.totalCO2Offset || 0) / Math.max(userStats.totalCO2Emitted, 1)) * 100).toFixed(1)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => router.push('/carbon-market')}
+                  className="w-full flex items-center justify-between px-5 py-3 bg-black/15 hover:bg-black/25 transition-colors"
+                >
+                  <span className="text-xs font-semibold text-white">
+                    {isNeutral ? 'Beli lebih banyak kredit karbon' : 'Beli Carbon Kredit Sekarang'}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Phase Progress */}
         <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.15s' }}>
@@ -127,11 +254,12 @@ export default function Home() {
               onClick={handleNewTrip}
               disabled={hasOngoingTrip}
               title={hasOngoingTrip ? 'Selesaikan perjalanan yang sedang berlangsung terlebih dahulu' : ''}
-              className={`text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors ${
+              className={`text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1 transition-all ${
                 hasOngoingTrip
                   ? 'bg-gray-400 text-white opacity-60 cursor-not-allowed'
-                  : 'bg-primary text-white hover:bg-primary/90'
+                  : 'text-white'
               }`}
+              style={hasOngoingTrip ? {} : { background: 'linear-gradient(135deg, #0a5c42 0%, #1a9668 100%)' }}
             >
               <FaPlus className="text-xs" />
               <span>Baru</span>
@@ -152,11 +280,12 @@ export default function Home() {
               <button
                 onClick={handleNewTrip}
                 disabled={hasOngoingTrip}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${
                   hasOngoingTrip
                     ? 'bg-gray-400 text-white opacity-60 cursor-not-allowed'
-                    : 'bg-primary text-white hover:bg-primary/90'
+                    : 'text-white'
                 }`}
+                style={hasOngoingTrip ? {} : { background: 'linear-gradient(135deg, #0a5c42 0%, #1a9668 100%)' }}
               >
                 Buat Perjalanan
               </button>
@@ -197,7 +326,7 @@ export default function Home() {
                         <div className="flex items-center text-xs">
                           <FaLeaf className="text-emerald-600 mr-1" />
                           <span className="font-medium text-textDark">
-                            {parseFloat(trip.totalEmission.toString()).toFixed(2)} kg CO₂
+                            {(parseFloat(trip.totalEmission.toString()) / 1000).toFixed(2)} ton CO₂e
                           </span>
                         </div>
                       </div>
@@ -218,27 +347,9 @@ export default function Home() {
           )}
         </div>
 
-        {/* Statistics */}
-        <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.2s' }}>
-          <h2 className="text-sm font-semibold text-textDark mb-3">Statistik</h2>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-xl p-3 shadow-sm border border-border text-center">
-              <div className="text-2xl font-bold text-primary">{trips.length}</div>
-              <div className="text-xs text-textMuted mt-1">Total</div>
-            </div>
-            <div className="bg-white rounded-xl p-3 shadow-sm border border-border text-center">
-              <div className="text-2xl font-bold text-blue-600">{ongoingTrips.length}</div>
-              <div className="text-xs text-textMuted mt-1">Aktif</div>
-            </div>
-            <div className="bg-white rounded-xl p-3 shadow-sm border border-border text-center">
-              <div className="text-2xl font-bold text-green-600">{completedTrips.length}</div>
-              <div className="text-xs text-textMuted mt-1">Selesai</div>
-            </div>
-          </div>
-        </div>
-
         {/* Action Cards */}
         <div className="px-5 pt-5 space-y-3">
+          <h2 className="text-sm font-semibold text-textDark mb-1">Fitur Utama</h2>
           <Link href="/journeys" className="block w-full bg-white rounded-2xl p-4 shadow-sm border border-border hover:shadow-lg transition-all fade-in-item">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primaryLight flex items-center justify-center text-2xl">
@@ -288,23 +399,7 @@ export default function Home() {
             </div>
           </Link>
         </div>
-
-        {/* Tips */}
-        <div className="px-5 pt-5 pb-5 fade-in-item" style={{ animationDelay: '0.3s' }}>
-          <div className="bg-primary rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                <HiLightBulb className="text-xl text-yellow-300" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold mb-1">Tips Mengurangi Emisi</h3>
-                <p className="text-xs opacity-90 leading-relaxed">
-                  Gunakan transportasi bersama, bawa botol minum sendiri, dan pilih menu rendah karbon untuk mengurangi jejak emisi Anda.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+ 
       </div>
 
       <BottomNav />

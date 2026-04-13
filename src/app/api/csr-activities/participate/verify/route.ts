@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
-import { generateThankYouCertificate, generateParticipationCertificate } from '@/lib/certificate-generator'
+import { generateCSRCertificate } from '@/lib/csr-certificate-generator'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -13,6 +13,12 @@ export async function POST(request: NextRequest) {
   let participationId = 'unknown'
   try {
     console.log('🔍 [Verify] Request received')
+
+    const appBaseUrl = (
+      process.env.NEXTAUTH_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      new URL(request.url).origin
+    ).replace(/\/$/, '')
     
     const session = await auth()
     console.log('🔐 [Verify] Session check:', !!session)
@@ -146,57 +152,39 @@ export async function POST(request: NextRequest) {
       const amount = parseFloat(donation.amount?.toString() || '0')
 
       let thankYouUrl: string | null = null
-      let participationUrl: string | null = null
 
-      // Generate Thank You Certificate
+      // Generate single CSR participation certificate
       try {
-        const thankYouBuffer = generateThankYouCertificate({
+        const certBuffer = generateCSRCertificate({
           recipientName,
           activityTitle,
+          activityCategory: activity.category || undefined,
           amount,
           donationDate,
+          certificateNumber: `CSR-${participationId.slice(-8).toUpperCase()}`,
         })
-        const thankYouFilename = `thank-you-${participationId}-${Date.now()}.pdf`
-        const thankYouPath = path.join(certificatesDir, thankYouFilename)
-        fs.writeFileSync(thankYouPath, thankYouBuffer)
-        thankYouUrl = `/certificates/${thankYouFilename}`
-        console.log('✅ [Verify] Thank you certificate generated:', thankYouUrl)
+        const certFilename = `csr-cert-${participationId}-${Date.now()}.pdf`
+        const certPath = path.join(certificatesDir, certFilename)
+        fs.writeFileSync(certPath, certBuffer)
+        thankYouUrl = `${appBaseUrl}/certificates/${certFilename}`
+        console.log('✅ [Verify] CSR certificate generated:', thankYouUrl)
       } catch (e) {
-        console.error('❌ [Verify] Failed to generate thank you certificate:', e)
+        console.error('❌ [Verify] Failed to generate CSR certificate:', e)
       }
 
-      // Generate Participation Certificate
-      try {
-        const participationBuffer = generateParticipationCertificate({
-          recipientName,
-          activityTitle,
-          amount,
-          donationDate,
-        })
-        const participationFilename = `participation-${participationId}-${Date.now()}.pdf`
-        const participationPath = path.join(certificatesDir, participationFilename)
-        fs.writeFileSync(participationPath, participationBuffer)
-        participationUrl = `/certificates/${participationFilename}`
-        console.log('✅ [Verify] Participation certificate generated:', participationUrl)
-      } catch (e) {
-        console.error('❌ [Verify] Failed to generate participation certificate:', e)
-      }
-
-      // If at least one certificate generated, update donation with URLs
-      if (thankYouUrl || participationUrl) {
-        console.log('📝 [Verify] Updating donation with certificate URLs...')
+      // Update donation with certificate URL
+      if (thankYouUrl) {
+        console.log('📝 [Verify] Updating donation with certificate URL...')
         updatedDonation = await prisma.csr_activity_participations.update({
           where: { id: participationId },
           data: {
-            ...(thankYouUrl && { thank_you_certificate_url: thankYouUrl }),
-            ...(participationUrl && { participation_certificate_url: participationUrl }),
+            thank_you_certificate_url: thankYouUrl,
             updated_at: new Date(),
           },
         })
-        console.log('✅ [Verify] Donation updated with certificates:', {
+        console.log('✅ [Verify] Donation updated with certificate:', {
           id: updatedDonation.id,
           thankYouUrl,
-          participationUrl,
         })
       }
     } catch (certError) {
@@ -229,8 +217,7 @@ export async function POST(request: NextRequest) {
       status: finalDonation?.status,
       amount: finalDonation?.amount,
       activityId: activity.id,
-      thankYouUrl: finalDonation?.thank_you_certificate_url,
-      participationUrl: finalDonation?.participation_certificate_url,
+      certificateUrl: finalDonation?.thank_you_certificate_url,
       message: 'Donation confirmed successfully',
     })
   } catch (error) {

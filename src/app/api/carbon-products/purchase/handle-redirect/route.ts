@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { generateThankYouCertificate } from '@/lib/certificate-generator'
+import * as fs from 'fs'
+import * as path from 'path'
 
 /**
  * Handle Midtrans finish redirect
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     if (!carbonConfig) {
       console.error('❌ Carbon payment config not found')
-      return NextResponse.redirect(new URL(`/profile?tab=certificates&purchased=${purchase.id}&status=pending`, request.url))
+      return NextResponse.redirect(new URL(`/certificates/${purchase.id}`, request.url))
     }
 
     // Query Midtrans API to get ACTUAL payment status
@@ -102,12 +105,63 @@ export async function GET(request: NextRequest) {
       })
 
       console.log('✅ Purchase status updated:', { id: purchase.id, old: purchase.status, new: newStatus })
+
+      // Auto-generate Thank You Certificate PDF when payment is completed
+      if (newStatus === 'completed' && !purchase.thank_you_certificate_url) {
+        try {
+          const fullPurchase = await prisma.carbon_certificate_purchases.findUnique({
+            where: { id: purchase.id },
+            include: { user: true, product: true },
+          })
+
+          const appBaseUrl = (
+            process.env.NEXTAUTH_URL ||
+            process.env.NEXT_PUBLIC_BASE_URL ||
+            new URL(request.url).origin
+          ).replace(/\/$/, '')
+
+          const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
+          if (!fs.existsSync(certificatesDir)) {
+            fs.mkdirSync(certificatesDir, { recursive: true })
+          }
+
+          const purchaseDate = new Date(fullPurchase?.created_at ?? purchase.created_at).toLocaleDateString('id-ID', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          })
+
+          const recipientName = fullPurchase?.user?.full_name || 'Carbon Supporter'
+          const productName   = fullPurchase?.product?.name || 'Carbon Certificate'
+          const units         = fullPurchase?.units || 0
+
+          const pdfBuffer  = generateThankYouCertificate({
+            recipientName,
+            activityTitle: `${productName} (${units} tCO2e)`,
+            amount: parseFloat(fullPurchase?.total_price?.toString() || '0'),
+            donationDate: purchaseDate,
+            certificateNumber: purchase.id.substring(0, 8).toUpperCase(),
+          })
+
+          const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.pdf`
+          fs.writeFileSync(path.join(certificatesDir, filename), pdfBuffer)
+
+          const certUrl = `${appBaseUrl}/certificates/${filename}`
+          await prisma.carbon_certificate_purchases.update({
+            where: { id: purchase.id },
+            data: { thank_you_certificate_url: certUrl },
+          })
+
+          console.log('✅ Thank You Certificate generated:', certUrl)
+        } catch (certErr) {
+          console.error('❌ Certificate generation failed (non-blocking):', certErr)
+        }
+      }
     } else {
       console.log('ℹ️ Status unchanged:', newStatus)
     }
 
-    // Redirect to profile dengan purchase ID
-    const redirectUrl = new URL(`/profile?tab=certificates&purchased=${purchase.id}`, request.url)
+    // Redirect to certificate detail page
+    // ?paid=1 signals the page to poll for the latest status (avoids Next.js router cache serving stale data)
+    const redirectUrl = new URL(`/certificates/${purchase.id}?paid=1`, request.url)
     return NextResponse.redirect(redirectUrl)
   } catch (error) {
     console.error('❌ Error handling redirect:', error)

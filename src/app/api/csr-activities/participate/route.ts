@@ -113,25 +113,7 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ Activity found:', activity.title)
 
-    // Check if user already has a CONFIRMED donation (only block confirmed, not pending)
-    const confirmedDonation = await prisma.csr_activity_participations.findFirst({
-      where: {
-        user_id: userProfile.id,
-        csr_activity_id,
-        status: 'confirmed',
-      },
-    })
-
-    if (confirmedDonation) {
-      console.log('❌ Already donated (confirmed):', { user_id: userProfile.id, csr_activity_id })
-      return NextResponse.json(
-        { error: 'Anda sudah melakukan donasi untuk kegiatan ini' },
-        { status: 400 }
-      )
-    }
-    console.log('✅ No confirmed donation record (can retry if pending)')
-
-    // For donations: clean up any pending records to allow retry
+    // For donations: clean up any pending records to allow retry (but keep confirmed ones)
     if (type === 'donate') {
       await prisma.csr_activity_participations.deleteMany({
         where: {
@@ -154,9 +136,27 @@ export async function POST(request: NextRequest) {
     // For donation, create Midtrans transaction
     if (type === 'donate') {
       // Get payment config for this tenant
-      const paymentConfig = await prisma.tenantPaymentConfig.findUnique({
+      // Try tenant-specific payment config first, fall back to global carbon config
+      let paymentConfig: {
+        midtrans_server_key: string
+        is_production: boolean
+        enabled?: boolean | null
+      } | null = await prisma.tenantPaymentConfig.findUnique({
         where: { tenant_id: activity.tenant_id },
       })
+
+      if (!paymentConfig || !paymentConfig.enabled) {
+        console.log('⚠️ Tenant payment config not found/disabled, trying global carbonPaymentConfig...')
+        const carbonConfig = await prisma.carbonPaymentConfig.findFirst()
+        if (carbonConfig && carbonConfig.midtrans_server_key) {
+          paymentConfig = {
+            midtrans_server_key: carbonConfig.midtrans_server_key,
+            is_production: carbonConfig.is_production ?? false,
+            enabled: true,
+          }
+          console.log('✅ Using global carbonPaymentConfig as fallback')
+        }
+      }
 
       if (!paymentConfig || !paymentConfig.enabled) {
         console.log('❌ Payment config not found or disabled for tenant:', activity.tenant_id)
@@ -167,7 +167,25 @@ export async function POST(request: NextRequest) {
       }
 
       const roundedAmount = Math.round(amount)
-      
+
+      // Create participation FIRST so we have the ID for the finish_url
+      const participation = await prisma.csr_activity_participations.create({
+        data: {
+          user_id: userProfile.id,
+          csr_activity_id,
+          type: 'donate',
+          amount: amount,
+          status: 'pending',
+          transaction_reference: '',
+        },
+      })
+
+      const appBaseUrl = (
+        process.env.AUTH_URL ||
+        process.env.NEXTAUTH_URL ||
+        'http://localhost:3000'
+      ).replace(/\/$/, '')
+
       const transactionPayload = {
         transaction_details: {
           order_id: `CSR${Date.now()}`, // Short order ID
@@ -177,7 +195,7 @@ export async function POST(request: NextRequest) {
           first_name: userProfile.full_name?.split(' ')[0] || 'User',
           last_name: userProfile.full_name?.split(' ').slice(1).join(' ') || '',
           email: userProfile.email,
-          phone: userProfile.metadata?.phone || '',
+          phone: (userProfile.metadata as Record<string, string>)?.phone || '',
         },
         item_details: [
           {
@@ -190,20 +208,17 @@ export async function POST(request: NextRequest) {
         ],
         custom_field1: `csr_activity:${csr_activity_id}`,
         custom_field2: `user:${userProfile.id}`,
+        callbacks: {
+          finish: `${appBaseUrl}/csr-donations/${participation.id}`,
+        },
       }
 
       const transaction = await createMidtransTransaction(transactionPayload, paymentConfig)
 
-      // Create donation record with pending status
-      const participation = await prisma.csr_activity_participations.create({
-        data: {
-          user_id: userProfile.id,
-          csr_activity_id,
-          type: 'donate',
-          amount: amount,
-          status: 'pending',
-          transaction_reference: transaction.token,
-        },
+      // Update participation with the snap token
+      await prisma.csr_activity_participations.update({
+        where: { id: participation.id },
+        data: { transaction_reference: transaction.token },
       })
 
       return NextResponse.json({

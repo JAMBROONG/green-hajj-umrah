@@ -197,6 +197,13 @@ export async function POST(request: NextRequest) {
           const productName = purchase.product?.name || 'Carbon Certificate'
           const units = purchase.units || 0
 
+          // Base URL for storing absolute certificate links
+          const appBaseUrl = (
+            process.env.NEXTAUTH_URL ||
+            process.env.NEXT_PUBLIC_BASE_URL ||
+            'http://localhost:3000'
+          ).replace(/\/$/, '')
+
           let thankYouUrl: string | null = null
 
           // Generate Thank You Certificate
@@ -210,7 +217,7 @@ export async function POST(request: NextRequest) {
             const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.pdf`
             const thankYouPath = path.join(certificatesDir, thankYouFilename)
             fs.writeFileSync(thankYouPath, thankYouBuffer)
-            thankYouUrl = `/certificates/${thankYouFilename}`
+            thankYouUrl = `${appBaseUrl}/certificates/${thankYouFilename}`
             console.log('✅ Thank you certificate generated:', thankYouUrl)
           } catch (e) {
             console.error('❌ Failed to generate thank you certificate:', e)

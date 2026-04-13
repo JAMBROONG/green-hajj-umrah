@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
-import { FaArrowLeft } from 'react-icons/fa'
+import { useDialog } from '@/contexts/DialogContext'
+import { FaArrowLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
 import { getImageUrl } from '@/lib/image-utils'
 
 interface MidtransSnapResponse {
@@ -55,6 +56,15 @@ interface CSRActivity {
   }
 }
 
+interface CsrActivityUpdate {
+  id: string
+  csr_activity_id: string
+  title: string
+  description: string
+  photos: string[]
+  created_at: string
+}
+
 const categoryIcons: Record<string, string> = {
   reforestation: '🌳',
   waste_management: '♻️',
@@ -78,11 +88,33 @@ const statusTexts: Record<string, string> = {
 
 export default function CSRActivityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { id: activityId } = use(params)
   const [activity, setActivity] = useState<CSRActivity | null>(null)
+  const [updates, setUpdates] = useState<CsrActivityUpdate[]>([])
   const [loading, setLoading] = useState(true)
   const [donationAmount, setDonationAmount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
+  const [activeSlides, setActiveSlides] = useState<Record<string, number>>({})
+  const { showError } = useDialog()
+
+  // Fallback: handle Midtrans redirect-back to this page (redirect-based payment methods)
+  // This happens when callbacks.finish isn't respected or for old transactions without it set.
+  useEffect(() => {
+    const orderId = searchParams.get('order_id')
+    if (!orderId) return
+    // Clean the URL first
+    window.history.replaceState({}, '', window.location.pathname)
+    // Look up user's donations and find the one for this activity
+    fetch('/api/user/csr-donations')
+      .then(res => res.ok ? res.json() : [])
+      .then((donations: Array<{ id: string; csr_activity_id: string }>) => {
+        const match = donations.find(d => d.csr_activity_id === activityId)
+        if (match) router.replace(`/csr-donations/${match.id}`)
+      })
+      .catch(() => { /* ignore */ })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Load Midtrans Snap script
   useEffect(() => {
@@ -126,14 +158,20 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
     const fetchActivity = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/csr-activities/${activityId}`)
-        if (!response.ok) {
-          console.error('API response:', response.status, response.statusText)
+        const [actRes, updRes] = await Promise.all([
+          fetch(`/api/csr-activities/${activityId}`),
+          fetch(`/api/csr-activities/${activityId}/updates`),
+        ])
+        if (!actRes.ok) {
+          console.error('API response:', actRes.status, actRes.statusText)
           throw new Error('Failed to fetch activity')
         }
-        const data = await response.json()
+        const data = await actRes.json()
         console.log('Fetched activity:', data)
         setActivity(data)
+        if (updRes.ok) {
+          setUpdates(await updRes.json())
+        }
       } catch (err) {
         console.error('Error fetching activity:', err)
       } finally {
@@ -150,7 +188,17 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
     e.preventDefault()
 
     if (!donationAmount) {
-      alert('Masukkan jumlah donasi')
+      showError('Masukkan jumlah donasi')
+      return
+    }
+
+    const amount = parseFloat(donationAmount)
+    if (amount < 1) {
+      showError('Minimal donasi adalah Rp 1')
+      return
+    }
+    if (amount > 5000000) {
+      showError('Maksimal donasi adalah Rp 5.000.000 per transaksi')
       return
     }
 
@@ -165,12 +213,13 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
         body: JSON.stringify({
           csr_activity_id: activityId,
           type: 'donate',
-          amount: parseFloat(donationAmount),
+          amount,
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to submit donation')
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.error || errData.details || 'Failed to submit donation')
       }
 
       const data = await response.json()
@@ -180,43 +229,27 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
       // Use Midtrans Snap popup (not redirect)
       if (data.snapToken && window.snap) {
         window.snap.pay(data.snapToken, {
-          onSuccess: async function (result: MidtransSnapResponse) {
+                onSuccess: async function (result: MidtransSnapResponse) {
             console.log('✅ DONATION SUCCESS', result)
-            alert('✅ Donasi Berhasil!')
-
-            let verifySuccess = false
 
             // Verify payment status with backend
             try {
-              console.log('🔍 Verifying donation...', { participationId: data.id })
               const verifyResponse = await fetch('/api/csr-activities/participate/verify', {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ participationId: data.id }),
               })
-
-              console.log('📡 Verify response status:', verifyResponse.status)
-
               if (verifyResponse.ok) {
-                const verifyData = await verifyResponse.json()
-                console.log('✅ Donation verified:', JSON.stringify(verifyData, null, 2))
-                verifySuccess = true
-                
-                // Wait a bit for DB to settle
-                await new Promise(resolve => setTimeout(resolve, 1000))
-              } else {
-                const errorData = await verifyResponse.json()
-                console.error('❌ Verify error:', { status: verifyResponse.status, error: errorData })
+                console.log('✅ Donation verified')
+                // Wait briefly for DB to settle
+                await new Promise(resolve => setTimeout(resolve, 500))
               }
             } catch (err) {
               console.error('❌ Error during verify:', err)
             }
 
-            // Redirect to profile with donation tab ONLY after verify
-            console.log('🚀 Redirecting to profile...', { verifySuccess })
-            router.push(`/profile?tab=donations&donated=${data.id}`)
+            // Redirect to CSR donation detail page
+            router.push(`/csr-donations/${data.id}`)
           },
           onPending: function (result: MidtransSnapResponse) {
             console.log('⏳ Donation pending:', result)
@@ -224,7 +257,6 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
           },
           onError: function (result: MidtransSnapResponse) {
             console.log('❌ Donation error:', result)
-            alert('Donasi gagal. Silakan coba lagi.')
             setSubmitting(false)
           },
           onClose: function () {
@@ -237,10 +269,13 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
       }
     } catch (error) {
       console.error('Donation error:', error)
-      alert(error instanceof Error ? error.message : 'Donation error occurred')
+      showError(error instanceof Error ? error.message : 'Gagal memproses donasi')
       setSubmitting(false)
     }
   }
+
+  const formatRupiah = (amount: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount)
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -275,7 +310,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
           <p className="text-sm text-textMuted">Kegiatan tidak ditemukan</p>
           <button
             onClick={() => router.back()}
-            className="mt-6 px-6 py-2 bg-primary text-white rounded-xl text-sm font-semibold"
+            className="mt-6 px-6 py-2 btn-primary rounded-xl text-sm font-semibold"
           >
             Kembali
           </button>
@@ -284,6 +319,18 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
       </div>
     )
   }
+
+  const donationStatus = (() => {
+    if (activity.status === 'completed') return 'completed'
+    if (activity.status === 'cancelled') return 'cancelled'
+    const now = new Date()
+    const start = new Date(activity.start_date)
+    const end = new Date(activity.end_date)
+    end.setHours(23, 59, 59, 999)
+    if (now < start) return 'not_started'
+    if (now > end) return 'period_ended'
+    return 'open'
+  })()
 
   return (
     <div className="app-container">
@@ -348,30 +395,22 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
           </div>
 
           {/* Key Info */}
-          <div className="bg-primaryLight rounded-xl p-4 mb-6 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">📍 Lokasi</span>
-              <span className="text-sm font-semibold text-textDark">
-                {activity.location}
-              </span>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-primaryLight rounded-xl p-3 col-span-2">
+              <p className="text-xs text-textMuted mb-1">📍 Lokasi</p>
+              <p className="text-sm font-semibold text-textDark">{activity.location}</p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">📅 Tanggal Kegiatan</span>
-              <span className="text-sm font-semibold text-textDark">
-                {formatDate(activity.activity_date)}
-              </span>
+            <div className="bg-primaryLight rounded-xl p-3">
+              <p className="text-xs text-textMuted mb-1">📅 Tanggal Kegiatan</p>
+              <p className="text-sm font-semibold text-textDark">{formatDate(activity.activity_date)}</p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">📋 Periode Pendaftaran</span>
-              <span className="text-sm font-semibold text-textDark">
-                {formatDate(activity.start_date)} s/d {formatDate(activity.end_date)}
-              </span>
+            <div className="bg-primaryLight rounded-xl p-3">
+              <p className="text-xs text-textMuted mb-1">🎯 Target Dukungan</p>
+              <p className="text-sm font-semibold text-textDark">{formatRupiah(activity.target_donation_amount)}</p>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-textMuted">� Target Dukungan</span>
-              <span className="text-sm font-semibold text-textDark">
-                Rp {activity.target_donation_amount.toLocaleString('id-ID')}
-              </span>
+            <div className="bg-primaryLight rounded-xl p-3 col-span-2">
+              <p className="text-xs text-textMuted mb-1">📋 Periode Donasi</p>
+              <p className="text-sm font-semibold text-textDark">{formatDate(activity.start_date)} — {formatDate(activity.end_date)}</p>
             </div>
           </div>
 
@@ -392,8 +431,8 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
               ></div>
             </div>
             <div className="flex justify-between text-xs text-textMuted">
-              <span>Rp {activity.total_donations_amount.toLocaleString('id-ID')}</span>
-              <span>Rp {activity.target_donation_amount.toLocaleString('id-ID')}</span>
+              <span>{formatRupiah(activity.total_donations_amount)}</span>
+              <span>{formatRupiah(activity.target_donation_amount)}</span>
             </div>
           </div>
 
@@ -405,30 +444,109 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
             </p>
           </div>
 
+          {/* Updates / News */}
+          {updates.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-textDark mb-3">📰 Berita & Update Terbaru</h3>
+              <div className="space-y-4">
+                {updates.map((update) => {
+                  const photos: string[] = Array.isArray(update.photos) ? update.photos : []
+                  const slide = activeSlides[update.id] ?? 0
+                  return (
+                    <div key={update.id} className="bg-white border border-border rounded-xl overflow-hidden">
+                      {/* Photo slider */}
+                      {photos.length > 0 && (
+                        <div className="relative w-full h-48 bg-gray-100">
+                          <img
+                            src={getImageUrl(photos[slide])}
+                            alt={`${update.title} foto ${slide + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {photos.length > 1 && (
+                            <>
+                              <button
+                                onClick={() => setActiveSlides(prev => ({ ...prev, [update.id]: (slide - 1 + photos.length) % photos.length }))}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition"
+                              >
+                                <FaChevronLeft className="text-xs" />
+                              </button>
+                              <button
+                                onClick={() => setActiveSlides(prev => ({ ...prev, [update.id]: (slide + 1) % photos.length }))}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition"
+                              >
+                                <FaChevronRight className="text-xs" />
+                              </button>
+                              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                                {photos.map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setActiveSlides(prev => ({ ...prev, [update.id]: i }))}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all ${i === slide ? 'bg-white w-3' : 'bg-white/50'}`}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <div className="p-4">
+                        <p className="text-xs text-textMuted mb-1">
+                          {new Date(update.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                        <h4 className="text-sm font-bold text-textDark mb-2">{update.title}</h4>
+                        <p className="text-sm text-textMuted leading-relaxed whitespace-pre-line">{update.description}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Contact Info */}
-          <div className="bg-white border border-border rounded-xl p-4 mb-6">
-            <h3 className="text-sm font-bold text-textDark mb-3">Kontak</h3>
+          <div className="bg-white border border-border rounded-xl p-4 mb-6">            <p className="text-xs font-bold text-textDark mb-3">Kontak</p>
             <div className="space-y-2">
-              <div className="flex items-start gap-3">
-                <span className="text-xs text-textMuted min-w-fit">👤 PIC:</span>
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-primaryLight flex items-center justify-center text-sm flex-none">👤</span>
                 <span className="text-sm text-textDark">{activity.contact_person}</span>
               </div>
-              <div className="flex items-start gap-3">
-                <span className="text-xs text-textMuted min-w-fit">📞 Telepon:</span>
-                <span className="text-sm text-primary font-medium">
-                  {activity.contact_phone}
-                </span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-xs text-textMuted min-w-fit">📧 Email:</span>
-                <span className="text-sm text-primary font-medium">
-                  {activity.contact_email}
-                </span>
-              </div>
+              <a href={`tel:${activity.contact_phone}`} className="flex items-center gap-3 group">
+                <span className="w-7 h-7 rounded-full bg-primaryLight flex items-center justify-center text-sm flex-none">📞</span>
+                <span className="text-sm text-primary font-medium group-active:underline">{activity.contact_phone}</span>
+              </a>
+              <a href={`mailto:${activity.contact_email}`} className="flex items-center gap-3 group">
+                <span className="w-7 h-7 rounded-full bg-primaryLight flex items-center justify-center text-sm flex-none">📧</span>
+                <span className="text-sm text-primary font-medium truncate group-active:underline">{activity.contact_email}</span>
+              </a>
             </div>
           </div>
 
           {/* Donation Section */}
+          {donationStatus !== 'open' ? (
+            <div className="bg-gray-50 border border-border rounded-xl p-5 mb-8 text-center">
+              <p className="text-2xl mb-2">
+                {donationStatus === 'not_started' ? '🕐'
+                  : donationStatus === 'period_ended' ? '⏰'
+                  : donationStatus === 'completed' ? '✅'
+                  : '❌'}
+              </p>
+              <p className="text-sm font-semibold text-textDark mb-1">
+                {donationStatus === 'not_started' ? 'Belum Masuk Periode Donasi'
+                  : donationStatus === 'period_ended' ? 'Periode Donasi Telah Berakhir'
+                  : donationStatus === 'completed' ? 'Kegiatan Telah Selesai'
+                  : 'Kegiatan Dibatalkan'}
+              </p>
+              <p className="text-xs text-textMuted">
+                {donationStatus === 'not_started'
+                  ? `Donasi dibuka mulai ${formatDate(activity.start_date)}`
+                  : donationStatus === 'period_ended'
+                  ? `Periode donasi berakhir pada ${formatDate(activity.end_date)}`
+                  : donationStatus === 'completed'
+                  ? 'Terima kasih atas dukungan semua pihak untuk kegiatan ini.'
+                  : 'Kegiatan ini telah dibatalkan dan tidak menerima donasi.'}
+              </p>
+            </div>
+          ) : (
           <div className="bg-white border border-border rounded-xl p-4 mb-8">
             <h3 className="text-sm font-bold text-textDark mb-2">Dukung Kegiatan Ini</h3>
             <p className="text-xs text-textMuted mb-4">
@@ -438,17 +556,23 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
             <form onSubmit={handleDonate} className="space-y-4">
               {/* Donation Amount */}
               <div>
-                  <label className="block text-xs font-semibold text-textDark mb-2">
-                    Jumlah Donasi (Rp)
+                  <label className="block text-xs font-semibold text-textDark mb-1">
+                    Jumlah Donasi
                   </label>
+                  <p className="text-[11px] text-textMuted mb-2">Min Rp 1 · Maks Rp 5.000.000</p>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted">Rp</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted text-sm">Rp</span>
                     <input
-                      type="number"
-                      min="1"
-                      value={donationAmount}
-                      onChange={(e) => setDonationAmount(e.target.value)}
-                      placeholder="100000"
+                      type="text"
+                      inputMode="numeric"
+                      value={donationAmount ? Number(donationAmount).toLocaleString('id-ID') : ''}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '')
+                        if (raw === '' || parseInt(raw) <= 5000000) {
+                          setDonationAmount(raw)
+                        }
+                      }}
+                      placeholder="100.000"
                       className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg bg-white text-sm text-textDark focus:border-primary focus:outline-none transition-colors"
                     />
                   </div>
@@ -462,7 +586,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                         onClick={() => setDonationAmount(amount.toString())}
                         className={`py-2 px-2 rounded-lg text-xs font-semibold transition-colors ${
                           donationAmount === amount.toString()
-                            ? 'bg-primary text-white'
+                            ? 'btn-primary'
                             : 'bg-primaryLight text-primary border border-primary'
                         }`}
                       >
@@ -479,13 +603,14 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                 className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all mt-6 ${
                   submitting || !donationAmount
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-primary hover:bg-primary-dark active:scale-95'
+                    : 'btn-primary active:scale-95'
                 }`}
               >
                 {submitting ? 'Memproses...' : 'Lanjut ke Pembayaran'}
               </button>
             </form>
           </div>
+          )}
         </div>
       </div>
 

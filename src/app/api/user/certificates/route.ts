@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
         certificate_id: c.id,
         status: c.status,
         purchase_date: c.created_at.toISOString(),
-        thank_you_certificate_url: c.metadata?.thank_you_certificate_url || null,
-        emission_reduction_certificate_url: c.metadata?.emission_reduction_certificate_url || null,
+        thank_you_certificate_url: (c.metadata as Record<string, string>)?.thank_you_certificate_url || null,
+        emission_reduction_certificate_url: (c.metadata as Record<string, string>)?.emission_reduction_certificate_url || null,
         product_code: c.product?.product_code,
         product_name: c.product?.name,
       }))

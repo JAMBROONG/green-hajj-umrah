@@ -1,10 +1,13 @@
 import { MetadataRoute } from 'next'
+import { APP_NAME, isHajjIncluded } from '@/lib/featureFlags'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Green Hajj & Umrah',
-    short_name: 'GreenHajj',
-    description: 'Aplikasi Perhitungan Emisi Ibadah Hajj dan Umrah',
+    name: APP_NAME,
+    short_name: 'Green Umrah',
+    description: isHajjIncluded
+      ? 'Aplikasi Perhitungan Emisi Ibadah Hajj dan Umrah'
+      : 'Aplikasi Perhitungan Emisi Ibadah Umrah',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

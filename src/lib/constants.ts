@@ -116,7 +116,7 @@ export const CATEGORY_DEFINITIONS = {
     name: 'Limbah',
     icon: '♻️',
     color: 'green',
-    description: 'Sampah dan limbah lainnya'
+    description: 'Limbah dan sampah lainnya'
   }
 } as const;
 

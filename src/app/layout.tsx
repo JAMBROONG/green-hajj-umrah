@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
+import { APP_NAME, isHajjIncluded } from "@/lib/featureFlags";
 
 export const metadata: Metadata = {
-  title: "Green Hajj & Umrah - Kalkulator Emisi CO2e",
-  description: "Aplikasi Perhitungan Emisi Ibadah Hajj dan Umrah",
+  title: `${APP_NAME} - Kalkulator Emisi CO2e`,
+  description: isHajjIncluded
+    ? "Aplikasi Perhitungan Emisi Ibadah Hajj dan Umrah"
+    : "Aplikasi Perhitungan Emisi Ibadah Umrah",
 };
 
 export const viewport: Viewport = {
@@ -20,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <body>
         <Providers>{children}</Providers>
       </body>

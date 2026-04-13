@@ -293,21 +293,30 @@ body {
 .nav-item {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  color: white;
+}
+
+.nav-item svg {
+  stroke: white;
+}
+
+.nav-item span {
+  color: white;
 }
 
 .nav-item:hover {
-  background: #E8F5F0;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .nav-item::before {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: 0px;
   left: 50%;
   transform: translateX(-50%) scaleX(0);
   width: 32px;
   height: 3px;
-  background: #0D6E4F;
+  background: #F5C518;
   border-radius: 999px 999px 0 0;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -317,15 +326,37 @@ body {
 }
 
 .nav-item.active {
-  color: #0D6E4F;
+  color: #F5C518;
 }
 
 .nav-item.active svg {
-  stroke: #0D6E4F;
+  stroke: #F5C518;
 }
 
 .nav-item.active span {
-  color: #0D6E4F;
+  color: #F5C518;
+}
+
+/* ── Primary action button gradient ── */
+.btn-primary {
+  background: linear-gradient(135deg, #0a5c42 0%, #1a9668 100%);
+  color: white;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-primary:hover {
+  opacity: 0.90;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:disabled {
+  background: #9ca3af;
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .payment-method {

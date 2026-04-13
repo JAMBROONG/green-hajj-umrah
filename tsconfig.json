@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "check-db.ts", "check-prisma.js", "check-carbon-config.ts", "check-carbon-products.ts", "check-emission-factors.js", "check-payment-config.ts", "cleanup-vehicle-types.ts", "fix-duplicate.ts", "fresh-seed.ts", "reset-data.ts", "seed-carbon-products.ts", "update-carbon-config.ts", "update-payment-config.ts"]
 }

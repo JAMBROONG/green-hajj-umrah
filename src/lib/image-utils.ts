@@ -13,12 +13,12 @@ export function getImageUrl(imagePath?: string | null): string {
   }
 
   // Get prefix from env or fallback to localhost
-  const prefix = process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX || 'http://localhost:3000'
+  const rawPrefix = process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX || 'http://localhost:3000'
+  // Normalise: strip trailing slash from prefix, strip leading slash from path
+  const prefix = rawPrefix.endsWith('/') ? rawPrefix.slice(0, -1) : rawPrefix
+  const path = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath
 
-  // Ensure path starts with /
-  const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`
-
-  return `${prefix}${path}`
+  return `${prefix}/${path}`
 }
 
 /**

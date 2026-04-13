@@ -1,10 +1,14 @@
-import NextAuth from "next-auth"
+import NextAuth, { CredentialsSignin } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import prisma from "@/lib/prisma"
 
+class TenantInactiveError extends CredentialsSignin {
+  code = 'TENANT_INACTIVE'
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
@@ -35,6 +39,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (user.role !== 'jemaah') {
           console.log('❌ Access denied: User is not a jemaah (role:', user.role, ')');
           return null
+        }
+
+        // Check if tenant is active
+        if (!user.tenant || !user.tenant.is_active) {
+          console.log('❌ Tenant inactive for user:', user.email);
+          throw new TenantInactiveError();
         }
 
         console.log('🔑 Comparing password...');

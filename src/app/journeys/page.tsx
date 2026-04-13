@@ -56,32 +56,6 @@ export default function JourneysPage() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      ongoing: 'bg-blue-100 text-blue-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-gray-100 text-gray-800'
-    };
-    const labels = {
-      ongoing: 'Berlangsung',
-      completed: 'Selesai',
-      cancelled: 'Dibatalkan'
-    };
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status as keyof typeof colors]}`}>
-        {labels[status as keyof typeof labels]}
-      </span>
-    );
-  };
-
-  const getTripIcon = (type: string) => {
-    return type === 'haji' ? (
-      <FaKaaba className="text-2xl text-emerald-600" />
-    ) : (
-      <FaMosque className="text-2xl text-emerald-600" />
-    );
-  };
-
   if (isLoading) {
     return (
       <div className="app-container flex items-center justify-center min-h-screen">
@@ -96,121 +70,174 @@ export default function JourneysPage() {
   return (
     <div className="app-container">
       <StatusBar />
-      
-      <div className="page pb-24">
+
+      <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
-        <div className="bg-white px-5 py-4 border-b border-border shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div
+          className="text-white shadow-lg"
+          style={{
+            backgroundImage: "url('/bg-menu.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="px-5 pt-5 pb-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push('/')}
+                  className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+                >
+                  <FaArrowLeft className="text-base text-white" />
+                </button>
+                <div>
+                  <h1 className="text-lg font-bold leading-tight">Perjalanan Saya</h1>
+                  <p className="text-xs text-white/75">Rekam jejak karbon ibadahmu</p>
+                </div>
+              </div>
               <button
-                onClick={() => router.push('/')}
-                className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center hover:bg-primary/20 transition-colors"
+                onClick={handleNewTrip}
+                disabled={hasOngoingTrip}
+                title={hasOngoingTrip ? 'Selesaikan perjalanan yang sedang berlangsung terlebih dahulu' : 'Buat perjalanan baru'}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
+                  hasOngoingTrip
+                    ? 'bg-white/20 cursor-not-allowed opacity-50'
+                    : 'bg-white/30 hover:bg-white/40'
+                }`}
               >
-                <FaArrowLeft className="text-lg text-textDark" />
+                <FaPlus className="text-white text-base" />
               </button>
-              <h1 className="text-lg font-bold text-textDark">Perjalanan Saya</h1>
             </div>
-            <button
-              onClick={handleNewTrip}
-              disabled={hasOngoingTrip}
-              title={hasOngoingTrip ? 'Selesaikan perjalanan yang sedang berlangsung terlebih dahulu' : ''}
-              className={`w-10 h-10 rounded-full text-white flex items-center justify-center transition-colors shadow-sm ${
-                hasOngoingTrip 
-                  ? 'bg-gray-400 cursor-not-allowed opacity-60' 
-                  : 'bg-primary hover:bg-primary/90'
-              }`}
-            >
-              <FaPlus className="text-lg" />
-            </button>
+
+            {/* Stats pill */}
+            <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center justify-between">
+              <div className="text-center">
+                <p className="text-xl font-bold">{trips.length}</p>
+                <p className="text-[10px] text-white/75">Total</p>
+              </div>
+              <div className="w-px h-8 bg-white/25" />
+              <div className="text-center">
+                <p className="text-xl font-bold">{trips.filter(t => t.status === 'ongoing').length}</p>
+                <p className="text-[10px] text-white/75">Berlangsung</p>
+              </div>
+              <div className="w-px h-8 bg-white/25" />
+              <div className="text-center">
+                <p className="text-xl font-bold">{trips.filter(t => t.status === 'completed').length}</p>
+                <p className="text-[10px] text-white/75">Selesai</p>
+              </div>
+              <div className="w-px h-8 bg-white/25" />
+              <div className="text-center">
+                <p className="text-xl font-bold">
+                  {(trips.reduce((s, t) => s + parseFloat(t.totalEmission.toString()), 0) / 1000).toFixed(1)}
+                </p>
+                <p className="text-[10px] text-white/75">Ton CO₂</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-5">
+        <div className="px-5 py-4">
           {hasOngoingTrip && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-5">
-              <p className="text-sm text-blue-800 font-medium">
-                ℹ️ Anda memiliki perjalanan yang sedang berlangsung. Selesaikan terlebih dahulu sebelum membuat perjalanan baru.
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-sm">ℹ️</span>
+              </div>
+              <p className="text-sm text-blue-800">
+                Ada perjalanan yang sedang berlangsung. Selesaikan terlebih dahulu sebelum membuat perjalanan baru.
               </p>
             </div>
           )}
 
           {trips.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-8 text-center">
-              <div className="text-gray-400 mb-4">
-                <FaKaaba className="text-6xl mx-auto" />
+            <div className="text-center py-14">
+              <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                <FaKaaba className="text-4xl text-emerald-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Belum Ada Perjalanan
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Mulai lacak jejak karbon perjalanan haji atau umrah Anda
-              </p>
+              <p className="text-gray-700 font-semibold mb-1">Belum Ada Perjalanan</p>
+              <p className="text-sm text-gray-500 mb-6">Mulai lacak jejak karbon perjalanan haji atau umrah Anda</p>
               <button
                 onClick={handleNewTrip}
-                disabled={hasOngoingTrip}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                  hasOngoingTrip
-                    ? 'bg-gray-400 text-white opacity-60 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                }`}
+                className="btn-primary px-6 py-3 rounded-xl font-semibold flex items-center gap-2 mx-auto"
               >
-                Buat Perjalanan Baru
+                <FaPlus /> Buat Perjalanan Baru
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
-            {trips.map((trip) => (
-              <div
-                key={trip.id}
-                onClick={() => router.push(`/journeys/${trip.id}`)}
-                className="bg-white rounded-xl shadow-md p-5 cursor-pointer hover:shadow-lg transition-all"
-              >
-                <div className="flex gap-4">
-                  {/* Icon */}
-                  <div className="flex-shrink-0">
-                    {getTripIcon(trip.type)}
-                  </div>
+            <div className="space-y-3">
+              {trips.map((trip) => {
+                const statusColor: Record<string, string> = {
+                  ongoing: 'bg-blue-500',
+                  completed: 'bg-green-500',
+                  cancelled: 'bg-gray-400',
+                };
+                const statusBg: Record<string, string> = {
+                  ongoing: 'bg-blue-100 text-blue-700',
+                  completed: 'bg-green-100 text-green-700',
+                  cancelled: 'bg-gray-100 text-gray-500',
+                };
+                const statusLabel: Record<string, string> = {
+                  ongoing: 'Berlangsung',
+                  completed: 'Selesai',
+                  cancelled: 'Dibatalkan',
+                };
+                const emissionTon = (parseFloat(trip.totalEmission.toString()) / 1000).toFixed(2);
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-800 text-base truncate">
-                          {trip.name}
-                        </h3>
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded font-medium uppercase">
-                          {trip.type}
-                        </span>
+                return (
+                  <div
+                    key={trip.id}
+                    onClick={() => router.push(`/journeys/${trip.id}`)}
+                    className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <div className="flex">
+                      <div className={`w-1.5 flex-shrink-0 ${statusColor[trip.status] ?? 'bg-gray-400'}`} />
+                      <div className="flex-1 p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                              {trip.type === 'haji'
+                                ? <FaKaaba className="text-xl text-emerald-600" />
+                                : <FaMosque className="text-xl text-emerald-600" />}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">{trip.name}</h3>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                                {trip.type}
+                              </span>
+                            </div>
+                          </div>
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${statusBg[trip.status]}`}>
+                            {statusLabel[trip.status]}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <FaCalendarAlt className="text-gray-400" />
+                            <span>{formatDate(trip.startDate)} – {formatDate(trip.endDate)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <FaLeaf className="text-emerald-500 text-xs" />
+                            <span className="text-xs font-bold text-emerald-600">{emissionTon} ton CO₂</span>
+                          </div>
+                        </div>
                       </div>
-                      {getStatusBadge(trip.status)}
-                    </div>
-
-                    {/* Date Range */}
-                    <div className="flex items-center text-xs text-gray-600 mb-3">
-                      <FaCalendarAlt className="mr-2" />
-                      <span>
-                        {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
-                      </span>
-                    </div>
-
-                    {/* Emission */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-xs">
-                        <FaLeaf className="text-emerald-600 mr-2" />
-                        <span className="text-gray-600">Total Emisi:</span>
-                      </div>
-                      <span className="font-semibold text-emerald-600 text-xs">
-                        {(parseFloat(trip.totalEmission.toString()) / 1000).toFixed(2)} ton CO₂
-                      </span>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                );
+              })}
+
+              {/* New trip button at bottom */}
+              {!hasOngoingTrip && (
+                <button
+                  onClick={handleNewTrip}
+                  className="w-full py-4 border-2 border-dashed border-primary/30 rounded-2xl text-primary font-semibold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 mt-2"
+                >
+                  <FaPlus /> Buat Perjalanan Baru
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -3,7 +3,8 @@
 import { use, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import StatusBar from '@/components/StatusBar';
+import { FaArrowLeft } from 'react-icons/fa';
+import { MdRecycling, MdRestaurant, MdHotel, MdDirectionsCar } from 'react-icons/md';import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import Toast from '@/components/Toast';
 import TransportForm from '@/components/forms/TransportForm';
@@ -114,29 +115,45 @@ export default function CategoryInputPage({
     }
   };
 
+  const categoryIcons: Record<string, React.ReactElement> = {
+    waste: <MdRecycling className="text-2xl text-white" />,
+    food: <MdRestaurant className="text-2xl text-white" />,
+    hotel: <MdHotel className="text-2xl text-white" />,
+    transport: <MdDirectionsCar className="text-2xl text-white" />,
+  };
+  const categoryIcon = categoryIcons[resolvedParams.categoryId] || <MdDirectionsCar className="text-2xl text-white" />;
+
   return (
     <div className="app-container">
       <StatusBar />
-      
-      <div className="page pb-24">
+
+      <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
-        <div className="bg-white px-5 py-4 border-b border-border flex items-center gap-3">
-          <Link 
-            href={`/phases/${resolvedParams.phaseId}?tripId=${tripId}`} 
-            className="w-8 h-8 rounded-full bg-bgMain flex items-center justify-center"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <div className="flex-1">
-            <p className="text-xs text-textMuted">{phase.name}</p>
-            <h1 className="text-lg font-bold text-textDark">{category.name}</h1>
+        <div
+          className="text-white shadow-lg"
+          style={{ backgroundImage: "url('/bg-menu.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+        >
+          <div className="px-5 pt-5 pb-5">
+            <Link
+              href={`/phases/${resolvedParams.phaseId}?tripId=${tripId}`}
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors mb-4"
+            >
+              <FaArrowLeft className="text-base text-white" />
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                {categoryIcon}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">{category.name}</h1>
+                <p className="text-sm text-white/75">{phase.name}</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Form */}
-        <div className="p-5">
+        <div className="px-5 py-4">
           {renderForm()}
         </div>
       </div>

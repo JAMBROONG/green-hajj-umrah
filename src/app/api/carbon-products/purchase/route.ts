@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Product found:', product.name)
 
     // Calculate total price
-    const unitPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price
+    const unitPrice = parseFloat(product.price.toString())
     const totalAmount = Math.round(unitPrice * units)
 
     const transactionPayload = {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         first_name: userProfile.full_name?.split(' ')[0] || 'User',
         last_name: userProfile.full_name?.split(' ').slice(1).join(' ') || '',
         email: userProfile.email,
-        phone: userProfile.metadata?.phone || '',
+        phone: (userProfile.metadata as Record<string, string>)?.phone || '',
       },
       item_details: [
         {
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
       ],
       custom_field1: `product:${product_code}`,
       custom_field2: `user:${userProfile.id}`,
-      finish_redirect_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/profile?tab=certificates`,
+      finish_redirect_url: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/carbon-products/purchase/handle-redirect`,
     }
 
     const transaction = await createMidtransTransaction(transactionPayload, carbonConfig.midtrans_server_key, carbonConfig.is_production)

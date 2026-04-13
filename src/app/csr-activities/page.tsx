@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
-import { getImageUrl, getPlaceholderImage } from '@/lib/image-utils'
-import { FaArrowLeft } from 'react-icons/fa'
+import { getImageUrl } from '@/lib/image-utils'
+import { FaArrowLeft, FaLeaf, FaRecycle, FaBolt, FaTint, FaGlobe } from 'react-icons/fa'
 
 interface CSRActivity {
   id: string
@@ -39,6 +39,27 @@ const categoryIcons: Record<string, string> = {
   waste_management: '♻️',
   energy_efficiency: '⚡',
   water_conservation: '💧',
+}
+
+const categoryIconComponents: Record<string, React.ReactNode> = {
+  reforestation: <FaLeaf className="text-green-500" size={36} />,
+  waste_management: <FaRecycle className="text-teal-500" size={36} />,
+  energy_efficiency: <FaBolt className="text-yellow-500" size={36} />,
+  water_conservation: <FaTint className="text-blue-500" size={36} />,
+}
+
+const categoryBgColors: Record<string, string> = {
+  reforestation: 'bg-green-50',
+  waste_management: 'bg-teal-50',
+  energy_efficiency: 'bg-yellow-50',
+  water_conservation: 'bg-blue-50',
+}
+
+const categoryLabels: Record<string, string> = {
+  reforestation: 'Pohon',
+  waste_management: 'Sampah',
+  energy_efficiency: 'Energi',
+  water_conservation: 'Air',
 }
 
 const statusTexts: Record<string, string> = {
@@ -118,13 +139,29 @@ export default function CSRActivitiesPage() {
     })
   }
 
+  const categories = [
+    { value: 'all', label: 'Semua', icon: '🌐' },
+    { value: 'reforestation', label: 'Pohon', icon: '🌳' },
+    { value: 'waste_management', label: 'Sampah', icon: '♻️' },
+    { value: 'energy_efficiency', label: 'Energi', icon: '⚡' },
+    { value: 'water_conservation', label: 'Air', icon: '💧' },
+  ]
+
+  const statuses = [
+    { value: 'all', label: 'Semua' },
+    { value: 'active', label: 'Aktif' },
+    { value: 'upcoming', label: 'Akan Datang' },
+    { value: 'completed', label: 'Selesai' },
+    { value: 'cancelled', label: 'Dibatalkan' },
+  ]
+
   return (
     <div className="app-container">
       <StatusBar />
 
       <div className="page pb-24">
         {/* Header */}
-        <div className="bg-white px-5 py-4 border-b border-border shadow-sm">
+        <div className="bg-white px-5 py-4 border-b border-border shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
@@ -139,157 +176,156 @@ export default function CSRActivitiesPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        {paymentConfigured ? (
-        <div className="px-5 pt-4 space-y-3">
-          <div>
-            <label className="block text-xs font-semibold text-textDark mb-2">
-              Kategori
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2.5 border border-border rounded-xl bg-white text-sm text-textDark focus:border-primary focus:outline-none transition-colors"
-            >
-              <option value="all">Semua Kategori</option>
-              <option value="reforestation">🌳 Penanaman Pohon</option>
-              <option value="waste_management">♻️ Pengelolaan Sampah</option>
-              <option value="energy_efficiency">⚡ Efisiensi Energi</option>
-              <option value="water_conservation">💧 Konservasi Air</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-textDark mb-2">
-              Status
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2.5 border border-border rounded-xl bg-white text-sm text-textDark focus:border-primary focus:outline-none transition-colors"
-            >
-              <option value="all">Semua Status</option>
-              <option value="active">Aktif</option>
-              <option value="upcoming">Akan Datang</option>
-              <option value="completed">Selesai</option>
-              <option value="cancelled">Dibatalkan</option>
-            </select>
-          </div>
-        </div>
-        ) : (
-          <div className="px-5 pt-8 text-center">
-            <p className="text-2xl mb-2">🔍</p>
-            <p className="text-sm text-textMuted">Produk tidak tersedia</p>
+        {/* Payment not configured */}
+        {paymentConfigured === false && (
+          <div className="px-5 pt-16 text-center">
+            <p className="text-4xl mb-3">⚙️</p>
+            <p className="text-sm font-semibold text-textDark mb-1">Fitur Belum Tersedia</p>
+            <p className="text-xs text-textMuted">Konfigurasi pembayaran belum diatur</p>
           </div>
         )}
 
-        {/* Loading State */}
-        {paymentConfigured && loading && (
-          <div className="px-5 pt-8 text-center">
-            <div className="inline-block">
-              <div className="w-8 h-8 border-4 border-border rounded-full border-t-primary animate-spin"></div>
-            </div>
-            <p className="mt-4 text-sm text-textMuted">Memuat kegiatan...</p>
-          </div>
-        )}
-
-        {/* Activities Grid */}
-        {paymentConfigured && !loading && activities.length > 0 && (
-          <div className="px-5 pt-8 space-y-6 pb-6">
-            {activities.map((activity) => (
-              <Link
-                key={activity.id}
-                href={`/csr-activities/${activity.id}`}
+        {paymentConfigured && (
+          <>
+            {/* Category Filter Pills */}
+            <div className="pt-4 pb-1 border-b border-border">
+              <div
+                className="flex gap-2 overflow-x-auto px-5 pb-3"
+                style={{ scrollbarWidth: 'none' }}
               >
-                <div className="bg-white rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-all mt-5">
-                  {/* Image */}
-                  {activity.image_url ? (
-                    <div
-                      className="w-full h-32 bg-gray-200 bg-cover bg-center"
-                      style={{
-                        backgroundImage: `url(${getImageUrl(activity.image_url)})`,
-                      }}
-                    ></div>
-                  ) : (
-                    <div className="w-full h-32 bg-primaryLight flex items-center justify-center text-3xl">
-                      {categoryIcons[activity.category] || '🌍'}
-                    </div>
-                  )}
+                {categories.map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => setSelectedCategory(cat.value)}
+                    className={`flex-none flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                      selectedCategory === cat.value
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-gray-100 text-textMuted'
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
 
-                  {/* Content */}
-                  <div className="p-4">
-                    {/* Title */}
-                    <h3 className="text-sm font-semibold text-textDark mb-1 line-clamp-2">
-                      {activity.title}
-                    </h3>
+              {/* Status Filter Pills */}
+              <div
+                className="flex gap-2 overflow-x-auto px-5 pb-3"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                {statuses.map((s) => (
+                  <button
+                    key={s.value}
+                    onClick={() => setSelectedStatus(s.value)}
+                    className={`flex-none px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
+                      selectedStatus === s.value
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-white text-textMuted border-border'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                    {/* Tenant & Category */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="inline-block px-2 py-1 bg-primaryLight rounded text-xs font-medium text-primary">
-                        {activity.category.replace(/_/g, ' ')}
-                      </span>
-                      <span
-                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                          activity.status === 'active'
-                            ? 'bg-green-100 text-gain'
-                            : activity.status === 'upcoming'
-                            ? 'bg-blue-100 text-blue-700'
-                            : activity.status === 'completed'
-                            ? 'bg-gray-100 text-textMuted'
-                            : 'bg-red-100 text-loss'
-                        }`}
-                      >
-                        {statusTexts[activity.status]}
-                      </span>
-                    </div>
+            {/* Loading */}
+            {loading && (
+              <div className="pt-16 text-center">
+                <div className="w-8 h-8 border-4 border-border rounded-full border-t-primary animate-spin mx-auto"></div>
+                <p className="mt-4 text-sm text-textMuted">Memuat kegiatan...</p>
+              </div>
+            )}
 
-                    {/* Description */}
-                    <p className="text-xs text-textMuted mb-3 line-clamp-2">
-                      {activity.description}
-                    </p>
+            {/* Activities List */}
+            {!loading && activities.length > 0 && (
+              <div className="px-5 pt-3 space-y-3 pb-6">
+                {activities.map((activity) => {
+                  const progressPct = Math.min(
+                    Math.round((activity.total_donations_amount / activity.target_donation_amount) * 100),
+                    100
+                  )
+                  const isInactive = activity.status === 'completed' || activity.status === 'cancelled'
+                  return (
+                    <Link key={activity.id} href={`/csr-activities/${activity.id}`}>
+                      <div className="bg-white rounded-2xl border border-border overflow-hidden flex active:scale-[0.98] transition-transform mt-3">
+                        {/* Image */}
+                        <div className={`w-[108px] flex-none self-stretch relative overflow-hidden ${activity.image_url ? '' : (categoryBgColors[activity.category] ?? 'bg-primaryLight')}`}>
+                          {activity.image_url ? (
+                            <img
+                              src={getImageUrl(activity.image_url)}
+                              alt={activity.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              {categoryIconComponents[activity.category] ?? <FaGlobe className="text-primary" size={36} />}
+                            </div>
+                          )}
+                        </div>
 
-                    {/* Location & Date */}
-                    <div className="space-y-1 text-xs text-textMuted mb-3">
-                      <div className="flex items-center gap-2">
-                        <span>📍</span>
-                        <span className="line-clamp-1">{activity.location}</span>
+                        {/* Content */}
+                        <div className="flex-1 p-3 min-w-0 flex flex-col justify-between">
+                          {/* Badges */}
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            <span className="px-2 py-0.5 bg-primaryLight rounded-full text-[10px] font-semibold text-primary leading-tight">
+                              {categoryIcons[activity.category]} {categoryLabels[activity.category] ?? activity.category.replace(/_/g, ' ')}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold leading-tight ${
+                                activity.status === 'active'
+                                  ? 'bg-green-100 text-green-700'
+                                  : activity.status === 'upcoming'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : activity.status === 'completed'
+                                  ? 'bg-gray-100 text-textMuted'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {statusTexts[activity.status]}
+                            </span>
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="text-sm font-semibold text-textDark leading-snug line-clamp-2 mb-1">
+                            {activity.title}
+                          </h3>
+
+                          {/* Location */}
+                          <p className="text-[11px] text-textMuted line-clamp-1 mb-2">
+                            📍 {activity.location}
+                          </p>
+
+                          {/* Progress bar */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-border rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${isInactive ? 'bg-gray-300' : 'bg-primary'}`}
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                            <span className={`text-[10px] font-bold flex-none ${isInactive ? 'text-textMuted' : 'text-primary'}`}>
+                              {progressPct}%
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span>📅</span>
-                        <span>{formatDate(activity.start_date)}</span>
-                      </div>
-                    </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
 
-                    {/* Stats */}
-                    <div className="flex gap-3 pt-3 border-t border-border">
-                      <div className="flex-1">
-                        <p className="text-xs text-textMuted mb-1">Donasi Terkumpul</p>
-                        <p className="text-sm font-semibold text-textDark">
-                          Rp {Math.round(activity.total_donations_amount / 1000000).toLocaleString('id-ID')}jt
-                        </p>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs text-textMuted mb-1">Target</p>
-                        <p className="text-sm font-semibold text-textDark">
-                          Rp {Math.round(activity.target_donation_amount / 1000000).toLocaleString('id-ID')}jt
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && activities.length === 0 && (
-          <div className="px-5 pt-8 text-center">
-            <p className="text-3xl mb-3">🔍</p>
-            <p className="text-sm text-textMuted">
-              Tidak ada kegiatan CSR yang sesuai
-            </p>
-          </div>
+            {/* Empty State */}
+            {!loading && activities.length === 0 && (
+              <div className="px-5 pt-16 text-center">
+                <p className="text-4xl mb-3">🔍</p>
+                <p className="text-sm font-semibold text-textDark mb-1">Tidak ada kegiatan</p>
+                <p className="text-xs text-textMuted">Coba ubah filter kategori atau status</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { IoMail, IoLockClosed, IoEye, IoEyeOff } from 'react-icons/io5';
+import { APP_NAME } from '@/lib/featureFlags';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -38,6 +39,19 @@ export default function SignInPage() {
     console.log('🚀 Attempting login with:', email);
 
     try {
+      // Pre-check: apakah tenant user aktif?
+      const tenantCheck = await fetch('/api/auth/check-tenant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).then(r => r.json()).catch(() => ({ status: 'ok' }));
+
+      if (tenantCheck.status === 'frozen') {
+        setError('Akun Anda dibekukan sementara. Silakan hubungi administrator untuk informasi lebih lanjut.');
+        setLoading(false);
+        return;
+      }
+
       const result = await signIn('credentials', {
         email,
         password,
@@ -63,61 +77,75 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary to-primary-dark flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Green Hajj & Umrah
-          </h1>
-          <p className="text-gray-600">Masuk ke akun Anda</p>
-        </div>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        backgroundImage: "url('/BG Mobile Login.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+      }}
+    >
+      {/* Logo area — takes upper ~55% of screen */}
+      <div className="flex-1 flex flex-col items-center justify-end pb-8">
+        <img
+          src="/logo.png"
+          alt={APP_NAME}
+          className="w-36 h-auto drop-shadow-xl"
+        />
+        <h1 className="text-2xl font-bold text-white drop-shadow-lg mt-3 tracking-wide">
+          {APP_NAME}
+        </h1>
+        <p className="text-sm text-white/80 mt-1 drop-shadow">Jejak Karbon Perjalanan Ibadahmu</p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Form card — bottom sheet style */}
+      <div className="bg-white rounded-t-3xl shadow-2xl px-6 pt-8 pb-10">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Email
             </label>
             <div className="relative">
-              <IoMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <IoMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
                 placeholder="nama@email.com"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Password
             </label>
             <div className="relative">
-              <IoLockClosed className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <IoLockClosed className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 id="password"
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               >
-                {showPassword ? <IoEyeOff size={20} /> : <IoEye size={20} />}
+                {showPassword ? <IoEyeOff size={18} /> : <IoEye size={18} />}
               </button>
             </div>
           </div>
@@ -125,74 +153,56 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full btn-primary font-bold py-3.5 rounded-xl text-base mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? 'Memproses...' : 'Masuk'}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              'Masuk'
+            )}
           </button>
         </form>
 
+        <p className="text-center text-sm text-gray-500 mt-5">
+          <Link href="/auth/forgot-password" className="text-primary font-semibold hover:underline">
+            Lupa kata sandi?
+          </Link>
+        </p>
+
         {/* Debug Panel */}
-        <div className="mt-6 border-t pt-6">
+        <div className="mt-5 pt-4 border-t border-gray-100">
           <button
             type="button"
             onClick={() => setShowDebug(!showDebug)}
-            className="w-full text-sm text-gray-500 hover:text-gray-700"
+            className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors"
           >
             🔧 Debug: {showDebug ? 'Hide' : 'Show'} Users ({debugUsers.length})
           </button>
 
           {showDebug && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg text-xs max-h-96 overflow-y-auto">
-              <div className="font-semibold mb-3 text-gray-900">Database Users:</div>
-              {/* Jemaah Section Only */}
+            <div className="mt-3 p-3 bg-gray-50 rounded-xl text-xs max-h-80 overflow-y-auto space-y-2">
               <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                <div className="font-bold text-green-900 mb-2">
-                  🕌 JEMAAH (User/Jamaah)
-                </div>
-                <div className="text-xs text-green-700 mb-3 italic">
-                  Hanya jemaah yang dapat login di aplikasi ini
-                </div>
                 {debugUsers.map((user) => (
-                  <div key={user.id} className="bg-white p-2 rounded mb-2 last:mb-0">
-                    <div className="font-medium text-gray-900">
-                      {user.full_name || 'No Name'}
-                    </div>
-                    <div className="text-gray-600">📧 {user.email}</div>
-                    <div className="text-gray-500 text-[10px]">
-                      Company: {user.tenant_id?.substring(0, 8)}...
-                    </div>
+                  <div key={user.id} className="bg-white p-2 rounded-lg mb-2 last:mb-0">
+                    <div className="font-semibold text-gray-900">{user.full_name || 'No Name'}</div>
+                    <div className="text-gray-500">📧 {user.email}</div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setEmail(user.email);
-                        setPassword('password');
-                      }}
-                      className="mt-1 text-green-600 hover:underline font-medium"
+                      onClick={() => { setEmail(user.email); setPassword('password'); }}
+                      className="mt-1 text-green-600 hover:underline font-medium text-[11px]"
                     >
-                      → Login sebagai Jemaah ini
+                      → Login sebagai ini
                     </button>
                   </div>
-                ))}
-              </div>
-
-              <div className="text-center text-gray-500 text-[10px] pt-2 border-t">
-                Password semua akun: <span className="font-mono bg-gray-200 px-1 rounded">password</span>
-              </div>
-
-              <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
-                <div className="text-[10px] text-yellow-800">
-                  ⚠️ <strong>Admin</strong> dan <strong>Company</strong> tidak bisa login di aplikasi ini.
-                  <br />Gunakan aplikasi Admin Panel untuk role tersebut.
-
-                  <div className="text-center text-gray-500 text-[10px] pt-2 border-t">
-                    All passwords: <span className="font-mono bg-gray-200 px-1 rounded">password</span>
-                  </div>
-                </div>
+                ))} 
               </div> 
             </div>
           )}
         </div>
       </div>
-    </div>  
+    </div>
   );
 }

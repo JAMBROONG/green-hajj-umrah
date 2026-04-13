@@ -12,6 +12,7 @@ model tenants {
   slug       String   @unique
   settings   Json     @default("{}")
   branding   Json     @default("{}")
+  is_active  Boolean  @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -234,6 +235,7 @@ model csr_activities {
 
   tenant            tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
   participations    csr_activity_participations[]
+  updates           csr_activity_updates[]
 
   @@index([tenant_id])
   @@index([status])
@@ -261,7 +263,20 @@ model csr_activity_participations {
   @@index([user_id])
   @@index([csr_activity_id])
   @@index([status])
-  @@unique([user_id, csr_activity_id])
+}
+
+model csr_activity_updates {
+  id               String   @id @default(uuid())
+  csr_activity_id  String
+  title            String
+  description      String
+  photos           Json     @default("[]")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  csr_activity csr_activities @relation(fields: [csr_activity_id], references: [id], onDelete: Cascade)
+
+  @@index([csr_activity_id])
 }
 
 model carbon_certificate_purchases {
@@ -345,4 +360,12 @@ model service_setting {
   idx_admin_fee  Decimal?
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
+}
+
+model password_reset_tokens {
+  email      String    @id
+  token      String
+  created_at DateTime?
+
+  @@map("password_reset_tokens")
 }

@@ -41,21 +41,21 @@ export default function AddAirplaneTransportPage() {
       try {
         setIsLoading(true);
         const indonesiaAirports = await fetchAirports({ country: 'Indonesia' });
-        const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
+        const saudiAirports = await fetchAirports({ country: 'Arab Saudi' });
         const indonesiaOptions = toIndonesiaSelectOptions(indonesiaAirports);
         const saudiOptions = getSaudiAirportOptions(saudiAirports);
 
         setGroupedAirportOptions([
           { label: 'Indonesia', options: indonesiaOptions },
-          { label: 'Saudi Arabia', options: saudiOptions }
+          { label: 'Arab Saudi', options: saudiOptions }
         ]);
       } catch (error) {
         console.error('Failed to load airports:', error);
-        // Fallback: try to load just Saudi Arabia
+        // Fallback: try to load just Arab Saudi
         try {
-          const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
+          const saudiAirports = await fetchAirports({ country: 'Arab Saudi' });
           const saudiOptions = getSaudiAirportOptions(saudiAirports);
-          setGroupedAirportOptions([{ label: 'Saudi Arabia', options: saudiOptions }]);
+          setGroupedAirportOptions([{ label: 'Arab Saudi', options: saudiOptions }]);
         } catch (innerError) {
           console.error('Failed to load Saudi airports:', innerError);
           setGroupedAirportOptions([]);
@@ -138,26 +138,33 @@ export default function AddAirplaneTransportPage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
+        <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
-        <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
-          <button
-            onClick={handleCancel}
-            className="mb-4 text-white/80 hover:text-white flex items-center gap-2"
-          >
-            <IoArrowBack className="text-xl" /> Kembali
-          </button>
-          <div className="flex items-center gap-3">
-            <FaPlane className="text-3xl text-blue-400" />
-            <div>
-              <h1 className="text-xl font-bold">Tambah Penerbangan</h1>
-              <p className="text-sm text-white/80">{phase.name}</p>
+        <div
+          className="text-white shadow-lg"
+          style={{ backgroundImage: "url('/bg-menu.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+        >
+          <div className="px-5 pt-5 pb-5">
+            <button
+              onClick={handleCancel}
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors mb-4"
+            >
+              <IoArrowBack className="text-base text-white" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <FaPlane className="text-2xl text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Tambah Penerbangan</h1>
+                <p className="text-sm text-white/75">{phase.name}</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-5">
           {/* Transport Type - Airplane Only */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -300,7 +307,7 @@ export default function AddAirplaneTransportPage() {
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90"
+              className="flex-1 py-3 btn-primary rounded-xl font-semibold"
             >
               Simpan
             </button>

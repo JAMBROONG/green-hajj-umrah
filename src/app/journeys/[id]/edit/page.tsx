@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaKaaba, FaMosque, FaArrowLeft } from 'react-icons/fa';
 import { useDialog } from '@/contexts/DialogContext';
 import { checkHajjPeriod, HajjPeriodCheckResult, HajjPeriod } from '@/lib/hajjPeriodHelper';
+import { isHajjIncluded } from '@/lib/featureFlags';
 
 interface HajjPeriodOption extends HajjPeriod {
   canRegister: boolean;
@@ -289,7 +290,7 @@ export default function EditJourneyPage({ params }: { params: Promise<{ id: stri
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Jenis Perjalanan *
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isHajjIncluded ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
               <button
                 type="button"
                 onClick={() => handleTypeSelection('umrah')}
@@ -309,6 +310,7 @@ export default function EditJourneyPage({ params }: { params: Promise<{ id: stri
                 </span>
               </button>
 
+              {isHajjIncluded && (
               <button
                 type="button"
                 onClick={() => handleTypeSelection('haji')}
@@ -343,10 +345,11 @@ export default function EditJourneyPage({ params }: { params: Promise<{ id: stri
                   </span>
                 )}
               </button>
+              )}
             </div>
             
             {/* Hajj Period Info */}
-            {hajjPeriodStatus && formData.type === 'haji' && hajjPeriodStatus.canRegister && (
+            {isHajjIncluded && hajjPeriodStatus && formData.type === 'haji' && hajjPeriodStatus.canRegister && (
               <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <p className="text-xs text-emerald-700">
                   ℹ️ {hajjPeriodStatus.message}

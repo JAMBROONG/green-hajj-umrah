@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import StatusBar from '@/components/StatusBar'
@@ -40,7 +40,7 @@ interface Trip {
   id: string
   name: string
   type: string
-  start_date: string
+  startDate: string
   status: string
 }
 
@@ -70,7 +70,7 @@ interface Certificate {
   product_name?: string
 }
 
-export default function ProfilePage() {
+function ProfilePageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
@@ -89,8 +89,6 @@ export default function ProfilePage() {
   const [purchasedId, setPurchasedId] = useState<string | null>(() => {
     return searchParams?.get('purchased') || null
   })
-  const [selectedDonation, setSelectedDonation] = useState<CSRDonation | null>(null)
-  const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null)
   const [showEditNameModal, setShowEditNameModal] = useState(false)
   const [showEditPhoneModal, setShowEditPhoneModal] = useState(false)
   const [editName, setEditName] = useState('')
@@ -240,10 +238,10 @@ export default function ProfilePage() {
       }
 
       // Fetch trips
-      const tripsRes = await fetch('/api/journeys')
+      const tripsRes = await fetch('/api/trips')
       if (tripsRes.ok) {
         const data = await tripsRes.json()
-        setTrips(data.slice(0, 5))
+        setTrips((data.trips || []).slice(0, 5))
       }
 
       // Fetch CSR donations
@@ -391,8 +389,6 @@ export default function ProfilePage() {
             
             await refreshDonations()
 
-            // Close modal and refresh stats
-            setSelectedDonation(null)
             fetchUserData()
           },
           onPending: function (result: MidtransSnapResponse) {
@@ -405,162 +401,6 @@ export default function ProfilePage() {
           },
           onClose: function () {
             console.log('❌ Donation cancelled by user')
-          },
-        })
-      } else {
-        throw new Error('Midtrans Snap tidak tersedia. Refresh halaman dan coba lagi.')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      showError(error instanceof Error ? error.message : 'Terjadi kesalahan')
-    }
-  }
-
-  const handleOpenCertificateModal = async (certificateId: string) => {
-    try {
-      // Refetch fresh certificate data from server
-      const response = await fetch('/api/user/carbon-certificates')
-      if (response.ok) {
-        const certificates = await response.json()
-        const freshCertificate = certificates.find((c: { id: string }) => c.id === certificateId)
-        if (freshCertificate) {
-          console.log('✅ Certificate data refreshed:', {
-            id: freshCertificate.id,
-            thankYouUrl: freshCertificate.thank_you_certificate_url ? 'exists' : 'missing',
-            emissionUrl: freshCertificate.emission_reduction_certificate_url ? 'exists' : 'missing',
-          })
-          setSelectedCertificate(freshCertificate)
-        } else {
-          // Fallback if not found
-          const localCert = certificates.find((c: { id: string }) => c.id === certificateId)
-          setSelectedCertificate(localCert)
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching certificate:', err)
-    }
-  }
-
-  const handleContinuePaymentCertificate = async (purchaseId: string) => {
-    try {
-      const response = await fetch('/api/carbon-products/purchase/resume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          purchaseId,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Gagal melanjutkan pembayaran')
-      }
-
-      const data = await response.json()
-      
-      // Use Midtrans Snap popup (not redirect)
-      if (data.snapToken && window.snap) {
-        window.snap.pay(data.snapToken, {
-          onSuccess: async function (result: MidtransSnapResponse) {
-            console.log('✅ CARBON CERTIFICATE PURCHASE SUCCESS', result)
-            showSuccess('✅ Pembelian Sertifikat Karbon Berhasil!')
-
-            // Verify payment status with backend
-            try {
-              console.log('🔍 Verifying carbon purchase...', { purchaseId })
-              const verifyResponse = await fetch('/api/carbon-products/purchase/verify', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ purchaseId }),
-              })
-
-              console.log('📡 Verify response status:', verifyResponse.status)
-
-              if (verifyResponse.ok) {
-                const verifyData = await verifyResponse.json()
-                console.log('✅ Carbon purchase verified:', JSON.stringify(verifyData, null, 2))
-                showSuccess('✅ Status pembayaran diverifikasi!')
-                
-                // Wait a bit for DB to settle before refreshing
-                await new Promise(resolve => setTimeout(resolve, 500))
-              } else {
-                const errorData = await verifyResponse.json()
-                console.error('❌ Verify error:', { status: verifyResponse.status, error: errorData })
-                showError(`Verifikasi: ${errorData.error || errorData.details || 'Unknown error'}`)
-              }
-            } catch (err) {
-              console.error('❌ Error during verify:', err)
-              showError(`Gagal verifikasi: ${err instanceof Error ? err.message : 'Error'}`)
-            }
-
-            // Refresh certificates list with exponential backoff
-            let refreshAttempts = 0
-            const maxRefreshAttempts = 5
-            const refreshCertificates = async () => {
-              try {
-                console.log(`📋 Refreshing certificates (attempt ${refreshAttempts + 1}/${maxRefreshAttempts})...`)
-                const certificatesRes = await fetch('/api/user/carbon-certificates')
-                if (certificatesRes.ok) {
-                  const updatedCertificates = await certificatesRes.json()
-                  const targetCertificate = updatedCertificates.find((c: { id: string }) => c.id === purchaseId)
-                  
-                  console.log('✅ Certificates refreshed:', {
-                    count: updatedCertificates.length,
-                    targetCertificate: {
-                      id: targetCertificate?.id,
-                      status: targetCertificate?.status,
-                      amount: targetCertificate?.amount,
-                    },
-                  })
-                  
-                  if (targetCertificate?.status === 'confirmed' || targetCertificate?.status === 'completed') {
-                    console.log('✅ Certificate status confirmed in DB!')
-                    showSuccess('✅ Sertifikat karbon berhasil disimpan!')
-                  } else if (refreshAttempts < maxRefreshAttempts - 1) {
-                    refreshAttempts++
-                    const delayMs = 500 * (refreshAttempts + 1) // Exponential backoff: 1s, 1.5s, 2s, 2.5s, 3s
-                    console.log(`⏳ Status still ${targetCertificate?.status || 'unknown'}, retrying in ${delayMs}ms...`)
-                    await new Promise(resolve => setTimeout(resolve, delayMs))
-                    await refreshCertificates()
-                  } else {
-                    console.warn('⚠️ Max refresh attempts reached, status:', targetCertificate?.status)
-                    showError('Sertifikat tersimpan tapi UI belum terupdate. Refresh halaman untuk melihat perubahan.')
-                  }
-                } else {
-                  console.error('❌ Failed to fetch certificates:', certificatesRes.status)
-                }
-              } catch (err) {
-                console.warn('⚠️ Failed to refresh certificates:', err)
-                if (refreshAttempts < maxRefreshAttempts - 1) {
-                  refreshAttempts++
-                  await new Promise(resolve => setTimeout(resolve, 500 * (refreshAttempts + 1)))
-                  await refreshCertificates()
-                }
-              }
-            }
-            
-            await refreshCertificates()
-
-            // Close modal and refresh stats
-            setSelectedCertificate(null)
-            fetchUserData()
-          },
-          onPending: function (result: MidtransSnapResponse) {
-            console.log('⏳ CARBON CERTIFICATE PURCHASE PENDING', result)
-            showSuccess('⏳ Pembayaran sertifikat karbon sedang diproses...')
-          },
-          onError: function (result: MidtransSnapResponse) {
-            console.error('❌ CARBON CERTIFICATE PURCHASE ERROR', result)
-            showError('❌ Pembayaran sertifikat karbon gagal. Silakan coba lagi.')
-            setSelectedCertificate(null)
-          },
-          onClose: function () {
-            console.log('❌ CARBON CERTIFICATE PURCHASE POPUP CLOSED')
-            showError('Anda menutup popup pembayaran')
           },
         })
       } else {
@@ -671,8 +511,8 @@ export default function ProfilePage() {
         <div className="bg-gradient-to-r from-primary to-primary/80 text-white pt-6 pb-8 px-5">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4 flex-1">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <FaUser className="text-2xl" />
+              <div className="w-16 h-16 bg-white/30 border-2 border-white/50 rounded-full flex items-center justify-center text-2xl font-bold">
+                {(displayName || session?.user?.name || 'U')[0].toUpperCase()}
               </div>
               <div className="flex-1">
                 <h1 className="text-xl font-bold">{displayName || session.user?.name || 'User'}</h1>
@@ -683,17 +523,20 @@ export default function ProfilePage() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="bg-white/10 rounded-xl p-3 text-center">
+              <div className="text-base mb-0.5">✈️</div>
               <div className="text-2xl font-bold">{stats?.totalTrips || 0}</div>
-              <div className="text-xs text-white/80">Perjalanan</div>
+              <div className="text-xs text-white/70">Perjalanan</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="bg-white/10 rounded-xl p-3 text-center">
+              <div className="text-base mb-0.5">🌿</div>
               <div className="text-2xl font-bold">{stats?.totalCSRDonations || 0}</div>
-              <div className="text-xs text-white/80">CSR</div>
+              <div className="text-xs text-white/70">Donasi CSR</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="bg-white/10 rounded-xl p-3 text-center">
+              <div className="text-base mb-0.5">📜</div>
               <div className="text-2xl font-bold">{stats?.totalCertificates || 0}</div>
-              <div className="text-xs text-white/80">Sertifikat</div>
+              <div className="text-xs text-white/70">Sertifikat</div>
             </div>
           </div>
         </div>
@@ -730,34 +573,61 @@ export default function ProfilePage() {
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
             <div className="space-y-4">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Total CO2 Emitted</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats?.totalCO2Emitted.toFixed(2) || '0'} kg</p>
+              {/* Net Carbon Balance — featured card */}
+              {(() => {
+                const netKg = (stats?.totalCO2Emitted || 0) - (stats?.totalCO2Offset || 0)
+                const netTon = netKg / 1000
+                const isNeutral = netKg <= 0
+                return (
+                  <div className={`rounded-2xl p-5 text-white ${
+                    isNeutral
+                      ? 'bg-gradient-to-br from-green-500 to-emerald-600'
+                      : 'bg-gradient-to-br from-orange-500 to-red-500'
+                  }`}>
+                    <p className="text-sm text-white/80 mb-1">Net Carbon Balance</p>
+                    <p className="text-4xl font-bold mb-3">{netTon.toFixed(3)} <span className="text-2xl font-normal">ton CO₂e</span></p>
+                    <div className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/20 px-3 py-1.5 rounded-full">
+                      <span>{isNeutral ? '✅' : '⚠️'}</span>
+                      <span>{isNeutral ? 'Carbon Netral' : 'Perlu Offset Lebih'}</span>
+                    </div>
                   </div>
-                  <div className="text-4xl">🔴</div>
+                )
+              })()}
+
+              {/* Emitted & Offset */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                  <div className="text-2xl mb-2">🔴</div>
+                  <p className="text-xs text-gray-500 mb-1">CO₂ Dihasilkan</p>
+                  <p className="text-xl font-bold text-gray-900">{((stats?.totalCO2Emitted || 0) / 1000).toFixed(3)}</p>
+                  <p className="text-xs text-gray-400">ton CO₂e</p>
+                </div>
+                <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+                  <div className="text-2xl mb-2">🟢</div>
+                  <p className="text-xs text-gray-500 mb-1">CO₂ Dioffset</p>
+                  <p className="text-xl font-bold text-gray-900">{((stats?.totalCO2Offset || 0) / 1000).toFixed(3)}</p>
+                  <p className="text-xs text-gray-400">ton CO₂e</p>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Total CO2 Offset</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats?.totalCO2Offset.toFixed(2) || '0'} kg</p>
-                  </div>
-                  <div className="text-4xl">🟢</div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Carbon Footprint</p>
-                    <p className="text-2xl font-bold text-gray-900">{((stats?.totalCO2Emitted || 0) - (stats?.totalCO2Offset || 0)).toFixed(2)} kg</p>
-                  </div>
-                  <div className="text-4xl">📊</div>
-                </div>
+              {/* Quick Links */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => router.push('/carbon-market')}
+                  className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-left hover:bg-primary/10 transition active:scale-95"
+                >
+                  <div className="text-2xl mb-2">🌿</div>
+                  <p className="text-sm font-semibold text-primary">Beli Sertifikat</p>
+                  <p className="text-xs text-gray-500">Offset karbon Anda</p>
+                </button>
+                <button
+                  onClick={() => router.push('/csr-activities')}
+                  className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-left hover:bg-blue-100 transition active:scale-95"
+                >
+                  <div className="text-2xl mb-2">💚</div>
+                  <p className="text-sm font-semibold text-blue-700">Donasi CSR</p>
+                  <p className="text-xs text-gray-500">Berkontribusi nyata</p>
+                </button>
               </div>
             </div>
           )}
@@ -767,7 +637,7 @@ export default function ProfilePage() {
             <div className="space-y-3">
               {trips.length > 0 ? (
                 trips.map((trip) => (
-                  <div key={trip.id} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div key={trip.id} onClick={() => router.push(`/journeys/${trip.id}`)} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-primary">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="font-semibold text-gray-900">{trip.name}</h3>
@@ -785,13 +655,21 @@ export default function ProfilePage() {
                     </div>
                     <p className="text-xs text-textMuted flex items-center gap-1">
                       <FaCalendar className="w-3 h-3" />
-                      {new Date(trip.start_date).toLocaleDateString('id-ID')}
+                      {new Date(trip.startDate).toLocaleDateString('id-ID')}
                     </p>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-textMuted">Belum ada riwayat perjalanan</p>
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-3">✈️</div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Belum Ada Perjalanan</h3>
+                  <p className="text-sm text-textMuted mb-5">Mulai perjalanan haji atau umrah dan lacak jejak karbon Anda</p>
+                  <button
+                    onClick={() => router.push('/')}
+                    className="btn-primary text-sm px-6 py-2.5 rounded-full font-medium"
+                  >
+                    Ke Beranda
+                  </button>
                 </div>
               )}
             </div>
@@ -804,7 +682,7 @@ export default function ProfilePage() {
                 donations.map((donation) => (
                   <div 
                     key={donation.id} 
-                    onClick={() => setSelectedDonation(donation)}
+                    onClick={() => router.push(`/csr-donations/${donation.id}`)}
                     className="bg-white border border-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary"
                   >
                     <div className="flex justify-between items-start mb-3">
@@ -815,46 +693,32 @@ export default function ProfilePage() {
                       <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ml-2 ${
                         donation.status === 'confirmed'
                           ? 'bg-green-100 text-green-700'
+                          : donation.status === 'cancelled'
+                          ? 'bg-red-100 text-red-700'
                           : 'bg-yellow-100 text-yellow-700'
                       }`}>
-                        {donation.status === 'confirmed' ? 'Terkonfirmasi' : 'Menunggu'}
+                        {donation.status === 'confirmed' ? 'Terkonfirmasi' : donation.status === 'cancelled' ? 'Dibatalkan' : 'Menunggu'}
                       </span>
                     </div>
-                    <p className="text-xs text-textMuted mb-3">
+                    <p className="text-xs text-textMuted">
                       {new Date(donation.created_at).toLocaleDateString('id-ID')}
                     </p>
-                    
-                    {donation.status === 'confirmed' && (
-                      <div className="flex gap-2 flex-wrap">
-                        {donation.thank_you_certificate_url && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDownloadCertificate(donation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${donation.id}.pdf`)
-                            }}
-                            className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                          >
-                            Unduh Sertifikat Ucapan Terima Kasih
-                          </button>
-                        )}
-                        {donation.participation_certificate_url && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDownloadCertificate(donation.participation_certificate_url!, `sertifikat-partisipasi-csr-${donation.id}.pdf`)
-                            }}
-                            className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
-                          >
-                            Unduh Sertifikat Partisipasi
-                          </button>
-                        )}
-                      </div>
+                    {donation.status === 'confirmed' && (donation.thank_you_certificate_url || donation.participation_certificate_url) && (
+                      <p className="text-xs text-primary font-medium mt-2">Sertifikat tersedia · Ketuk untuk lihat</p>
                     )}
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-textMuted">Belum ada donasi CSR</p>
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-3">💚</div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Belum Ada Donasi CSR</h3>
+                  <p className="text-sm text-textMuted mb-5">Dukung program lingkungan dan dapatkan sertifikat partisipasi</p>
+                  <button
+                    onClick={() => router.push('/csr-activities')}
+                    className="btn-primary text-sm px-6 py-2.5 rounded-full font-medium"
+                  >
+                    Lihat Kegiatan CSR
+                  </button>
                 </div>
               )}
             </div>
@@ -870,12 +734,12 @@ export default function ProfilePage() {
                   return (
                     <div 
                       key={cert.id} 
-                      onClick={() => handleOpenCertificateModal(cert.id)}
+                      onClick={() => router.push(`/certificates/${cert.id}`)}
                       className={`bg-white rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary ${
                         isNewPurchase ? 'border-2 border-green-500 shadow-lg' : 'border border-border'
                       }`}
                     >
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-gray-900">{cert.product_name || 'Sertifikat Karbon'}</h3>
@@ -886,56 +750,43 @@ export default function ProfilePage() {
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                           cert.status === 'confirmed' || cert.status === 'completed'
                             ? 'bg-green-100 text-green-700'
+                            : cert.status === 'failed' || cert.status === 'cancelled'
+                            ? 'bg-red-100 text-red-700'
                             : 'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {cert.status === 'confirmed' || cert.status === 'completed' ? 'Aktif' : 'Menunggu'}
+                          {cert.status === 'confirmed' || cert.status === 'completed'
+                            ? 'Aktif'
+                            : cert.status === 'failed' || cert.status === 'cancelled'
+                            ? 'Gagal'
+                            : 'Menunggu Pembayaran'}
                         </span>
                       </div>
-                      <p className="text-xs text-textMuted mb-3">
+                      <p className="text-xs text-textMuted">
                         Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
                       </p>
-                      
-                      {(cert.status === 'confirmed' || cert.status === 'completed') ? (
-                        <div className="flex gap-2 flex-wrap">
-                          {cert.thank_you_certificate_url ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDownloadCertificate(cert.thank_you_certificate_url!, `sertifikat-ucapan-${cert.product_code || cert.id}.pdf`)
-                              }}
-                              className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                            >
-                              📥 Unduh Sertifikat Ucapan Terima Kasih
-                            </button>
-                          ) : (
-                            <div className="text-xs text-textMuted">Sertifikat Ucapan Terima Kasih akan tersedia segera</div>
-                          )}
-                          {cert.emission_reduction_certificate_url ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDownloadCertificate(cert.emission_reduction_certificate_url!, `sertifikat-emisi-${cert.product_code || cert.id}.pdf`)
-                              }}
-                              className="text-xs bg-primary text-white px-3 py-1 rounded hover:bg-primary/90 transition"
-                            >
-                              📥 Unduh Sertifikat Emisi
-                            </button>
-                          ) : (
-                            <div className="text-xs text-textMuted">Sertifikat Emisi sedang diproses</div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded flex items-center gap-2">
-                          <span>⏳</span>
-                          <span>Pembayaran Anda sedang diproses. Sertifikat akan tersedia setelah konfirmasi.</span>
-                        </div>
+                      {(cert.status === 'confirmed' || cert.status === 'completed') && (
+                        <p className="text-xs text-primary font-medium mt-2">Sertifikat tersedia · Ketuk untuk lihat</p>
+                      )}
+                      {cert.status === 'pending' && (
+                        <p className="text-xs text-yellow-600 font-medium mt-2">Belum dibayar · Ketuk untuk bayar</p>
+                      )}
+                      {(cert.status === 'failed' || cert.status === 'cancelled') && (
+                        <p className="text-xs text-red-500 font-medium mt-2">Pesanan dibatalkan</p>
                       )}
                     </div>
                   )
                 })
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-textMuted">Belum ada sertifikat karbon</p>
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-3">🌿</div>
+                  <h3 className="font-semibold text-gray-900 mb-1">Belum Ada Sertifikat</h3>
+                  <p className="text-sm text-textMuted mb-5">Beli kredit karbon untuk mengoffset emisi perjalanan Anda</p>
+                  <button
+                    onClick={() => router.push('/carbon-market')}
+                    className="btn-primary text-sm px-6 py-2.5 rounded-full font-medium"
+                  >
+                    Beli Sertifikat Karbon
+                  </button>
                 </div>
               )}
             </div>
@@ -1029,7 +880,7 @@ export default function ProfilePage() {
               <button
                 onClick={handleSaveName}
                 disabled={savingName}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 btn-primary rounded-lg disabled:opacity-50"
               >
                 {savingName ? 'Menyimpan...' : 'Simpan'}
               </button>
@@ -1060,7 +911,7 @@ export default function ProfilePage() {
               <button
                 onClick={handleSavePhone}
                 disabled={savingPhone}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 btn-primary rounded-lg disabled:opacity-50"
               >
                 {savingPhone ? 'Menyimpan...' : 'Simpan'}
               </button>
@@ -1069,194 +920,14 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* CSR Donation Detail Modal */}
-      {selectedDonation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Detail Donasi CSR</h2>
-              <button onClick={() => setSelectedDonation(null)} className="text-2xl text-gray-400 hover:text-gray-600">×</button>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-textMuted mb-1">Kegiatan</p>
-                <p className="font-semibold text-gray-900">{selectedDonation.activity_title}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs text-textMuted mb-1">Jumlah Donasi</p>
-                <p className="text-lg font-bold text-primary">{selectedDonation.amount > 0 ? `Rp ${selectedDonation.amount.toLocaleString('id-ID')}` : '(Donasi)'}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs text-textMuted mb-1">Status</p>
-                <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
-                  selectedDonation.status === 'confirmed'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {selectedDonation.status === 'confirmed' ? 'Terkonfirmasi' : 'Menunggu'}
-                </span>
-              </div>
-              
-              <div>
-                <p className="text-xs text-textMuted mb-1">Tanggal Donasi</p>
-                <p className="text-gray-900">{new Date(selectedDonation.created_at).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              </div>
-            </div>
-            
-            {selectedDonation.status === 'confirmed' && (
-              <div className="space-y-2 pt-4 border-t border-border">
-                <p className="text-xs font-semibold text-textDark mb-3">📄 Unduh Sertifikat</p>
-                {selectedDonation.thank_you_certificate_url && (
-                  <button
-                    onClick={() => {
-                      handleDownloadCertificate(selectedDonation.thank_you_certificate_url!, `sertifikat-ucapan-csr-${selectedDonation.id}.pdf`)
-                    }}
-                    className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition font-medium flex items-center justify-center gap-2"
-                  >
-                    <span>📥</span>
-                    <span>Unduh Sertifikat Ucapan Terima Kasih</span>
-                  </button>
-                )}
-                {selectedDonation.participation_certificate_url && (
-                  <button
-                    onClick={() => {
-                      handleDownloadCertificate(selectedDonation.participation_certificate_url!, `sertifikat-partisipasi-csr-${selectedDonation.id}.pdf`)
-                    }}
-                    className="w-full text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition font-medium flex items-center justify-center gap-2"
-                  >
-                    <span>📥</span>
-                    <span>Unduh Sertifikat Partisipasi</span>
-                  </button>
-                )}
-                {!selectedDonation.thank_you_certificate_url && !selectedDonation.participation_certificate_url && (
-                  <p className="text-xs text-textMuted italic">Sertifikat akan tersedia setelah verifikasi resmi</p>
-                )}
-              </div>
-            )}
-
-            {selectedDonation.status === 'pending' && (
-              <div className="pt-4 border-t border-border">
-                <button
-                  onClick={() => {
-                    setSelectedDonation(null)
-                    handleContinuePayment(selectedDonation.csr_activity_id, selectedDonation.amount)
-                  }}
-                  className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition font-semibold"
-                >
-                  💳 Lanjutkan Pembayaran
-                </button>
-              </div>
-            )}
-            
-            <button
-              onClick={() => setSelectedDonation(null)}
-              className="w-full text-sm px-4 py-2 border border-border rounded-lg hover:bg-gray-50 transition"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Certificate Detail Modal */}
-      {selectedCertificate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Detail Sertifikat Karbon</h2>
-              <button onClick={() => setSelectedCertificate(null)} className="text-2xl text-gray-400 hover:text-gray-600">×</button>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-textMuted mb-1">Produk</p>
-                <p className="font-semibold text-gray-900">{selectedCertificate.product_name || 'Sertifikat Karbon'}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-textMuted mb-1">Jumlah</p>
-                  <p className="font-semibold text-gray-900">{selectedCertificate.units || selectedCertificate.co2_equivalent} tCO2e</p>
-                </div>
-                <div>
-                  <p className="text-xs text-textMuted mb-1">Harga</p>
-                  <p className="font-semibold text-primary">Rp {selectedCertificate.amount.toLocaleString('id-ID')}</p>
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-xs text-textMuted mb-1">Status</p>
-                <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${
-                  selectedCertificate.status === 'confirmed' || selectedCertificate.status === 'completed'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {selectedCertificate.status === 'confirmed' || selectedCertificate.status === 'completed' ? 'Aktif' : 'Menunggu'}
-                </span>
-              </div>
-              
-              <div>
-                <p className="text-xs text-textMuted mb-1">Tanggal Pembelian</p>
-                <p className="text-gray-900">{new Date(selectedCertificate.purchase_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              </div>
-            </div>
-            
-            {(selectedCertificate.status === 'confirmed' || selectedCertificate.status === 'completed') ? (
-              <div className="space-y-2 pt-4 border-t border-border">
-                {selectedCertificate.thank_you_certificate_url ? (
-                  <button
-                    onClick={() => {
-                      handleDownloadCertificate(selectedCertificate.thank_you_certificate_url!, `sertifikat-ucapan-${selectedCertificate.product_code || selectedCertificate.id}.pdf`)
-                    }}
-                    className="w-full text-sm bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-                  >
-                    📥 Unduh Sertifikat Ucapan Terima Kasih
-                  </button>
-                ) : (
-                  <div className="text-xs text-textMuted bg-gray-50 p-3 rounded text-center">Sertifikat Ucapan Terima Kasih akan tersedia segera</div>
-                )}
-                {selectedCertificate.emission_reduction_certificate_url ? (
-                  <button
-                    onClick={() => {
-                      handleDownloadCertificate(selectedCertificate.emission_reduction_certificate_url!, `sertifikat-emisi-${selectedCertificate.product_code || selectedCertificate.id}.pdf`)
-                    }}
-                    className="w-full text-sm bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition"
-                  >
-                    📥 Unduh Sertifikat Emisi
-                  </button>
-                ) : (
-                  <div className="text-xs text-textMuted bg-gray-50 p-3 rounded text-center">Sertifikat Emisi sedang diproses</div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2 pt-4 border-t border-border">
-                <div className="text-xs text-yellow-600 bg-yellow-50 p-3 rounded text-center">
-                  ⏳ Pembayaran Anda sedang diproses. Sertifikat akan tersedia setelah konfirmasi.
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedCertificate(null)
-                    handleContinuePaymentCertificate(selectedCertificate.id)
-                  }}
-                  className="w-full text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition font-semibold"
-                >
-                  💳 Lanjutkan Pembayaran
-                </button>
-              </div>
-            )}
-            
-            <button
-              onClick={() => setSelectedCertificate(null)}
-              className="w-full text-sm px-4 py-2 border border-border rounded-lg hover:bg-gray-50 transition"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      )}
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageInner />
+    </Suspense>
   )
 }

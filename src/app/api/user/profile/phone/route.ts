@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
       where: { id: session.user.id },
       data: {
         metadata: {
-          ...profile.metadata,
+          ...(profile.metadata as Record<string, unknown>),
           phone: phone.trim(),
         },
       },
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest) {
         id: updatedProfile.id,
         full_name: updatedProfile.full_name,
         email: updatedProfile.email,
-        phone: updatedProfile.metadata?.phone,
+        phone: (updatedProfile.metadata as Record<string, string>)?.phone,
         tenant_id: updatedProfile.tenant_id,
         tenant: updatedProfile.tenant,
       },

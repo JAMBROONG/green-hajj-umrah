@@ -11,7 +11,7 @@ import { FaCar, FaBus, FaTrain, FaPlane, FaShip } from 'react-icons/fa';
 import { MdElectricCar } from 'react-icons/md';
 import { RiBusFill } from 'react-icons/ri';
 import { IoArrowBack, IoMapOutline } from 'react-icons/io5';
-import { MdEdit, MdDelete, MdInfoOutline } from 'react-icons/md';
+import { MdEdit, MdDelete } from 'react-icons/md';
 
 export default function TransportDetailPage() {
   const params = useParams();
@@ -104,124 +104,133 @@ export default function TransportDetailPage() {
 
   return (
     <div className="app-container">
-      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white pb-24">
+      <div className="min-h-screen bg-gray-50 pb-24">
         {/* Header */}
-        <div className="bg-primary text-white p-6 rounded-b-3xl shadow-lg">
-          <button
-            onClick={handleBackClick}
-            className="mb-4 text-white/80 hover:text-white flex items-center gap-2"
-          >
-            <IoArrowBack className="text-xl" /> Kembali
-          </button>
-          <div className="flex items-center gap-3">
-            {getTransportIcon(activity.type)}
-            <div>
-              <h1 className="text-xl font-bold">Detail Transportasi</h1>
-              <p className="text-sm text-white/80">{phase.name}</p>
+        <div
+          className="text-white shadow-lg"
+          style={{ backgroundImage: "url('/bg-menu.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+        >
+          <div className="px-5 pt-5 pb-5">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={handleBackClick}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              >
+                <IoArrowBack className="text-base text-white" />
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleEditClick}
+                  className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                  title="Edit"
+                >
+                  <MdEdit className="text-sm text-white" />
+                </button>
+                <button
+                  onClick={handleDeleteClick}
+                  className="w-9 h-9 rounded-full bg-red-500/40 hover:bg-red-500/60 flex items-center justify-center transition-colors"
+                  title="Hapus"
+                >
+                  <MdDelete className="text-sm text-white" />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                {getTransportIcon(activity.type)}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Detail Transportasi</h1>
+                <p className="text-sm text-white/75">{phase.name}</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Detail Content */}
-        <div className="p-6 space-y-4">
-          {/* Transport Type Card */}
-          <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="text-4xl">
-                {getTransportIcon(activity.type)}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Jenis Transportasi</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {getTransportLabel(activity.type)}
-                </p>
+        <div className="px-5 py-4 space-y-3">
+          {/* Transport Type */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+            <div className="flex">
+              <div className="w-1.5 bg-blue-500 flex-shrink-0" />
+              <div className="flex-1 p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  {getTransportIcon(activity.type)}
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-0.5">Jenis Transportasi</p>
+                  <p className="font-bold text-gray-900">{getTransportLabel(activity.type)}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Date Card */}
+          {/* Date */}
           {activity.date && (
-            <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-sm">
-              <p className="text-sm text-gray-500 mb-2">Tanggal</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {new Date(activity.date).toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </p>
-            </div>
-          )}
-
-          {/* Distance Card */}
-          <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-2">Jarak Perjalanan</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {activity.distance} km
-            </p>
-          </div>
-
-          {/* Origin Card */}
-          {activity.origin && (
-            <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-start gap-3 mb-3">
-                <IoMapOutline className="text-xl text-green-600 mt-1 shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Asal</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {activity.origin.name}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Lat: {activity.origin.lat.toFixed(4)}, Lon: {activity.origin.lon.toFixed(4)}
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+              <div className="flex">
+                <div className="w-1.5 bg-purple-400 flex-shrink-0" />
+                <div className="flex-1 p-4">
+                  <p className="text-xs text-gray-400 mb-0.5">Tanggal</p>
+                  <p className="font-bold text-gray-900">
+                    {new Date(activity.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Destination Card */}
-          {activity.destination && (
-            <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-start gap-3 mb-3">
-                <IoMapOutline className="text-xl text-red-600 mt-1 shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Tujuan</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {activity.destination.name}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Lat: {activity.destination.lat.toFixed(4)}, Lon: {activity.destination.lon.toFixed(4)}
-                  </p>
+          {/* Route */}
+          {(activity.origin || activity.destination) && (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+              <div className="flex">
+                <div className="w-1.5 bg-teal-500 flex-shrink-0" />
+                <div className="flex-1 p-4 space-y-3">
+                  {activity.origin && (
+                    <div className="flex items-start gap-2">
+                      <IoMapOutline className="text-lg text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">Dari</p>
+                        <p className="font-semibold text-gray-900 text-sm">{activity.origin.name}</p>
+                      </div>
+                    </div>
+                  )}
+                  {activity.origin && activity.destination && <div className="border-t border-gray-100" />}
+                  {activity.destination && (
+                    <div className="flex items-start gap-2">
+                      <IoMapOutline className="text-lg text-red-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">Menuju</p>
+                        <p className="font-semibold text-gray-900 text-sm">{activity.destination.name}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Emission Card */}
-          <div className="bg-linear-to-br from-green-50 to-teal-50 border-2 border-green-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <MdInfoOutline className="text-2xl text-green-600" />
-              <p className="text-sm text-green-700 font-semibold">Total Emisi CO₂e</p>
+          {/* Distance */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+            <div className="flex">
+              <div className="w-1.5 bg-orange-400 flex-shrink-0" />
+              <div className="flex-1 p-4">
+                <p className="text-xs text-gray-400 mb-0.5">Jarak Perjalanan</p>
+                <p className="font-bold text-gray-900">{activity.distance} km</p>
+              </div>
             </div>
-            <p className="text-3xl font-bold text-green-600">
-              {formatEmission(activity.emission)} kg co2e
-            </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={handleEditClick}
-              className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors"
-            >
-              <MdEdit className="text-xl" /> Edit
-            </button>
-            <button
-              onClick={handleDeleteClick}
-              className="flex-1 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 flex items-center justify-center gap-2 transition-colors"
-            >
-              <MdDelete className="text-xl" /> Hapus
-            </button>
+          {/* Emission */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+            <div className="flex">
+              <div className="w-1.5 bg-green-500 flex-shrink-0" />
+              <div className="flex-1 p-4">
+                <p className="text-xs text-gray-400 mb-1">Total Emisi CO₂e</p>
+                <p className="text-2xl font-bold text-primary">{formatEmission(activity.emission)}</p>
+                <p className="text-xs text-gray-400 mt-0.5">kg CO₂e</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
