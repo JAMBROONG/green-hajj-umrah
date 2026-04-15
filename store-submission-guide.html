@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Green Umrah — Panduan Submission Play Store & App Store</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f9fafb;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: white;
+      padding: 32px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+    }
+    header h1 { font-size: 32px; margin-bottom: 8px; }
+    header p { opacity: 0.95; font-size: 16px; }
+    header .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    .common-info {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .common-info h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #059669;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .info-item {
+      padding: 12px;
+      background: #f0fdf4;
+      border-radius: 8px;
+      border-left: 3px solid #10b981;
+    }
+    .info-item .label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #059669;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .info-item .value {
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 13px;
+      color: #1f2937;
+      word-break: break-all;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: white;
+      padding: 6px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px 20px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .tab-btn:hover { background: #f3f4f6; }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      color: white;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+    .tab-btn .icon { font-size: 18px; }
+
+    .tab-content {
+      display: none;
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .tab-content.active { display: block; }
+
+    section.card { margin-bottom: 32px; }
+    section.card:last-child { margin-bottom: 0; }
+
+    h2.section-title {
+      font-size: 22px;
+      color: #059669;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #d1fae5;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2.section-title .num {
+      width: 32px;
+      height: 32px;
+      background: #10b981;
+      color: white;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 16px;
+      color: #1f2937;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    p { margin-bottom: 12px; color: #374151; }
+    ul, ol { margin-left: 24px; margin-bottom: 12px; }
+    ul li, ol li { margin-bottom: 6px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      background: #f0fdf4;
+      color: #065f46;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    tr:hover td { background: #fafafa; }
+
+    .callout {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border-left: 4px solid;
+    }
+    .callout-info {
+      background: #eff6ff;
+      border-left-color: #3b82f6;
+      color: #1e40af;
+    }
+    .callout-warning {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+      color: #92400e;
+    }
+    .callout-success {
+      background: #f0fdf4;
+      border-left-color: #10b981;
+      color: #065f46;
+    }
+    .callout-danger {
+      background: #fef2f2;
+      border-left-color: #ef4444;
+      color: #991b1b;
+    }
+
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 12px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    code:not(pre code) {
+      background: #f3f4f6;
+      color: #be185d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .copy-box {
+      position: relative;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    .copy-box .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .copy-box .copy-btn:hover { background: #059669; }
+    .copy-box pre {
+      background: transparent;
+      color: #1f2937;
+      padding: 0;
+      margin: 0;
+      padding-right: 60px;
+    }
+
+    .checklist {
+      list-style: none;
+      margin-left: 0;
+    }
+    .checklist li {
+      padding: 8px 0 8px 32px;
+      position: relative;
+    }
+    .checklist li::before {
+      content: '☐';
+      position: absolute;
+      left: 0;
+      font-size: 18px;
+      color: #10b981;
+    }
+    .checklist li.done::before {
+      content: '✅';
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-required { background: #fee2e2; color: #991b1b; }
+    .badge-optional { background: #dbeafe; color: #1e40af; }
+    .badge-recommended { background: #fef3c7; color: #92400e; }
+
+    footer {
+      text-align: center;
+      padding: 32px 16px;
+      color: #6b7280;
+      font-size: 13px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 12px; }
+      header { padding: 20px; }
+      header h1 { font-size: 24px; }
+      .tab-btn { padding: 12px 8px; font-size: 13px; }
+      .tab-content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🕋 Green Umrah</h1>
+    <p>Panduan Submission ke Google Play Store & Apple App Store</p>
+    <div class="badge">Aplikasi Jejak Karbon Jemaah Umrah Indonesia</div>
+  </header>
+
+  <!-- Info Umum (shared) -->
+  <div class="common-info">
+    <h2>📌 Informasi Umum Aplikasi</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="label">Nama Aplikasi</div>
+        <div class="value">Green Umrah</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Developer</div>
+        <div class="value">BATS Consulting</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Domain Produksi</div>
+        <div class="value">app.green-umrah.bats-consulting.com</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Support Email</div>
+        <div class="value">support@bats-consulting.com</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Website Perusahaan</div>
+        <div class="value">https://bats-consulting.com</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Privacy Policy URL</div>
+        <div class="value">https://app.green-umrah.bats-consulting.com/legal/privacy-policy</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Terms of Service URL</div>
+        <div class="value">https://app.green-umrah.bats-consulting.com/legal/terms</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Kategori</div>
+        <div class="value">Travel (Primary) · Lifestyle (Secondary)</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Age Rating</div>
+        <div class="value">4+ / Semua Umur</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Target Audience</div>
+        <div class="value">Jemaah umrah Indonesia</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="play"><span class="icon">🟢</span> Google Play Store</button>
+    <button class="tab-btn" data-tab="apple"><span class="icon">🍎</span> Apple App Store</button>
+  </nav>
+
+  <!-- ==================== PLAY STORE TAB ==================== -->
+  <div id="play" class="tab-content active">
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">1</span> Pendaftaran Akun Developer</h2>
+
+      <h3>Biaya & Tipe Akun</h3>
+      <table>
+        <tr><th>Item</th><th>Detail</th></tr>
+        <tr><td>Biaya</td><td><b>$25 USD</b> (one-time, lifetime)</td></tr>
+        <tr><td>Tipe Akun</td><td><b>Organization</b> (BATS Consulting)</td></tr>
+        <tr><td>Durasi Verifikasi</td><td>~1–3 hari kerja</td></tr>
+        <tr><td>Link Daftar</td><td><code>play.google.com/console/signup</code></td></tr>
+      </table>
+
+      <h3>Dokumen yang Dibutuhkan</h3>
+      <ul class="checklist">
+        <li>D-U-N-S Number BATS Consulting <span class="badge-pill badge-required">Wajib</span> <em>(syarat baru Google 2024)</em></li>
+        <li>NPWP Perusahaan</li>
+        <li>Akta Pendirian / SK Kemenkumham</li>
+        <li>NIB dari OSS</li>
+        <li>Scan KTP direktur / person of authority</li>
+        <li>Alamat kantor resmi (sesuai akta)</li>
+        <li>Nomor telepon kantor aktif</li>
+        <li>Email organisasi (support@bats-consulting.com)</li>
+        <li>Kartu kredit Visa/Mastercard untuk bayar $25</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <strong>⚠️ D-U-N-S:</strong> Kalau belum punya, daftar gratis di <code>developer.apple.com/enroll/duns-lookup</code> — satu D-U-N-S bisa dipakai untuk Apple juga. Proses 5–14 hari di Indonesia.
+      </div>
+
+      <h3>"Tell us about your previous experience" — jawaban siap pakai</h3>
+      <div class="copy-box">
+        <button class="copy-btn" onclick="copyText(this)">Copy</button>
+<pre>I represent BATS Consulting, an Indonesian software development consultancy. Our team has experience building and deploying web and mobile applications for clients across various industries, including travel, environmental sustainability, and B2B SaaS.
+
+While this is our first time publishing through the Google Play Console, our team has hands-on experience with:
+
+• Modern web development using Next.js, React, and TypeScript
+• Backend development with Laravel (PHP) and Node.js
+• PostgreSQL database design and management
+• REST API design and integration with payment gateways such as Midtrans
+• Progressive Web Apps (PWA) and Trusted Web Activities (TWA) for Android distribution
+• Mobile-first responsive UI/UX design
+
+The first app we are preparing to publish is "Green Umrah" — a carbon footprint calculator for Indonesian Umrah pilgrims, allowing users to measure, monitor, and offset the environmental impact of their pilgrimage through verified carbon credits from the Indonesian Carbon Exchange (IDX Carbon).
+
+The application is built as a Next.js web app, packaged as a Trusted Web Activity (TWA) for Android distribution. The web version is already live at https://app.green-umrah.bats-consulting.com.
+
+Company website: https://bats-consulting.com</pre>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">2</span> Persyaratan Teknis</h2>
+
+      <table>
+        <tr><th>Kriteria</th><th>Detail</th></tr>
+        <tr><td>Format Upload</td><td>Android App Bundle (<code>.aab</code>) — <b>wajib</b> sejak 2021</td></tr>
+        <tr><td>Target SDK</td><td>API Level 35 (Android 15) — min wajib per Aug 2025</td></tr>
+        <tr><td>Min SDK</td><td>API Level 23 (Android 6.0) — rekomendasi untuk coverage luas</td></tr>
+        <tr><td>Arsitektur</td><td>64-bit <b>wajib</b> (ARM64, x86_64)</td></tr>
+        <tr><td>Ukuran Maksimal</td><td>200 MB per base APK, expansion files kalau lebih</td></tr>
+        <tr><td>Signing</td><td>Play App Signing (Google kelola signing key)</td></tr>
+      </table>
+
+      <h3>Untuk TWA (Trusted Web Activity)</h3>
+      <p>Green Umrah akan dibungkus sebagai TWA — wrapper Android yang menampilkan web app sebagai aplikasi native.</p>
+      <ul>
+        <li><b>Tool rekomendasi:</b> Bubblewrap CLI atau PWABuilder.com</li>
+        <li><b>Package Name:</b> <code>com.batsconsulting.greenumrah</code></li>
+        <li><b>Digital Asset Links:</b> harus host file <code>assetlinks.json</code> di <code>/.well-known/</code> dengan SHA256 fingerprint dari signing key</li>
+      </ul>
+
+      <div class="callout callout-info">
+        <strong>📁 File penting:</strong> <code>public/.well-known/assetlinks.json</code> sudah ada di project — tinggal isi SHA256 fingerprint setelah generate keystore APK.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">3</span> Persyaratan Konten (Store Listing)</h2>
+
+      <h3>Nama Aplikasi (max 30 char)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>Green Umrah</pre></div>
+
+      <h3>Deskripsi Singkat (max 80 char)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>Hitung jejak karbon perjalanan umrah Anda dan jadikan ibadah lebih hijau 🌱</pre></div>
+
+      <h3>Deskripsi Lengkap (max 4000 char)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button>
+<pre>Green Umrah — Aplikasi Jejak Karbon Pertama untuk Jemaah Umrah Indonesia 🕋🌿
+
+Wujudkan ibadah yang lebih hijau dan bermakna! Green Umrah membantu jemaah menghitung, memantau, dan menetralkan jejak karbon perjalanan umrah Anda — dari berangkat hingga pulang ke tanah air.
+
+Sebagai khalifah di bumi, menjaga kelestarian alam adalah bagian dari ibadah. Dengan Green Umrah, Anda dapat mengetahui dampak lingkungan dari setiap tahap perjalanan dan mengambil tindakan nyata untuk planet yang lebih lestari.
+
+🌟 FITUR UTAMA
+
+✓ Kalkulator Emisi Karbon Lengkap
+Hitung emisi CO₂ dari transportasi (pesawat, bus, kapal), akomodasi hotel, konsumsi makanan, dan pengelolaan limbah selama perjalanan umrah.
+
+✓ Pemantauan Per Tahapan Perjalanan
+Pantau jejak karbon untuk setiap fase: keberangkatan, di Mekkah, di Madinah, dan kepulangan.
+
+✓ Beli Carbon Credits Resmi
+Netralkan emisi Anda dengan membeli kredit karbon dari Pasar Karbon Indonesia (IDX Carbon) — aset lingkungan nyata yang terverifikasi.
+
+✓ Donasi Program CSR
+Berkontribusi pada program konservasi lingkungan dan sosial di Indonesia melalui donasi yang transparan.
+
+✓ Sertifikat Digital Resmi
+Dapatkan sertifikat PDF resmi sebagai bukti kontribusi Anda terhadap lingkungan.
+
+✓ Laporan Personal & Insightful
+Lihat statistik lengkap perjalanan Anda dan dampak positif yang telah Anda berikan.
+
+🤝 DIDUKUNG OLEH
+
+Aplikasi ini dikembangkan untuk jemaah yang dikelola oleh PPIU (Penyelenggara Perjalanan Ibadah Umrah) terdaftar dan didukung oleh berbagai institusi penyelenggara umrah di Indonesia.
+
+🔒 KEAMANAN & PRIVASI
+
+• Data pribadi terenkripsi dengan standar industri
+• Pembayaran aman melalui Midtrans (PCI-DSS compliant)
+• Mematuhi UU Perlindungan Data Pribadi Indonesia (UU PDP)
+• Akun dapat dihapus kapan saja
+
+📱 UNTUK SIAPA?
+
+✓ Jemaah umrah dari berbagai PPIU
+✓ Calon jemaah yang ingin merencanakan ibadah ramah lingkungan
+✓ Travel agent umrah yang peduli lingkungan
+✓ Siapa saja yang ingin menjadikan ibadahnya berkelanjutan
+
+🌱 KENAPA HARUS HIJAU?
+
+Setiap perjalanan umrah menghasilkan rata-rata 2-4 ton CO₂ per jemaah — setara dengan emisi tahunan setengah mobil. Dengan jutaan jemaah Indonesia setiap tahun, dampaknya signifikan. Mari jadikan ibadah kita berkelanjutan dengan menetralkan jejak karbon dan mendukung pelestarian alam.
+
+🤲 MAKNA SPIRITUAL
+
+"Dan Dialah yang menjadikan kamu sebagai khalifah-khalifah di bumi" (QS. Al-An'am: 165). Menjaga lingkungan adalah amanah dan ibadah. Mari wujudkan umrah mabrurah yang juga membawa keberkahan untuk bumi.
+
+📞 BUTUH BANTUAN?
+
+Email: support@bats-consulting.com
+Website: https://bats-consulting.com
+
+Privacy Policy: https://app.green-umrah.bats-consulting.com/legal/privacy-policy
+Terms & Conditions: https://app.green-umrah.bats-consulting.com/legal/terms
+
+Dikembangkan dengan ❤️ oleh BATS Consulting untuk Indonesia yang lebih hijau.
+
+#GreenUmrah #UmrahRamahLingkungan #JejakKarbon #SustainableUmrah</pre>
+      </div>
+
+      <h3>Kategori</h3>
+      <table>
+        <tr><th>Primary</th><td>Travel &amp; Local</td></tr>
+        <tr><th>Secondary</th><td>Lifestyle</td></tr>
+      </table>
+
+      <h3>Tags</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>umrah, umroh, jejak karbon, lingkungan, hijau, ibadah, sertifikat</pre></div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">4</span> Aset Visual yang Dibutuhkan</h2>
+
+      <table>
+        <tr>
+          <th>Aset</th><th>Spesifikasi</th><th>Status</th>
+        </tr>
+        <tr>
+          <td>App Icon</td>
+          <td>512×512 px, PNG 32-bit, no transparency</td>
+          <td><span class="badge-pill badge-required">Wajib</span></td>
+        </tr>
+        <tr>
+          <td>Feature Graphic</td>
+          <td>1024×500 px, JPG/PNG</td>
+          <td><span class="badge-pill badge-required">Wajib</span></td>
+        </tr>
+        <tr>
+          <td>Phone Screenshots</td>
+          <td>Min 2, max 8. 16:9 atau 9:16. Min 320px, max 3840px</td>
+          <td><span class="badge-pill badge-required">Wajib (min 2)</span></td>
+        </tr>
+        <tr>
+          <td>Tablet Screenshots (7")</td>
+          <td>1024–7680 px</td>
+          <td><span class="badge-pill badge-optional">Opsional</span></td>
+        </tr>
+        <tr>
+          <td>Tablet Screenshots (10")</td>
+          <td>1024–7680 px</td>
+          <td><span class="badge-pill badge-optional">Opsional</span></td>
+        </tr>
+        <tr>
+          <td>Promo Video</td>
+          <td>YouTube URL, max 2 menit</td>
+          <td><span class="badge-pill badge-recommended">Disarankan</span></td>
+        </tr>
+      </table>
+
+      <div class="callout callout-warning">
+        <strong>⚠️ Icon placeholder saat ini</strong> (hijau solid) harus diganti dengan icon asli dari desainer sebelum submit. File: <code>public/icons/icon-512x512.png</code>
+      </div>
+
+      <h3>Ide Screenshot yang Menarik</h3>
+      <ol>
+        <li><b>Hero shot</b> — homepage dengan gradient hijau + logo + tagline "Jejak Karbonmu Diperhitungkan"</li>
+        <li><b>Kalkulator emisi</b> — halaman input trip dengan angka CO₂ yang terlihat</li>
+        <li><b>Dashboard statistik</b> — chart total emisi per kategori</li>
+        <li><b>Pembelian carbon credit</b> — halaman produk dengan harga + benefit</li>
+        <li><b>Sertifikat digital</b> — preview PDF sertifikat</li>
+        <li><b>Profil jemaah</b> — tracking perjalanan ibadah</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">5</span> Compliance & Policy</h2>
+
+      <h3>Data Safety Form (wajib diisi)</h3>
+      <p>Google akan menanyakan jenis data yang dikumpulkan:</p>
+      <table>
+        <tr><th>Kategori Data</th><th>Dikumpulkan?</th><th>Keterangan</th></tr>
+        <tr><td>Personal info (nama, email)</td><td>✅ Ya</td><td>Untuk akun pengguna</td></tr>
+        <tr><td>Financial info</td><td>❌ Tidak</td><td>Dihandle Midtrans</td></tr>
+        <tr><td>Location</td><td>❌ Tidak</td><td>Tidak menggunakan GPS</td></tr>
+        <tr><td>Photos &amp; videos</td><td>❌ Tidak</td><td></td></tr>
+        <tr><td>App activity</td><td>✅ Ya</td><td>Untuk fitur tracking emisi</td></tr>
+        <tr><td>Device ID</td><td>❌ Tidak</td><td></td></tr>
+      </table>
+
+      <h3>Target Audience</h3>
+      <ul>
+        <li>Age range: <b>18 and over</b> (jemaah umrah dewasa)</li>
+        <li>Appeal to children: No</li>
+      </ul>
+
+      <h3>Content Rating Questionnaire</h3>
+      <ul>
+        <li>Violence: No</li>
+        <li>Sexual content: No</li>
+        <li>Profanity: No</li>
+        <li>Controlled substances: No</li>
+        <li>User-generated content: No</li>
+        <li>Expected rating: <b>Everyone / 3+</b></li>
+      </ul>
+
+      <h3>Payment Features</h3>
+      <ul>
+        <li>App charges for goods/services: <b>Yes</b></li>
+        <li>Use Google Play Billing: <b>No</b> (pakai Midtrans untuk "real-world goods" — carbon credit)</li>
+        <li>Kategori transaksi: <b>Environmental goods &amp; charitable donations</b></li>
+      </ul>
+
+      <div class="callout callout-info">
+        <strong>ℹ️ Kenapa tidak pakai Google Play Billing:</strong> Carbon credit IDX adalah aset lingkungan nyata (real-world goods), bukan digital content. Per Google Play Policy, external payment diizinkan untuk kategori ini. Donasi CSR juga diizinkan via external gateway karena masuk kategori "charitable collection".
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">6</span> Proses Review & Timeline</h2>
+      <table>
+        <tr><th>Tahap</th><th>Durasi</th></tr>
+        <tr><td>Pendaftaran akun + verifikasi D-U-N-S</td><td>1–3 minggu</td></tr>
+        <tr><td>Setup app di Play Console</td><td>1–2 hari</td></tr>
+        <tr><td>Build TWA + upload</td><td>1–2 hari</td></tr>
+        <tr><td>Review pertama kali</td><td>3–7 hari</td></tr>
+        <tr><td>Review update selanjutnya</td><td>1–3 hari</td></tr>
+      </table>
+
+      <h3>Alasan Penolakan Umum (yang harus dihindari)</h3>
+      <ul>
+        <li>Privacy Policy URL tidak accessible / tidak ada</li>
+        <li>Data Safety form tidak match dengan perilaku app sebenarnya</li>
+        <li>Icon/screenshot mengandung teks promosi berlebihan</li>
+        <li>Claim "official" tanpa otorisasi (hindari klaim dukungan pemerintah)</li>
+        <li>TWA tidak pass Lighthouse PWA checks</li>
+        <li>App crashes saat reviewer test</li>
+        <li>Broken functionality — pastikan semua fitur utama jalan</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">7</span> Checklist Final Sebelum Submit</h2>
+      <ul class="checklist">
+        <li>Akun Play Console terverifikasi (D-U-N-S OK)</li>
+        <li>Domain <code>app.green-umrah.bats-consulting.com</code> live dengan HTTPS</li>
+        <li>File <code>assetlinks.json</code> berisi SHA256 fingerprint asli</li>
+        <li>Privacy Policy accessible tanpa login</li>
+        <li>Terms of Service accessible tanpa login</li>
+        <li>Account deletion flow berfungsi end-to-end</li>
+        <li>Icon app real (bukan placeholder hijau solid)</li>
+        <li>Minimal 2 screenshot phone kualitas bagus</li>
+        <li>Feature graphic 1024×500 siap</li>
+        <li>Data Safety form terisi akurat</li>
+        <li>Content Rating questionnaire selesai</li>
+        <li>Target Audience diset ke 18+</li>
+        <li>Test login &amp; OTP berhasil di production URL</li>
+        <li>Test pembayaran Midtrans berhasil (sandbox mode)</li>
+        <li>Sediakan test account untuk reviewer Google</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <!-- ==================== APP STORE TAB ==================== -->
+  <div id="apple" class="tab-content">
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">1</span> Pendaftaran Apple Developer Program</h2>
+
+      <h3>Biaya & Tipe Akun</h3>
+      <table>
+        <tr><th>Item</th><th>Detail</th></tr>
+        <tr><td>Biaya</td><td><b>$99 USD/tahun</b> (recurring)</td></tr>
+        <tr><td>Tipe Akun</td><td><b>Organization</b> (BATS Consulting)</td></tr>
+        <tr><td>Durasi Verifikasi</td><td>2–4 minggu (Indonesia)</td></tr>
+        <tr><td>Link Daftar</td><td><code>developer.apple.com/programs/enroll</code></td></tr>
+      </table>
+
+      <h3>Dokumen yang Dibutuhkan</h3>
+      <ul class="checklist">
+        <li>D-U-N-S Number BATS Consulting <span class="badge-pill badge-required">Wajib</span></li>
+        <li>NPWP Perusahaan</li>
+        <li>Akta Pendirian + SK Kemenkumham</li>
+        <li>NIB dari OSS</li>
+        <li>Website resmi aktif (bats-consulting.com)</li>
+        <li>Nomor telepon kantor aktif (Apple kadang telepon!)</li>
+        <li>Apple ID baru khusus developer (dengan 2FA)</li>
+        <li>Kartu kredit Visa/Mastercard limit USD</li>
+      </ul>
+
+      <h3>Apple ID untuk Developer</h3>
+      <div class="callout callout-success">
+        <strong>Gunakan:</strong> <code>support@bats-consulting.com</code> sebagai Apple ID developer utama. Email ini juga jadi kontak resmi BATS Consulting dan yang dicantumkan di App Store listing.
+      </div>
+      <ol>
+        <li>Buka <code>appleid.apple.com</code> dan buat Apple ID baru</li>
+        <li>Masukkan nama legal direktur PT (sesuai akta)</li>
+        <li>Aktifkan Two-Factor Authentication dengan nomor HP</li>
+        <li>Gunakan Apple ID ini di <code>developer.apple.com/programs/enroll</code></li>
+      </ol>
+
+      <h3>Proses Enrollment</h3>
+      <ol>
+        <li>Pilih <b>Organization</b> (bukan Individual)</li>
+        <li>Isi Legal Entity Name: <b>BATS Consulting</b> (sama persis dengan D-U-N-S record)</li>
+        <li>Masukkan D-U-N-S Number + alamat HQ</li>
+        <li>Isi website URL + contact info</li>
+        <li>Apple akan <b>telepon ke nomor kantor</b> untuk verifikasi — pastikan standby</li>
+        <li>Setelah verifikasi sukses, bayar $99 via kartu kredit</li>
+      </ol>
+
+      <div class="callout callout-warning">
+        <strong>⚠️ Penting:</strong> Semua data (D-U-N-S, Apple, website, NPWP) harus pakai nama perusahaan <b>BATS Consulting</b> yang sama persis. Spasi, huruf besar-kecil diperhitungkan Apple.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">2</span> Persyaratan Teknis</h2>
+
+      <table>
+        <tr><th>Kriteria</th><th>Detail</th></tr>
+        <tr><td>Format Upload</td><td><code>.ipa</code> file (build via Xcode)</td></tr>
+        <tr><td>iOS Target</td><td>Min iOS 13.0 (rekomendasi)</td></tr>
+        <tr><td>Xcode Version</td><td>Xcode 15+ (latest per App Store Connect)</td></tr>
+        <tr><td>Perangkat Build</td><td><b>Mac wajib</b> (Xcode cuma ada di macOS)</td></tr>
+        <tr><td>Signing</td><td>Provisioning profile + iOS Distribution certificate</td></tr>
+      </table>
+
+      <h3>Opsi Build Tanpa Mac</h3>
+      <p>Karena Green Umrah adalah WebView app, tidak perlu coding iOS native. Opsi:</p>
+      <ul>
+        <li><b>PWABuilder.com</b> — generate package iOS dari PWA (gratis, tapi TETAP butuh Mac untuk sign &amp; upload)</li>
+        <li><b>Codemagic.io</b> — CI/CD cloud dengan Mac runner. Sekitar $30–100/bulan. Bisa build + auto-submit ke TestFlight</li>
+        <li><b>MacinCloud</b> — sewa Mac cloud ~$30/bulan</li>
+        <li><b>Beli Mac mini M2</b> — ~Rp 12 juta, paling ekonomis jangka panjang</li>
+      </ul>
+
+      <div class="callout callout-success">
+        <strong>Rekomendasi:</strong> Pakai <b>Codemagic</b> atau <b>PWABuilder + MacinCloud</b> untuk build pertama. Kalau sering update app, beli Mac mini lebih hemat.
+      </div>
+
+      <h3>App Bundle ID</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>com.batsconsulting.greenumrah</pre></div>
+      <p><em>Daftarkan Bundle ID ini di Apple Developer portal sebelum build.</em></p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">3</span> Persyaratan Konten (App Store Listing)</h2>
+
+      <h3>Nama Aplikasi (max 30 char)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>Green Umrah</pre></div>
+
+      <h3>Subtitle (max 30 char)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>Jejak Karbon Umrah Anda</pre></div>
+
+      <h3>Promotional Text (max 170 char) — bisa diupdate tanpa review</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>Hitung & netralkan jejak karbon perjalanan umrah Anda. Kontribusi nyata untuk bumi sekaligus ibadah yang lebih bermakna. 🌍🕋</pre></div>
+
+      <h3>Deskripsi (max 4000 char)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button>
+<pre>Green Umrah — Aplikasi Jejak Karbon Pertama untuk Jemaah Umrah Indonesia
+
+Wujudkan ibadah yang lebih hijau dan bermakna! Aplikasi ini membantu jemaah menghitung, memantau, dan menetralkan jejak karbon perjalanan umrah dari keberangkatan hingga kepulangan.
+
+Sebagai khalifah di bumi, menjaga kelestarian alam adalah bagian dari ibadah. Setiap perjalanan umrah menghasilkan rata-rata 2-4 ton CO₂ per jemaah. Dengan Green Umrah, Anda mengubah dampak ini menjadi aksi nyata untuk planet yang lebih lestari.
+
+FITUR UTAMA
+
+• Kalkulator Emisi Karbon Lengkap
+Hitung emisi CO₂ dari transportasi (pesawat, bus, kapal laut), akomodasi hotel, konsumsi makanan, dan pengelolaan limbah selama perjalanan umrah.
+
+• Pemantauan Per Tahapan
+Pantau jejak karbon untuk setiap fase ibadah: keberangkatan, di Mekkah, di Madinah, dan kepulangan ke tanah air.
+
+• Carbon Credits Resmi
+Netralkan emisi dengan membeli kredit karbon dari IDX Carbon Market — aset lingkungan nyata yang terverifikasi pemerintah Indonesia.
+
+• Donasi Program CSR
+Berkontribusi pada program konservasi lingkungan & sosial melalui donasi yang transparan dan terdokumentasi.
+
+• Sertifikat Digital
+Dapatkan sertifikat PDF sebagai bukti kontribusi nyata Anda terhadap lingkungan dan ibadah.
+
+• Laporan Personal
+Lihat statistik perjalanan dan dampak positif Anda secara visual dan mudah dipahami.
+
+UNTUK SIAPA
+
+• Jemaah umrah dari berbagai PPIU
+• Calon jemaah yang ingin merencanakan ibadah ramah lingkungan
+• Penyelenggara perjalanan umrah yang peduli keberlanjutan
+• Siapa saja yang ingin menjadikan ibadahnya berkelanjutan
+
+KEAMANAN & PRIVASI
+
+• Data terenkripsi dengan standar industri
+• Pembayaran aman melalui Midtrans (PCI-DSS)
+• Mematuhi UU Perlindungan Data Pribadi (UU PDP)
+• Akun dapat dihapus kapan saja melalui menu Pengaturan
+
+MAKNA SPIRITUAL
+
+"Dan Dialah yang menjadikan kamu sebagai khalifah-khalifah di bumi" (QS. Al-An'am: 165).
+
+Menjaga lingkungan adalah amanah. Mari wujudkan umrah mabrurah yang juga membawa keberkahan untuk bumi.
+
+BUTUH BANTUAN?
+
+Email: support@bats-consulting.com
+Website: https://bats-consulting.com
+
+Aplikasi ini dikelola oleh BATS Consulting bekerjasama dengan PPIU (Penyelenggara Perjalanan Ibadah Umrah) terdaftar di Indonesia.</pre>
+      </div>
+
+      <h3>Keywords (max 100 char, pisah koma TANPA spasi)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button><pre>umrah,umroh,karbon,emisi,jejak,ibadah,sertifikat,jemaah,co2,green,eco,mekkah,madinah,ppiu</pre></div>
+      <p><em>96 karakter — pas. Apple tidak menghitung karakter spasi, jadi pastikan TIDAK pakai spasi.</em></p>
+
+      <h3>What's New (untuk versi 1.0)</h3>
+      <div class="copy-box"><button class="copy-btn" onclick="copyText(this)">Copy</button>
+<pre>Selamat datang di Green Umrah! 🌱
+
+Versi pertama hadir dengan fitur lengkap:
+• Kalkulator emisi karbon perjalanan umrah
+• Pembelian carbon credits dari IDX Carbon
+• Donasi program CSR lingkungan
+• Sertifikat digital resmi
+• Pemantauan per tahapan ibadah
+
+Mari wujudkan ibadah yang lebih hijau dan bermakna!</pre>
+      </div>
+
+      <h3>Kategori</h3>
+      <table>
+        <tr><th>Primary</th><td>Travel</td></tr>
+        <tr><th>Secondary</th><td>Lifestyle</td></tr>
+      </table>
+
+      <h3>Age Rating</h3>
+      <p><b>4+</b> — tidak ada konten dewasa, kekerasan, atau substansi terlarang.</p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">4</span> Aset Visual yang Dibutuhkan</h2>
+
+      <table>
+        <tr><th>Aset</th><th>Spesifikasi</th><th>Status</th></tr>
+        <tr>
+          <td>App Icon</td>
+          <td>1024×1024 px, PNG no transparency, no rounded corners (Apple auto-round)</td>
+          <td><span class="badge-pill badge-required">Wajib</span></td>
+        </tr>
+        <tr>
+          <td>Screenshots 6.9" (iPhone 16 Pro Max)</td>
+          <td>1320×2868 px, min 3 max 10</td>
+          <td><span class="badge-pill badge-required">Wajib</span></td>
+        </tr>
+        <tr>
+          <td>Screenshots 6.5" (iPhone 11 Pro Max)</td>
+          <td>1242×2688 atau 1284×2778 px</td>
+          <td><span class="badge-pill badge-required">Wajib</span></td>
+        </tr>
+        <tr>
+          <td>Screenshots 5.5" (iPhone 8 Plus)</td>
+          <td>1242×2208 px</td>
+          <td><span class="badge-pill badge-recommended">Disarankan</span></td>
+        </tr>
+        <tr>
+          <td>iPad Pro Screenshots</td>
+          <td>2048×2732 px</td>
+          <td><span class="badge-pill badge-optional">Opsional</span></td>
+        </tr>
+        <tr>
+          <td>App Preview Video</td>
+          <td>Max 30 detik, resolusi sesuai device</td>
+          <td><span class="badge-pill badge-recommended">Disarankan</span></td>
+        </tr>
+      </table>
+
+      <div class="callout callout-warning">
+        <strong>⚠️ App Icon:</strong> Apple sangat strict — <b>tidak boleh ada rounded corner manual</b>, <b>tidak boleh transparan</b>, dan <b>tidak boleh ada alpha channel</b>. Icon placeholder saat ini harus diganti.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">5</span> App Privacy & Compliance</h2>
+
+      <h3>Privacy "Nutrition Label" (App Store Connect)</h3>
+      <p>Apple mewajibkan pengisian detail data yang dikumpulkan. Berikut jawaban untuk Green Umrah:</p>
+
+      <table>
+        <tr><th>Data Type</th><th>Collected?</th><th>Linked to User?</th><th>Tracking?</th></tr>
+        <tr><td>Contact Info (Email, Name)</td><td>✅ Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>User Content (trip data, donasi)</td><td>✅ Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Identifiers (User ID)</td><td>✅ Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Usage Data</td><td>✅ Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Diagnostics (crash logs)</td><td>✅ Yes</td><td>No</td><td>No</td></tr>
+        <tr><td>Financial Info</td><td>❌ No</td><td>-</td><td>-</td></tr>
+        <tr><td>Location</td><td>❌ No</td><td>-</td><td>-</td></tr>
+        <tr><td>Health Data</td><td>❌ No</td><td>-</td><td>-</td></tr>
+      </table>
+
+      <h3>Sign in with Apple</h3>
+      <div class="callout callout-info">
+        <strong>Tidak wajib untuk Green Umrah.</strong> Per Guideline 4.8, Sign in with Apple wajib HANYA kalau app punya registrasi akun mandiri + menggunakan social login lain (Google, Facebook). Green Umrah menggunakan akun yang dibuatkan oleh PPIU, jadi tidak termasuk yang wajib.
+      </div>
+
+      <h3>Guideline 4.2 — Minimum Functionality (penting untuk WebView!)</h3>
+      <div class="callout callout-danger">
+        <strong>Risiko tinggi:</strong> Apple SERING menolak WebView app yang dianggap "hanya website dibungkus". Untuk lolos:
+      </div>
+      <ul>
+        <li>App harus terasa <b>native</b> — tidak terlihat seperti browser</li>
+        <li>Offline capability (minimal offline page) ✅ <em>sudah ada</em></li>
+        <li>Splash screen iOS yang rapi ✅ <em>sudah configured</em></li>
+        <li>Apple meta tags (status bar, no-capable, etc) ✅ <em>sudah configured</em></li>
+        <li>Payment integration terasa seamless</li>
+        <li>Push notifications (opsional tapi membantu)</li>
+        <li>Deep linking ke URL scheme kustom</li>
+      </ul>
+
+      <h3>In-App Purchase (IAP)</h3>
+      <div class="callout callout-success">
+        <strong>Tidak wajib IAP untuk Green Umrah.</strong> Per Guideline 3.1.5, carbon credits dari IDX Carbon adalah <b>"real-world goods / commodities"</b> — boleh pakai payment gateway eksternal (Midtrans). Donasi CSR juga boleh external karena masuk kategori charitable. Yang WAJIB IAP adalah: digital content (games, subscriptions, premium features in-app).
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">6</span> Proses Review & Timeline</h2>
+
+      <table>
+        <tr><th>Tahap</th><th>Durasi</th></tr>
+        <tr><td>D-U-N-S registration</td><td>5–14 hari</td></tr>
+        <tr><td>Apple Developer enrollment + verifikasi</td><td>2–4 minggu</td></tr>
+        <tr><td>Setup App Store Connect + app record</td><td>1 hari</td></tr>
+        <tr><td>Build iOS app (TWA/WebView)</td><td>2–5 hari</td></tr>
+        <tr><td>Upload ke TestFlight + internal test</td><td>1–2 hari</td></tr>
+        <tr><td>Submit untuk review</td><td>—</td></tr>
+        <tr><td><b>Review pertama kali</b></td><td>24–48 jam (rata-rata)</td></tr>
+        <tr><td>Review update selanjutnya</td><td>12–24 jam</td></tr>
+      </table>
+
+      <h3>Alasan Penolakan Umum di App Store</h3>
+      <ul>
+        <li><b>Guideline 4.2 — Minimum Functionality:</b> "Apps should provide some real value." WebView app yang tidak feel native akan ditolak</li>
+        <li><b>Guideline 5.1.1 — Privacy:</b> Privacy Policy tidak accessible atau tidak lengkap</li>
+        <li><b>Guideline 5.1.1(v) — Account Deletion:</b> harus ada fitur hapus akun in-app ✅ <em>sudah ada</em></li>
+        <li><b>Guideline 3.1.1 — In-App Purchase:</b> konten digital harus pakai IAP (tidak berlaku untuk kita)</li>
+        <li><b>Guideline 2.1 — App Completeness:</b> broken link, crash, fitur tidak berfungsi</li>
+        <li><b>Guideline 1.2 — Safety User Content:</b> tidak relevan (no UGC)</li>
+        <li><b>Metadata Rejection:</b> screenshot tidak match app, keyword irrelevant</li>
+      </ul>
+
+      <h3>Tips Lolos Review Pertama Kali</h3>
+      <ul>
+        <li>Siapkan <b>demo account</b> untuk reviewer di "App Review Information"</li>
+        <li>Test semua flow: login, OTP, pembelian (sandbox), delete account</li>
+        <li>Tulis <b>review notes</b> yang jelas: "This app requires an account provisioned by an Umrah travel agency. Use the demo credentials below."</li>
+        <li>Pastikan privacy policy URL live sebelum submit</li>
+        <li>Screenshot harus authentic (bukan mockup), bisa tambah text overlay promosi</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">7</span> Checklist Final Sebelum Submit</h2>
+      <ul class="checklist">
+        <li>Apple Developer Program aktif (Organization)</li>
+        <li>Bundle ID <code>com.batsconsulting.greenumrah</code> didaftarkan</li>
+        <li>Signing certificate + provisioning profile siap</li>
+        <li>Domain <code>app.green-umrah.bats-consulting.com</code> live dengan HTTPS valid</li>
+        <li>Privacy Policy accessible tanpa login</li>
+        <li>Terms of Service accessible tanpa login</li>
+        <li>Account deletion flow berfungsi end-to-end</li>
+        <li>Apple splash screens real (bukan placeholder putih polos)</li>
+        <li>App Icon 1024×1024 PNG no transparency</li>
+        <li>Minimum 3 screenshot per device size (6.9" + 6.5")</li>
+        <li>App Preview video (opsional tapi boost konversi)</li>
+        <li>App Privacy "Nutrition Label" terisi akurat</li>
+        <li>Demo account disediakan di App Review Information</li>
+        <li>Review notes jelas &amp; informatif</li>
+        <li>Test di TestFlight internal dulu sebelum submit</li>
+        <li>App tidak crash di cold start atau saat network offline</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><span class="num">8</span> Estimasi Biaya Total untuk iOS</h2>
+      <table>
+        <tr><th>Item</th><th>Biaya</th><th>Frekuensi</th></tr>
+        <tr><td>Apple Developer Program</td><td>$99 USD (~Rp 1,6 juta)</td><td>Per tahun</td></tr>
+        <tr><td>D-U-N-S Number</td><td>Gratis (via Apple lookup)</td><td>One-time</td></tr>
+        <tr><td>Build Mac (opsi 1: Codemagic)</td><td>$30–100/bulan</td><td>Per bulan</td></tr>
+        <tr><td>Build Mac (opsi 2: MacinCloud)</td><td>~$30/bulan</td><td>Per bulan</td></tr>
+        <tr><td>Build Mac (opsi 3: Mac mini M2)</td><td>~Rp 12 juta</td><td>One-time</td></tr>
+        <tr><td>Xcode</td><td>Gratis</td><td>—</td></tr>
+        <tr><td>Designer aset (icon + screenshot)</td><td>Rp 2–5 juta (estimasi)</td><td>One-time</td></tr>
+      </table>
+
+      <div class="callout callout-success">
+        <strong>Total minimum tahun pertama:</strong> ~Rp 4–8 juta (kalau sewa cloud Mac), atau ~Rp 15 juta (kalau beli Mac mini).
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>Dokumen ini dibuat untuk BATS Consulting · Green Umrah · 2026</p>
+    <p>Update terakhir: April 2026</p>
+  </footer>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(tab).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // Copy-to-clipboard for .copy-box
+    function copyText(btn) {
+      const pre = btn.parentElement.querySelector('pre');
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.innerText;
+        btn.innerText = '✓ Copied!';
+        btn.style.background = '#059669';
+        setTimeout(() => {
+          btn.innerText = original;
+          btn.style.background = '';
+        }, 1500);
+      });
+    }
+  </script>
+
+</body>
+</html>
