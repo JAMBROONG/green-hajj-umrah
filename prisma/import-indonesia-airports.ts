@@ -29,7 +29,7 @@ type AirportsDelegate = {
   createMany: (args: { data: InsertAirport[] }) => Promise<unknown>;
 };
 
-const inputPath = process.argv[2] || '/home/bats/Downloads/bandara_indonesia_final.json';
+const inputPath = process.argv[2] || 'public/bandara_indonesia_final.json';
 
 const normalizeCode = (value?: string) => {
   const trimmed = (value || '').trim().toUpperCase();
