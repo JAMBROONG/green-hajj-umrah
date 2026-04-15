@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { compare, hash } from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 const OTP_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const email = (body?.email ?? '').trim().toLowerCase();
@@ -13,6 +14,17 @@ export async function POST(req: Request) {
 
     if (!email || !otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
       return NextResponse.json({ error: 'Data tidak valid.' }, { status: 400 });
+    }
+
+    // Rate limit: 5 OTP verification attempts per email per 15 minutes
+    const rateKey = `otp:verify:${email}`;
+    const rateCheck = rateLimiter.check(rateKey, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Terlalu banyak percobaan. Silakan minta kode OTP baru.' },
+        { status: 429 },
+      );
     }
 
     const record = await prisma.password_reset_tokens.findUnique({ where: { email } });
@@ -34,7 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Kode OTP salah. Periksa kembali kode yang dikirim.' }, { status: 400 });
     }
 
-    // OTP valid → generate reset token, replace record
+    // OTP valid — generate reset token, replace record, reset rate limiter
     const rawResetToken = randomBytes(32).toString('hex');
     const resetTokenHash = await hash(rawResetToken, 12);
 
@@ -42,6 +54,8 @@ export async function POST(req: Request) {
       where: { email },
       data: { token: resetTokenHash, created_at: new Date() },
     });
+
+    rateLimiter.reset(rateKey);
 
     return NextResponse.json({
       success: true,

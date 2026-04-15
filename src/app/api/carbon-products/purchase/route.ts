@@ -93,12 +93,16 @@ export async function POST(request: NextRequest) {
     
     const { product_code, units } = body
 
-    // Validate input
-    if (!product_code || !units || units < 1) {
-      console.log('❌ Validation failed:', { product_code, units })
+    // Validate input — server-side: type, range, and sanity checks
+    if (!product_code || typeof product_code !== 'string') {
+      return NextResponse.json({ error: 'product_code tidak valid.' }, { status: 400 })
+    }
+
+    const unitsNum = Number(units)
+    if (!Number.isInteger(unitsNum) || unitsNum < 1 || unitsNum > 100) {
       return NextResponse.json(
-        { error: 'Missing required fields: product_code and units (min 1)' },
-        { status: 400 }
+        { error: 'Jumlah unit harus berupa bilangan bulat antara 1 dan 100.' },
+        { status: 400 },
       )
     }
 
@@ -125,9 +129,18 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Product found:', product.name)
 
-    // Calculate total price
+    // Calculate total price server-side (price comes from DB, not client)
     const unitPrice = parseFloat(product.price.toString())
-    const totalAmount = Math.round(unitPrice * units)
+    const totalAmount = Math.round(unitPrice * unitsNum)
+
+    // Hard cap: 50 juta IDR per transaksi
+    const MAX_TRANSACTION_IDR = 50_000_000
+    if (totalAmount > MAX_TRANSACTION_IDR) {
+      return NextResponse.json(
+        { error: 'Total transaksi melebihi batas maksimum yang diizinkan.' },
+        { status: 400 },
+      )
+    }
 
     const transactionPayload = {
       transaction_details: {
@@ -144,8 +157,8 @@ export async function POST(request: NextRequest) {
         {
           id: product.id,
           price: unitPrice,
-          quantity: units,
-          name: `${product.name} (${units} tCO2e)`,
+          quantity: unitsNum,
+          name: `${product.name} (${unitsNum} tCO2e)`,
           category: 'Carbon Credits',
         },
       ],
@@ -161,8 +174,8 @@ export async function POST(request: NextRequest) {
       data: {
         user_id: userProfile.id,
         product_id: product.id,
-        units: units,
-        co2_equivalent: units, // CO2 equivalent in tCO2e
+        units: unitsNum,
+        co2_equivalent: unitsNum, // CO2 equivalent in tCO2e
         amount: totalAmount, // Price amount
         total_price: totalAmount,
         transaction_reference: transaction.token,

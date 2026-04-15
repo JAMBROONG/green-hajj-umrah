@@ -39,7 +39,7 @@ export default function SignInPage() {
     console.log('🚀 Attempting login with:', email);
 
     try {
-      // Pre-check: apakah tenant user aktif?
+      // Pre-check: tenant status + IP rate limit
       const tenantCheck = await fetch('/api/auth/check-tenant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,19 +52,25 @@ export default function SignInPage() {
         return;
       }
 
+      if (tenantCheck.status === 'rate_limited') {
+        setError(tenantCheck.message || 'Terlalu banyak percobaan login. Silakan coba lagi dalam beberapa menit.');
+        setLoading(false);
+        return;
+      }
+
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
-      console.log('📥 Sign in result:', result);
-
       if (result?.error) {
-        setError('Anda tidak memiliki izin akses aplikasi ini. Hanya jemaah yang dapat menggunakan aplikasi ini.');
-        console.error('❌ Login failed:', result.error);
+        if (result.error === 'TOO_MANY_ATTEMPTS') {
+          setError('Terlalu banyak percobaan login. Silakan coba lagi dalam 15 menit.');
+        } else {
+          setError('Email atau kata sandi tidak sesuai. Periksa kembali data Anda.');
+        }
       } else {
-        console.log('✅ Login successful, redirecting...');
         router.push('/');
         router.refresh();
       }
@@ -172,8 +178,16 @@ export default function SignInPage() {
           </Link>
         </p>
 
-        {/* Debug Panel */}
-        <div className="mt-5 pt-4 border-t border-gray-100">
+        <p className="text-center text-xs text-gray-400 mt-4 leading-relaxed">
+          Dengan masuk, Anda menyetujui{' '}
+          <Link href="/legal/terms" className="text-primary underline">Syarat &amp; Ketentuan</Link>
+          {' '}dan{' '}
+          <Link href="/legal/privacy-policy" className="text-primary underline">Kebijakan Privasi</Link>
+          {' '}kami.
+        </p>
+
+        {/* Debug Panel — only in development */}
+        {process.env.NODE_ENV !== 'production' && <div className="mt-5 pt-4 border-t border-gray-100">
           <button
             type="button"
             onClick={() => setShowDebug(!showDebug)}
@@ -201,7 +215,7 @@ export default function SignInPage() {
               </div> 
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

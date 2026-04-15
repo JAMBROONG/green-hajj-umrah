@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { compare, hash } from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { validatePasswordStrength } from '@/lib/password-validator';
 
 const RESET_TOKEN_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes after OTP verified
 
@@ -15,8 +16,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Data tidak lengkap.' }, { status: 400 });
     }
 
-    if (newPassword.length < 8) {
-      return NextResponse.json({ error: 'Kata sandi minimal 8 karakter.' }, { status: 400 });
+    // Validate password strength
+    const strength = validatePasswordStrength(newPassword);
+    if (!strength.valid) {
+      return NextResponse.json({ error: strength.message }, { status: 400 });
     }
 
     const record = await prisma.password_reset_tokens.findUnique({ where: { email } });
@@ -32,20 +35,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Sesi reset sudah kadaluarsa. Silakan mulai ulang.' }, { status: 400 });
     }
 
-    // Compare reset token
     const isValid = await compare(resetToken, record.token);
     if (!isValid) {
       return NextResponse.json({ error: 'Token reset tidak valid.' }, { status: 400 });
     }
 
-    // Update password
     const hashedPassword = await hash(newPassword, 12);
     await prisma.profiles.update({
       where: { email },
       data: { password: hashedPassword, updated_at: new Date() },
     });
 
-    // Delete the reset record
     await prisma.password_reset_tokens.delete({ where: { email } });
 
     return NextResponse.json({ success: true, message: 'Kata sandi berhasil diperbarui.' });

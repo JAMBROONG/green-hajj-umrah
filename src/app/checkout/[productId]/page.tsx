@@ -393,6 +393,26 @@ export default function CheckoutPage({
             </div>
           </div>
 
+          {/* ── Payment disclosure ───────────────────────── */}
+          <div className="bg-blue-50 rounded-2xl px-4 py-3 border border-blue-100 text-xs text-blue-700 space-y-1.5">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>
+                Pembayaran diproses melalui <strong>Midtrans</strong>, gateway pembayaran berstandar PCI-DSS.
+                Carbon credit dari <strong>IDX Carbon Market</strong> adalah aset lingkungan nyata yang terverifikasi,
+                bukan instrumen investasi finansial.
+              </p>
+            </div>
+            <p>
+              Dengan melanjutkan, Anda menyetujui{' '}
+              <Link href="/legal/terms" className="underline font-semibold">Syarat &amp; Ketentuan</Link>
+              {' '}dan <strong>tidak ada pengembalian dana</strong> setelah pembayaran dikonfirmasi.
+            </p>
+          </div>
+
         </div>
       </div>
 

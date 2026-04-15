@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { FaArrowLeft, FaUser, FaSignOutAlt, FaBuilding, FaInfo, FaLock } from 'react-icons/fa';
+import { APP_NAME } from '@/lib/featureFlags';
+import { FaArrowLeft, FaUser, FaSignOutAlt, FaBuilding, FaInfo, FaLock, FaShieldAlt, FaTrash } from 'react-icons/fa';
 import { IoSettings } from 'react-icons/io5';
 
 export default function SettingsPage() {
@@ -47,7 +48,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Settings Sections */}
         <div className="space-y-4">
           {/* Account Settings */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -116,6 +116,63 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Legal Section */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <FaShieldAlt className="text-emerald-600" />
+                Legal &amp; Privasi
+              </h3>
+            </div>
+            <div className="divide-y divide-gray-100">
+              <button
+                onClick={() => router.push('/legal/privacy-policy')}
+                className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FaShieldAlt className="text-gray-400" />
+                  <span className="text-gray-700">Kebijakan Privasi</span>
+                </div>
+                <span className="text-gray-400">›</span>
+              </button>
+              <button
+                onClick={() => router.push('/legal/terms')}
+                className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FaInfo className="text-gray-400" />
+                  <span className="text-gray-700">Syarat &amp; Ketentuan</span>
+                </div>
+                <span className="text-gray-400">›</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden border border-red-100">
+            <div className="px-5 py-3 bg-red-50 border-b border-red-100">
+              <h3 className="font-semibold text-red-700 flex items-center gap-2 text-sm">
+                <FaTrash className="text-red-500" />
+                Zona Bahaya
+              </h3>
+            </div>
+            <div>
+              <button
+                onClick={() => router.push('/settings/delete-account')}
+                className="w-full px-5 py-4 flex items-center justify-between hover:bg-red-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <FaTrash className="text-red-400" />
+                  <div className="text-left">
+                    <span className="text-red-600 font-medium block">Hapus Akun</span>
+                    <span className="text-xs text-gray-400">Tindakan ini tidak dapat dibatalkan</span>
+                  </div>
+                </div>
+                <span className="text-red-400">›</span>
+              </button>
+            </div>
+          </div>
+
           {/* Sign Out Button */}
           <button
             onClick={handleSignOut}
@@ -128,11 +185,12 @@ export default function SettingsPage() {
 
         {/* Footer Info */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
-            Green Haj & Umrah
-          </p>
+          <p className="text-sm text-gray-500">{APP_NAME}</p>
           <p className="text-xs text-gray-400 mt-1">
             Lacak jejak karbon perjalanan ibadah Anda
+          </p>
+          <p className="text-xs text-gray-300 mt-2">
+            &copy; 2026 BATS Consulting
           </p>
         </div>
       </div>

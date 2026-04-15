@@ -2,9 +2,14 @@ import NextAuth, { CredentialsSignin } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import prisma from "@/lib/prisma"
+import { rateLimiter } from "@/lib/rate-limiter"
 
 class TenantInactiveError extends CredentialsSignin {
   code = 'TENANT_INACTIVE'
+}
+
+class LoginRateLimitError extends CredentialsSignin {
+  code = 'TOO_MANY_ATTEMPTS'
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -15,52 +20,57 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      authorize: async (credentials) => {
-        console.log('🔐 Login attempt:', credentials?.email);
-        
+      authorize: async (credentials, request) => {
         if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Missing credentials');
           return null
+        }
+
+        const email = (credentials.email as string).toLowerCase().trim();
+
+        // Extract IP for IP-based rate limiting
+        const ip =
+          request?.headers?.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+          request?.headers?.get('x-real-ip') ||
+          'unknown';
+
+        const emailKey = `login:email:${email}`;
+        const ipKey    = `login:ip:${ip}`;
+
+        // Check rate limits — 5 attempts per email / 15 per IP, per 15-minute window
+        const emailLimit = rateLimiter.check(emailKey, 5, 15 * 60 * 1000);
+        const ipLimit    = rateLimiter.check(ipKey,    15, 15 * 60 * 1000);
+
+        if (!emailLimit.allowed || !ipLimit.allowed) {
+          throw new LoginRateLimitError()
         }
 
         const user = await prisma.profiles.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
           include: { tenant: true }
         })
 
-        console.log('👤 User found:', user ? `Yes (${user.email})` : 'No');
-
-        if (!user) {
-          console.log('❌ User not found in database');
-          return null
-        }
-
-        // Check if user is jemaah
-        if (user.role !== 'jemaah') {
-          console.log('❌ Access denied: User is not a jemaah (role:', user.role, ')');
+        if (!user || user.role !== 'jemaah') {
           return null
         }
 
         // Check if tenant is active
         if (!user.tenant || !user.tenant.is_active) {
-          console.log('❌ Tenant inactive for user:', user.email);
-          throw new TenantInactiveError();
+          throw new TenantInactiveError()
         }
 
-        console.log('🔑 Comparing password...');
         const isPasswordValid = await compare(
           credentials.password as string,
           user.password
         )
 
-        console.log('✅ Password valid:', isPasswordValid);
-
         if (!isPasswordValid) {
-          console.log('❌ Invalid password');
           return null
         }
 
-        console.log('✅ Login successful');
+        // Successful login — reset rate limit counters
+        rateLimiter.reset(emailKey)
+        rateLimiter.reset(ipKey)
+
         return {
           id: user.id,
           email: user.email,
@@ -96,5 +106,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
 })
