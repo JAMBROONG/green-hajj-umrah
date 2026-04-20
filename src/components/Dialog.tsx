@@ -113,7 +113,7 @@ export default function Dialog({
               </>
             ) : (
               <button
-                onClick={onClose}
+                onClick={onConfirm ? handleConfirm : onClose}
                 className="w-full px-4 py-3 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
               >
                 {confirmText}

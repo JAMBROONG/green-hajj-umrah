@@ -10,6 +10,7 @@ model tenants {
   id         String   @id @default(uuid())
   name       String
   slug       String   @unique
+  phone      String?
   settings   Json     @default("{}")
   branding   Json     @default("{}")
   is_active  Boolean  @default(false)

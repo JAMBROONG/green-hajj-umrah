@@ -9,6 +9,7 @@ import { FaMountain, FaMoon, FaBullseye } from 'react-icons/fa';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { useDialog } from '@/contexts/DialogContext';
+import { checkCurrentStageAlert } from '@/lib/geo-stage';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 
@@ -53,7 +54,8 @@ const getPhaseIcon = (phaseId: string) => {
 export default function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tripId } = use(params);
   const router = useRouter();
-  const { showConfirm, showError, showAlert } = useDialog();
+  const dialogContext = useDialog();
+  const { showConfirm, showError, showAlert } = dialogContext;
   const [trip, setTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { journey, isLoading: journeyLoading, totalEmission } = useHajiJourney({ tripId });
@@ -238,9 +240,27 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
+        {/* Phase Helper Card */}
+        <div className="px-5 pt-3">
+          <div className="bg-[#2D2D2D] rounded-2xl p-4 shadow-md">
+            <h3 className="text-[15px] font-medium mb-3 text-white">
+              Tidak tahu sedang di tahapan mana?
+            </h3>
+            <button 
+              onClick={() => checkCurrentStageAlert(dialogContext, (phaseId) => {
+                router.push(`/phases/${phaseId}?tripId=${tripId}`);
+              }, trip.startDate, trip.endDate)}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/20 bg-transparent hover:bg-white/10 transition-colors text-sm font-semibold text-white tracking-wide"
+            >
+              <span className="text-base text-pink-500">📍</span>
+              Saya sedang di tahapan mana sekarang?
+            </button>
+          </div>
+        </div>
+
         {/* Phases list */}
         <div className="px-5 py-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Fase Perjalanan</p>
+          <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Fase Perjalanan</p>
 
           <div className="space-y-3">
             {applicablePhases.map((phaseDef, index) => {

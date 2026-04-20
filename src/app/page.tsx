@@ -8,7 +8,9 @@ import { useSession } from 'next-auth/react';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { getGreeting, formatEmission, formatCurrency } from '@/lib/utils';
+import { checkCurrentStageAlert } from '@/lib/geo-stage';
 import { HiLightBulb } from 'react-icons/hi';
+import { useDialog } from '@/contexts/DialogContext';
 import { FaPlus, FaKaaba, FaMosque, FaLeaf, FaCalendarAlt, FaMapMarkerAlt, FaCheckCircle } from 'react-icons/fa';
 import { GiPlantSeed } from 'react-icons/gi';
 
@@ -25,6 +27,7 @@ interface Trip {
 export default function Home() {
   const router = useRouter();
   const { data: session } = useSession();
+  const dialogContext = useDialog();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState('Selamat pagi');
@@ -43,6 +46,15 @@ export default function Home() {
   useEffect(() => {
     loadTrips();
     loadUserStats();
+
+    // Meminta akses lokasi sejak awal halaman beranda dimuat
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => console.log('Lokasi diizinkan:', pos.coords),
+        (err) => console.warn('Akses lokasi ditolak atau error:', err),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+    }
   }, []);
 
   const loadUserStats = async () => {
@@ -345,6 +357,31 @@ export default function Home() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Phase Helper Card */}
+        <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.2s' }}>
+          <div className="bg-[#2D2D2D] rounded-2xl p-4 shadow-md">
+            <h3 className="text-[15px] font-medium mb-3 text-white">
+              Tidak tahu sedang di tahapan mana?
+            </h3>
+            <button 
+              onClick={() => {
+                const ongoing = trips.find(t => t.status === 'ongoing');
+                checkCurrentStageAlert(dialogContext, (phaseId) => {
+                  if (ongoing) {
+                    router.push(`/phases/${phaseId}?tripId=${ongoing.id}`);
+                  } else {
+                    router.push('/journeys');
+                  }
+                }, ongoing?.startDate, ongoing?.endDate);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/20 bg-transparent hover:bg-white/10 transition-colors text-sm font-semibold text-white tracking-wide"
+            >
+              <span className="text-base text-pink-500">📍</span>
+              Saya sedang di tahapan mana sekarang?
+            </button>
+          </div>
         </div>
 
         {/* Action Cards */}

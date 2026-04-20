@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/Providers";
+import FloatingHelpdesk from "@/components/FloatingHelpdesk";
 import "./globals.css";
 import { APP_NAME, isHajjIncluded } from "@/lib/featureFlags";
 
@@ -74,7 +75,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <FloatingHelpdesk />
+        </Providers>
       </body>
     </html>
   );
