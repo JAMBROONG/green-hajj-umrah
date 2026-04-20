@@ -18,10 +18,13 @@ async function main() {
   // Create Tenant: BPKH
   const bpkh = await prisma.tenants.upsert({
     where: { slug: 'bpkh' },
-    update: {},
+    update: {
+      phone: '021-12345678',
+    },
     create: {
       name: 'Badan Pengelola Keuangan Haji (BPKH)',
       slug: 'bpkh',
+      phone: '021-12345678',
       settings: {
         timezone: 'Asia/Jakarta',
         currency: 'IDR',
@@ -40,10 +43,13 @@ async function main() {
   // Create Tenant: Al-Hidayah Travel
   const alHidayah = await prisma.tenants.upsert({
     where: { slug: 'al-hidayah' },
-    update: {},
+    update: {
+      phone: '081234567890',
+    },
     create: {
       name: 'Al-Hidayah Travel',
       slug: 'al-hidayah',
+      phone: '081234567890',
       settings: {
         timezone: 'Asia/Jakarta',
         currency: 'IDR',

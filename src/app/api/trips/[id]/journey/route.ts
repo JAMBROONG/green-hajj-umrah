@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/auth";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
@@ -12,12 +12,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const token = await getToken({ 
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    const session = await auth();
 
-    if (!token || !token.sub) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,7 +22,7 @@ export async function GET(
     const trip = await prisma.trips.findFirst({
       where: {
         id,
-        user_id: token.sub as string,
+        user_id: session.user.id as string,
       },
     });
 
@@ -64,12 +61,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const token = await getToken({ 
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    const session = await auth();
 
-    if (!token || !token.sub) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -77,7 +71,7 @@ export async function PUT(
     const trip = await prisma.trips.findFirst({
       where: {
         id,
-        user_id: token.sub as string,
+        user_id: session.user.id as string,
       },
     });
 

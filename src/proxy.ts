@@ -8,7 +8,7 @@ function withSecurityHeaders(res: NextResponse): NextResponse {
   res.headers.set('X-Frame-Options', 'SAMEORIGIN');
   res.headers.set('X-XSS-Protection', '1; mode=block');
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=()');
   if (process.env.NODE_ENV === 'production') {
     res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
@@ -56,7 +56,6 @@ export async function proxy(req: NextRequest) {
   }
 
   // 4. Only allow jemaah role to access this application
-  // @ts-ignore - token has custom fields from our auth config
   if (token.role && token.role !== 'jemaah') {
     return NextResponse.redirect(new URL('/auth/signin?error=access_denied', req.url));
   }
@@ -95,6 +94,6 @@ export const config = {
      * - api routes
      * - static asset extensions (images, pdf, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|pdf|ico|json|js|css|woff|woff2|ttf)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|pdf|ico|json|js|css|woff|woff2|ttf)$).*)',
   ],
 };

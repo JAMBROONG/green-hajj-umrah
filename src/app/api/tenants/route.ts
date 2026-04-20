@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export const runtime = 'nodejs'
@@ -25,18 +25,15 @@ export async function GET(request: Request) {
 // PUT /api/tenants - Update current user's tenant
 export async function PUT(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET
-    });
+    const session = await auth();
 
-    if (!token || !token.sub) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user's profile to find their tenant_id
     const profile = await prisma.profiles.findUnique({
-      where: { id: token.sub as string },
+      where: { id: session.user.id as string },
       select: { tenant_id: true },
     });
 

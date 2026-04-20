@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/auth";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { initializePhases } from "@/lib/utils";
@@ -9,18 +9,15 @@ export const runtime = "nodejs";
 // GET /api/trips - List all trips for the authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({ 
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    const session = await auth();
 
-    if (!token || !token.sub) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const trips = await prisma.trips.findMany({
       where: {
-        user_id: token.sub as string,
+        user_id: session.user.id as string,
       },
       include: {
         journeys: true,
@@ -58,12 +55,9 @@ export async function GET(request: NextRequest) {
 // POST /api/trips - Create a new trip
 export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({ 
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    const session = await auth();
 
-    if (!token || !token.sub) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -86,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's tenantId
     const user = await prisma.profiles.findUnique({
-      where: { id: token.sub as string },
+      where: { id: session.user.id as string },
       select: { tenant_id: true },
     });
 
@@ -104,7 +98,7 @@ export async function POST(request: NextRequest) {
         type,
         start_date: new Date(startDate),
         end_date: new Date(endDate),
-        user_id: token.sub as string,
+        user_id: session.user.id as string,
         tenant_id: user.tenant_id,
         status: "ongoing",
         total_emission: 0,
