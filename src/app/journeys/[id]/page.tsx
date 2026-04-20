@@ -242,7 +242,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* Phase Helper Card */}
         <div className="px-5 pt-3">
-          <div className="bg-[#2D2D2D] rounded-2xl p-4 shadow-md">
+          <div className="bg-gradient-to-br from-[#0a5c42] to-[#1a9668] rounded-2xl p-4 shadow-md text-white">
             <h3 className="text-[15px] font-medium mb-3 text-white">
               Tidak tahu sedang di tahapan mana?
             </h3>
