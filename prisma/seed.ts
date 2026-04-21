@@ -438,13 +438,21 @@ async function main() {
     update: {},
     create: {
       id: 'cp-001',
-      product_code: 'CP001',
-      name: 'Tree Planting Package - Small',
-      description: 'Plant 10 trees and offset 1 ton of CO2',
-      price: '100000.00',
-      project: 'Reforestation Initiative',
-      category: 'reforestation',
-      image_url: 'https://via.placeholder.com/300?text=Trees',
+      name: 'Proyek Reforestasi Lahan Gambut Kalimantan',
+      description: 'Restorasi 1.000 hektar lahan gambut untuk mencegah emisi karbon dan pemulihan ekosistem.',
+      image_url: 'https://via.placeholder.com/300?text=Gambut',
+      location: 'Kalimantan Tengah, Indonesia',
+      project_owner: 'PT Restorasi Alam Asri',
+      srn_series: 'IDNBS',
+      standards: {
+        create: [{ standard: { connect: { series: 'IDNBS' } } }]
+      },
+      standards: {
+        create: [{ standard: { connect: { series: 'IDNBS' } } }]
+      },
+      vintage: '2023',
+      listed_date: new Date('2023-05-15T00:00:00Z'),
+      listed_volume: [{ year: '2023', volume: '15000' }],
       is_active: true,
     },
   });
@@ -454,13 +462,21 @@ async function main() {
     update: {},
     create: {
       id: 'cp-002',
-      product_code: 'CP002',
-      name: 'Tree Planting Package - Medium',
-      description: 'Plant 25 trees and offset 2.5 tons of CO2',
-      price: '250000.00',
-      project: 'Reforestation Initiative',
-      category: 'reforestation',
-      image_url: 'https://via.placeholder.com/300?text=More+Trees',
+      name: 'Pembangkit Listrik Tenaga Surya Atap Bali',
+      description: 'Instalasi panel surya berskala besar untuk mensuplai 30 MW listrik terbarukan.',
+      image_url: 'https://via.placeholder.com/300?text=Solar',
+      location: 'Bali, Indonesia',
+      project_owner: 'Green Energy Nusantara',
+      srn_series: 'IDTBS-RE',
+      standards: {
+        create: [{ standard: { connect: { series: 'IDTBS-RE' } } }]
+      },
+      standards: {
+        create: [{ standard: { connect: { series: 'IDTBS-RE' } } }]
+      },
+      vintage: '2024',
+      listed_date: new Date('2024-01-10T00:00:00Z'),
+      listed_volume: [{ year: '2024', volume: '45000' }],
       is_active: true,
     },
   });
@@ -470,13 +486,21 @@ async function main() {
     update: {},
     create: {
       id: 'cp-003',
-      product_code: 'CP003',
-      name: 'Solar Panel Installation',
-      description: 'Support solar panel installation offsetting 5 tons of CO2 annually',
-      price: '500000.00',
-      project: 'Renewable Energy Program',
-      category: 'renewable_energy',
-      image_url: 'https://via.placeholder.com/300?text=Solar',
+      name: 'Konservasi Hutan Mangrove Papua',
+      description: 'Perlindungan area hutan mangrove yang esensial untuk keanekaragaman hayati.',
+      image_url: 'https://via.placeholder.com/300?text=Mangrove',
+      location: 'Papua, Indonesia',
+      project_owner: 'Mangrove Lestari Foundation',
+      srn_series: 'IDNBS',
+      standards: {
+        create: [{ standard: { connect: { series: 'IDNBS' } } }]
+      },
+      standards: {
+        create: [{ standard: { connect: { series: 'IDNBS' } } }]
+      },
+      vintage: '2022',
+      listed_date: new Date('2022-11-20T00:00:00Z'),
+      listed_volume: [{ year: '2022', volume: '8000' }, { year: '2023', volume: '11000' }],
       is_active: true,
     },
   });
@@ -486,13 +510,21 @@ async function main() {
     update: {},
     create: {
       id: 'cp-004',
-      product_code: 'CP004',
-      name: 'Waste Management Program',
-      description: 'Support waste reduction initiatives offsetting 2 tons of CO2',
-      price: '150000.00',
-      project: 'Circular Economy Project',
-      category: 'waste_reduction',
-      image_url: 'https://via.placeholder.com/300?text=Recycling',
+      name: 'Pengolahan Limbah Menjadi Biogas Jawa Barat',
+      description: 'Mengkonversi limbah organik agrikultur menjadi biogas, menekan emisi metana.',
+      image_url: 'https://via.placeholder.com/300?text=Biogas',
+      location: 'Jawa Barat, Indonesia',
+      project_owner: 'BioTech Agri Indonesia',
+      srn_series: 'IDTBS',
+      standards: {
+        create: [{ standard: { connect: { series: 'IDTBS' } } }]
+      },
+      standards: {
+        create: [{ standard: { connect: { series: 'IDTBS' } } }]
+      },
+      vintage: '2023',
+      listed_date: new Date('2023-08-05T00:00:00Z'),
+      listed_volume: [{ year: '2023', volume: '25000' }],
       is_active: true,
     },
   });
