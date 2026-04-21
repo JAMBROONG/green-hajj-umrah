@@ -24,7 +24,7 @@ const TEMPLATE_PATH = path.join(
   'public',
   'certificates',
   'templates',
-  'Template untuk generate.jpeg'
+  'Template untuk generate - Carbon Market.jpeg'
 )
 
 function escapeXml(s: string): string {
@@ -39,11 +39,11 @@ export async function generateThankYouCertificate(data: ThankYouCertData): Promi
   const W = meta.width ?? 3508
   const H = meta.height ?? 2480
 
-  const name     = escapeXml(data.recipientName)
-  const title    = escapeXml(data.activityTitle)
-  const donasi   = escapeXml(`Rp ${data.amount.toLocaleString('id-ID')}`)
-  const tanggal  = escapeXml(data.donationDate)
-  const certNo   = data.certificateNumber ? escapeXml(data.certificateNumber) : ''
+  const name         = escapeXml(data.recipientName)
+  const title        = escapeXml(data.activityTitle)
+  const kontribusi   = escapeXml(`Rp ${data.amount.toLocaleString('id-ID')}`)
+  const tanggal      = escapeXml(data.donationDate)
+  const certNo       = data.certificateNumber ? escapeXml(data.certificateNumber) : ''
 
   const cx         = W / 2
   const leftColX   = 870
@@ -63,15 +63,15 @@ export async function generateThankYouCertificate(data: ThankYouCertData): Promi
           font-family="Arial,Helvetica,sans-serif"
           font-size="78" font-weight="bold" fill="#164C2E">${title}</text>
 
-    <!-- Donasi label (left cell, small) -->
+    <!-- Kontribusi label (left cell, small) -->
     <text x="${leftColX}" y="1795"
           font-family="Arial,Helvetica,sans-serif"
-          font-size="46" fill="#3A3A3A">Donasi</text>
+          font-size="46" fill="#3A3A3A">Kontribusi</text>
 
-    <!-- Donasi value (left cell, big bold) -->
+    <!-- Kontribusi value (left cell, big bold) -->
     <text x="${leftColX}" y="1885"
           font-family="Arial,Helvetica,sans-serif"
-          font-size="68" font-weight="bold" fill="#164C2E">${donasi}</text>
+          font-size="68" font-weight="bold" fill="#164C2E">${kontribusi}</text>
 
     <!-- Tanggal label (right cell, small) -->
     <text x="${rightColX}" y="1795"
