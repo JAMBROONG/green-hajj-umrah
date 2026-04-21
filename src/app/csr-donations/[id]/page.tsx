@@ -552,7 +552,7 @@ export default function CSRDonationDetailPage({ params }: { params: Promise<{ id
                   subtitle="Bukti partisipasi & apresiasi kontribusi Anda"
                   emoji="🏅"
                   fileUrl={donation.thank_you_certificate_url}
-                  fileName={`sertifikat-csr-${donation.id}.pdf`}
+                  fileName={`sertifikat-csr-${donation.id}.jpg`}
                   accentClass="bg-green-500"
                 />
               ) : (

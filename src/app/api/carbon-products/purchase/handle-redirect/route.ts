@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
           const productName   = fullPurchase?.product?.name || 'Carbon Certificate'
           const units         = fullPurchase?.units || 0
 
-          const pdfBuffer  = generateThankYouCertificate({
+          const certBuffer = await generateThankYouCertificate({
             recipientName,
             activityTitle: `${productName} (${units} tCO2e)`,
             amount: parseFloat(fullPurchase?.total_price?.toString() || '0'),
@@ -141,8 +141,8 @@ export async function GET(request: NextRequest) {
             certificateNumber: purchase.id.substring(0, 8).toUpperCase(),
           })
 
-          const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.pdf`
-          fs.writeFileSync(path.join(certificatesDir, filename), pdfBuffer)
+          const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`
+          fs.writeFileSync(path.join(certificatesDir, filename), certBuffer)
 
           const certUrl = `${appBaseUrl}/certificates/${filename}`
           await prisma.carbon_certificate_purchases.update({

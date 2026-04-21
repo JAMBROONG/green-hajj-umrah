@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
 
       // Generate single CSR participation certificate
       try {
-        const certBuffer = generateCSRCertificate({
+        const certBuffer = await generateCSRCertificate({
           recipientName,
           activityTitle,
           activityCategory: activity.category || undefined,
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
           donationDate,
           certificateNumber: `CSR-${participationId.slice(-8).toUpperCase()}`,
         })
-        const certFilename = `csr-cert-${participationId}-${Date.now()}.pdf`
+        const certFilename = `csr-cert-${participationId}-${Date.now()}.jpg`
         const certPath = path.join(certificatesDir, certFilename)
         fs.writeFileSync(certPath, certBuffer)
         thankYouUrl = `${appBaseUrl}/certificates/${certFilename}`

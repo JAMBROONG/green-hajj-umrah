@@ -208,13 +208,13 @@ export async function POST(request: NextRequest) {
 
           // Generate Thank You Certificate
           try {
-            const thankYouBuffer = generateThankYouCertificate({
+            const thankYouBuffer = await generateThankYouCertificate({
               recipientName,
               activityTitle: `${productName} (${units} tCO2e)`,
               amount: parseFloat(purchase.total_price?.toString() || '0'),
               donationDate: purchaseDate,
             })
-            const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.pdf`
+            const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.jpg`
             const thankYouPath = path.join(certificatesDir, thankYouFilename)
             fs.writeFileSync(thankYouPath, thankYouBuffer)
             thankYouUrl = `${appBaseUrl}/certificates/${thankYouFilename}`

@@ -490,7 +490,7 @@
                   subtitle="Bukti partisipasi offset karbon Anda"
                   emoji="📜"
                   fileUrl={cert.thank_you_certificate_url}
-                  fileName={`sertifikat-ucapan-${cert.product_code || cert.id}.pdf`}
+                  fileName={`sertifikat-ucapan-${cert.product_code || cert.id}.jpg`}
                   accentClass="bg-blue-500"
                 />
                 <CertCard
@@ -498,7 +498,7 @@
                   subtitle="Bukti resmi kredit karbon yang dibeli"
                   emoji="🌍"
                   fileUrl={cert.emission_reduction_certificate_url}
-                  fileName={`sertifikat-emisi-${cert.product_code || cert.id}.pdf`}
+                  fileName={`sertifikat-emisi-${cert.product_code || cert.id}.jpg`}
                   accentClass="bg-green-500"
                 />
               </>
