@@ -17,11 +17,11 @@ model tenants {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  profiles                    profiles[]
-  trips                       trips[]
-  csr_activities              csr_activities[]
-  payment_config              TenantPaymentConfig?
-  hotels                      hotels[]
+  profiles       profiles[]
+  trips          trips[]
+  csr_activities csr_activities[]
+  payment_config TenantPaymentConfig?
+  hotels         hotels[]
   // carbon_payment_config is now global, not per-tenant
 }
 
@@ -37,10 +37,10 @@ model profiles {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  tenant                          tenants? @relation(fields: [tenant_id], references: [id])
-  trips                           trips[]
-  csr_activity_participations     csr_activity_participations[]
-  carbon_certificate_purchases    carbon_certificate_purchases[]
+  tenant                       tenants?                       @relation(fields: [tenant_id], references: [id])
+  trips                        trips[]
+  csr_activity_participations  csr_activity_participations[]
+  carbon_certificate_purchases carbon_certificate_purchases[]
 
   @@index([tenant_id])
   @@index([role])
@@ -79,15 +79,15 @@ model journey_data {
 }
 
 model hajj_periods {
-  id                       Int      @id @default(autoincrement())
-  year                     Int      @unique
-  start_date               DateTime
-  end_date                 DateTime
-  registration_open_date   DateTime
-  registration_close_date  DateTime
-  is_active                Boolean  @default(true)
-  created_at               DateTime @default(now())
-  updated_at               DateTime @updatedAt
+  id                      Int      @id @default(autoincrement())
+  year                    Int      @unique
+  start_date              DateTime
+  end_date                DateTime
+  registration_open_date  DateTime
+  registration_close_date DateTime
+  is_active               Boolean  @default(true)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
 
   @@index([year])
   @@index([is_active])
@@ -112,20 +112,20 @@ model airports {
 }
 
 model seaports {
-  id          Int      @id @default(autoincrement())
-  source_id   Int?     @unique
-  name        String
-  alias_name  String?
-  latitude    Float
-  longitude   Float
-  province    String?
-  city        String?
-  address     String?
-  country_id  Int?
-  country_code String  @default("ID")
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  source_id    Int?     @unique
+  name         String
+  alias_name   String?
+  latitude     Float
+  longitude    Float
+  province     String?
+  city         String?
+  address      String?
+  country_id   Int?
+  country_code String   @default("ID")
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
   @@index([country_code])
   @@index([is_active])
@@ -142,8 +142,8 @@ model hotels {
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
-  tenant          tenants?         @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  hotel_emission  hotel_emission?  @relation(fields: [hotel_emission_id], references: [id], onDelete: SetNull)
+  tenant         tenants?        @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  hotel_emission hotel_emission? @relation(fields: [hotel_emission_id], references: [id], onDelete: SetNull)
 
   @@index([tenant_id])
   @@index([hotel_emission_id])
@@ -152,11 +152,11 @@ model hotels {
 }
 
 model hotel_emission {
-  id               Int      @id @default(autoincrement())
-  country          String
-  emission_factor  Decimal  @db.Decimal(10, 4)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  country         String
+  emission_factor Decimal  @db.Decimal(10, 4)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
   hotels hotels[]
 
@@ -202,11 +202,11 @@ model faktor_emisi_limbah {
 }
 
 model sessions {
-  id            String   @id
-  user_id       String?  @db.Uuid
-  ip_address    String?  @db.VarChar(45)
-  user_agent    String?  @db.Text
-  payload       String   @db.Text
+  id            String  @id
+  user_id       String? @db.Uuid
+  ip_address    String? @db.VarChar(45)
+  user_agent    String? @db.Text
+  payload       String  @db.Text
   last_activity Int
 
   @@index([user_id])
@@ -214,29 +214,29 @@ model sessions {
 }
 
 model csr_activities {
-  id                    String   @id @default(uuid())
-  tenant_id             String
-  title                 String
-  description           String
-  category              String
-  location              String
-  status                String   @default("upcoming")
-  start_date              DateTime
-  end_date                DateTime
-  activity_date           DateTime
-  total_donations_amount  Decimal  @default(0) @db.Decimal(14, 2)
-  target_donation_amount  Decimal  @db.Decimal(14, 2)
-  image_url               String?
-  contact_person          String
-  contact_phone           String
-  contact_email           String
-  incentives              Json     @default("{}")
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  tenant_id              String
+  title                  String
+  description            String
+  category               String
+  location               String
+  status                 String   @default("upcoming")
+  start_date             DateTime
+  end_date               DateTime
+  activity_date          DateTime
+  total_donations_amount Decimal  @default(0) @db.Decimal(14, 2)
+  target_donation_amount Decimal  @db.Decimal(14, 2)
+  image_url              String?
+  contact_person         String
+  contact_phone          String
+  contact_email          String
+  incentives             Json     @default("{}")
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
 
-  tenant            tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  participations    csr_activity_participations[]
-  updates           csr_activity_updates[]
+  tenant         tenants                       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  participations csr_activity_participations[]
+  updates        csr_activity_updates[]
 
   @@index([tenant_id])
   @@index([status])
@@ -244,21 +244,21 @@ model csr_activities {
 }
 
 model csr_activity_participations {
-  id                           String   @id @default(uuid())
-  user_id                      String
-  csr_activity_id              String
-  type                         String   @default("donate")
-  amount                       Decimal? @db.Decimal(12, 2)
-  status                       String   @default("pending")
-  payment_method               String?
-  transaction_reference        String?
-  thank_you_certificate_url    String?
+  id                            String   @id @default(uuid())
+  user_id                       String
+  csr_activity_id               String
+  type                          String   @default("donate")
+  amount                        Decimal? @db.Decimal(12, 2)
+  status                        String   @default("pending")
+  payment_method                String?
+  transaction_reference         String?
+  thank_you_certificate_url     String?
   participation_certificate_url String?
-  notes                        String?
-  created_at                   DateTime @default(now())
-  updated_at                   DateTime @updatedAt
+  notes                         String?
+  created_at                    DateTime @default(now())
+  updated_at                    DateTime @updatedAt
 
-  user        profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user         profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
   csr_activity csr_activities @relation(fields: [csr_activity_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
@@ -267,13 +267,13 @@ model csr_activity_participations {
 }
 
 model csr_activity_updates {
-  id               String   @id @default(uuid())
-  csr_activity_id  String
-  title            String
-  description      String
-  photos           Json     @default("[]")
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  id              String   @id @default(uuid())
+  csr_activity_id String
+  title           String
+  description     String
+  photos          Json     @default("[]")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
   csr_activity csr_activities @relation(fields: [csr_activity_id], references: [id], onDelete: Cascade)
 
@@ -281,29 +281,29 @@ model csr_activity_updates {
 }
 
 model carbon_certificate_purchases {
-  id                              String   @id @default(uuid())
-  user_id                         String
-  product_id                      String?
-  certificate_provider            String   @default("IDX_CARBON")
-  co2_equivalent                  Decimal  @db.Decimal(12, 2)
-  amount                          Decimal  @db.Decimal(12, 2)
-  units                           Int?
-  total_price                     Decimal  @db.Decimal(12, 2)
-  transaction_reference           String?
-  thank_you_certificate_url       String?
+  id                                 String   @id @default(uuid())
+  user_id                            String
+  product_id                         String?
+  certificate_provider               String   @default("IDX_CARBON")
+  co2_equivalent                     Decimal  @db.Decimal(12, 2)
+  amount                             Decimal  @db.Decimal(12, 2)
+  units                              Int?
+  total_price                        Decimal  @db.Decimal(12, 2)
+  transaction_reference              String?
+  thank_you_certificate_url          String?
   emission_reduction_certificate_url String?
-  batch_id                        String?
-  certificate_id                  String?
-  purchase_date                   DateTime @default(now())
-  status                          String   @default("pending")
-  payment_method                  String?
-  notes                           String?
-  metadata                        Json?
-  created_at                      DateTime @default(now())
-  updated_at                      DateTime @updatedAt
+  batch_id                           String?
+  certificate_id                     String?
+  purchase_date                      DateTime @default(now())
+  status                             String   @default("pending")
+  payment_method                     String?
+  notes                              String?
+  metadata                           Json?
+  created_at                         DateTime @default(now())
+  updated_at                         DateTime @updatedAt
 
-  user     profiles          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  product  carbon_products?  @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  user    profiles         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product carbon_products? @relation(fields: [product_id], references: [id], onDelete: SetNull)
 
   @@index([user_id])
   @@index([status])
@@ -311,15 +311,15 @@ model carbon_certificate_purchases {
 }
 
 model TenantPaymentConfig {
-  id                    String   @id @default(cuid())
-  tenant_id             String   @unique
-  midtrans_server_key   String
-  midtrans_client_key   String
-  midtrans_merchant_id  String
-  is_production         Boolean  @default(false)
-  enabled               Boolean  @default(true)
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  tenant_id            String   @unique
+  midtrans_server_key  String
+  midtrans_client_key  String
+  midtrans_merchant_id String
+  is_production        Boolean  @default(false)
+  enabled              Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
 
   tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 
@@ -327,40 +327,66 @@ model TenantPaymentConfig {
 }
 
 model CarbonPaymentConfig {
-  id                    String   @id @default(cuid())
-  midtrans_server_key   String
-  midtrans_client_key   String
-  midtrans_merchant_id  String
-  is_production         Boolean  @default(false)
-  enabled               Boolean  @default(true)
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  midtrans_server_key  String
+  midtrans_client_key  String
+  midtrans_merchant_id String
+  is_production        Boolean  @default(false)
+  enabled              Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
 }
 
 model carbon_products {
-  id            String   @id @default(cuid())
-  product_code  String   @unique
+  id            String    @id @default(cuid())
   name          String
   description   String?
-  price         Decimal  @db.Decimal(12, 2)
-  project       String
-  category      String?
   image_url     String?
-  color_class   String?
-  is_active     Boolean  @default(true)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  location      String?
+  map_url       String?
+  project_owner String?
+  srn_series    String?
+  vintage       String?
+  listed_date   DateTime?
+  listed_volume Json?
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
 
   purchases carbon_certificate_purchases[]
+  standards carbon_product_standard_relations[]
 
   @@index([is_active])
 }
 
+model carbon_product_standards {
+  id         String   @id @default(cuid())
+  series     String   @unique
+  name       String
+  vintage    String
+  price      Decimal  @db.Decimal(12, 2) @default(100000.00)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  products   carbon_product_standard_relations[]
+}
+
+model carbon_product_standard_relations {
+  product_id  String
+  standard_id String
+
+  product     carbon_products          @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  standard    carbon_product_standards @relation(fields: [standard_id], references: [id], onDelete: Cascade)
+
+  @@id([product_id, standard_id])
+}
+
 model service_setting {
-  id             String   @id @default(uuid())
-  idx_admin_fee  Decimal?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  id            String   @id @default(uuid())
+  idx_admin_fee Decimal?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 }
 
 model password_reset_tokens {
