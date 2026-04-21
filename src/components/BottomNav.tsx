@@ -26,7 +26,7 @@ export default function BottomNav() {
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
-          <span className="text-[10px] whitespace-nowrap">Beranda</span>
+          <span className="text-xs whitespace-nowrap">Beranda</span>
         </Link>
 
         <div className="w-px bg-white/25 my-3" />
@@ -39,7 +39,7 @@ export default function BottomNav() {
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
-          <span className="text-[10px] whitespace-nowrap">Perjalanan</span>
+          <span className="text-xs whitespace-nowrap">Perjalanan</span>
         </Link>
 
         <div className="w-px bg-white/25 my-3" />
@@ -52,7 +52,7 @@ export default function BottomNav() {
             <circle cx="12" cy="12" r="10" />
             <path d="M12 6v12M6 12h12" />
           </svg>
-          <span className="text-[10px] whitespace-nowrap">Pasar Karbon</span>
+          <span className="text-xs whitespace-nowrap">Pasar Karbon</span>
         </Link>
 
         <div className="w-px bg-white/25 my-3" />
@@ -65,7 +65,7 @@ export default function BottomNav() {
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <span className="text-[10px] whitespace-nowrap">Saya</span>
+          <span className="text-xs whitespace-nowrap">Saya</span>
         </Link>
       </div>
     </nav>

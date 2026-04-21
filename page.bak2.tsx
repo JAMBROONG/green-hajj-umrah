@@ -97,12 +97,11 @@ function ProfilePageInner() {
   const [savingPhone, setSavingPhone] = useState(false)
   const [userPhone, setUserPhone] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [userAvatar, setUserAvatar] = useState('')
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [showAvatarMenu, setShowAvatarMenu] = useState(false)
   const [showViewAvatar, setShowViewAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin')
@@ -233,10 +232,8 @@ function ProfilePageInner() {
       if (profileRes.ok) {
         const profileData = await profileRes.json()
         setUserPhone(profileData.profile?.metadata?.phone || '')
+          setUserAvatar(profileData.profile?.metadata?.avatar_url || null)
         setDisplayName(profileData.profile?.full_name || session?.user?.name || '')
-        if (profileData.profile?.metadata?.avatar_url) {
-          setUserAvatar(profileData.profile.metadata.avatar_url)
-        }
       }
       
       // Fetch stats
@@ -430,7 +427,83 @@ function ProfilePageInner() {
     setShowEditPhoneModal(true)
   }
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Ensure it's an image
+    if (!file.type.startsWith('image/')) {
+      showError('Pilih file gambar yang valid')
+      return
+    }
+
+    setUploadingAvatar(true)
+    
+    try {
+      // Read file and resize with canvas
+      const base64Avatar = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = (event) => {
+          const img = new Image()
+          img.src = event.target?.result as string
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const MAX_WIDTH = 256
+            const MAX_HEIGHT = 256
+            let width = img.width
+            let height = img.height
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width
+                width = MAX_WIDTH
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height
+                height = MAX_HEIGHT
+              }
+            }
+
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(img, 0, 0, width, height)
+            
+            // compress to webp or jpeg
+            resolve(canvas.toDataURL('image/jpeg', 0.8))
+          }
+          img.onerror = (err) => reject(err)
+        }
+        reader.onerror = (err) => reject(err)
+      })
+
+      const response = await fetch('/api/auth/profile/avatar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: base64Avatar }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUserAvatar(base64Avatar)
+        showSuccess('Foto profil berhasil diperbarui')
+      } else {
+        const data = await response.json()
+        showError(data.error || 'Gagal memperbarui foto profil')
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      showError('Terjadi kesalahan saat mengunggah foto')
+    } finally {
+      setUploadingAvatar(false)
+      // Reset input value so same file can be uploaded again if needed
+      if (e.target) e.target.value = ''
+    }
+  }
+
+  const handleSaveName = async () => {
       const file = e.target.files?.[0]
       if (!file) return
 
@@ -503,13 +576,7 @@ function ProfilePageInner() {
         setUploadingAvatar(false)
         // Reset input value so same file can be uploaded again if needed
         if (e.target) e.target.value = ''
-      }
-    }
-
-
-
-  const handleSaveName = async () => {
-    if (!editName.trim()) {
+      if (!editName.trim()) {
       showError('Nama tidak boleh kosong')
       return
     }
@@ -597,28 +664,9 @@ function ProfilePageInner() {
         <div className="bg-gradient-to-r from-primary to-primary/80 text-white pt-6 pb-8 px-5">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4 flex-1">
-              <div 
-                className="w-16 h-16 bg-white/30 border-2 border-white/50 rounded-full flex items-center justify-center text-2xl font-bold cursor-pointer relative group overflow-hidden"
-                onClick={() => setShowAvatarMenu(true)}
-              >
-                {uploadingAvatar ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  (displayName || session?.user?.name || 'U')[0].toUpperCase()
-                )}
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <FaEdit className="text-white text-sm" />
-                </div>
+              <div className="w-16 h-16 bg-white/30 border-2 border-white/50 rounded-full flex items-center justify-center text-2xl font-bold">
+                {(displayName || session?.user?.name || 'U')[0].toUpperCase()}
               </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleAvatarUpload} 
-              />
               <div className="flex-1">
                 <h1 className="text-xl font-bold">{displayName || session.user?.name || 'User'}</h1>
                 <p className="text-white/80 text-sm">{session.user?.email}</p>
@@ -1025,6 +1073,7 @@ function ProfilePageInner() {
         </div>
       )}
 
+
       {/* Avatar Options Modal */}
       {showAvatarMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5" onClick={() => setShowAvatarMenu(false)}>
@@ -1076,7 +1125,6 @@ function ProfilePageInner() {
           </button>
         </div>
       )}
-
     </div>
   )
 }
