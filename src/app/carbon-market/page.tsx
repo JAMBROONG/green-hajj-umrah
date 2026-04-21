@@ -155,19 +155,19 @@ export default function CarbonMarketPage() {
                         </h4>
 
                         {/* Project */}
-                        <p className="text-[11px] text-textMuted line-clamp-1 mb-2">
+                        <p className="text-xs text-textMuted line-clamp-1 mb-2">
                           🏭 {product.project}
                         </p>
 
                         {/* Price row */}
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-[10px] text-textMuted">Per tCO2e</p>
-                            <p className="text-xs font-bold text-primary">{formatCurrency(priceNum)}</p>
+                            <p className="text-xs text-textMuted">Per tCO2e</p>
+                            <p className="text-sm font-bold text-primary">{formatCurrency(priceNum)}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] text-textMuted">Total ≈{totalTon} t</p>
-                            <p className="text-xs font-bold text-textDark">{formatCurrency(totalPrice)}</p>
+                            <p className="text-xs text-textMuted">Total ≈{totalTon} t</p>
+                            <p className="text-sm font-bold text-textDark">{formatCurrency(totalPrice)}</p>
                           </div>
                         </div>
                       </div>

@@ -33,6 +33,7 @@ export default function Home() {
   const [greeting, setGreeting] = useState('Selamat pagi');
   const [userStats, setUserStats] = useState<{ totalCO2Emitted: number; totalCO2Offset: number } | null>(null);
   const userName = session?.user?.name || 'Pengguna';
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     setGreeting(getGreeting());
@@ -56,6 +57,25 @@ export default function Home() {
       );
     }
   }, []);
+
+  useEffect(() => {
+    // Load avatar if user session is ready
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('/api/auth/profile');
+        if (res.ok) {
+          const data = await res.json();
+          setUserAvatar(data.profile?.metadata?.avatar_url || null);
+        }
+      } catch (err) {
+        console.error('Failed to load avatar:', err);
+      }
+    };
+    
+    if (session?.user) {
+      fetchProfile();
+    }
+  }, [session?.user]);
 
   const loadUserStats = async () => {
     try {
@@ -145,11 +165,26 @@ export default function Home() {
           {/* Content */}
           <div className="relative z-10">
             {/* Greeting */}
-            <div className="px-5 pt-10 pb-4">
-              <p className="text-xs text-white/80 mb-0.5 drop-shadow">Green Haj &amp; Umrah</p>
-              <h1 id="greetingText" className="text-2xl font-bold text-white drop-shadow">
-                {greeting},<br />{userName}
-              </h1>
+            <div className="px-5 pt-10 pb-4 flex justify-between items-start">
+              <div>
+                <p className="text-xs text-white/80 mb-0.5 drop-shadow">Green Haj &amp; Umrah</p>
+                <h1 id="greetingText" className="text-2xl font-bold text-white drop-shadow">
+                  {greeting},<br />{userName}
+                </h1>
+              </div>
+              <Link 
+                href="/profile?tab=account" 
+                className="relative w-12 h-12 rounded-full border-2 border-white/50 bg-white/20 flex flex-shrink-0 items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/80 transition-transform active:scale-95 shadow-md mt-1"
+                aria-label="Profil Akun"
+              >
+                {userAvatar ? (
+                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-lg font-bold drop-shadow-md">
+                    {(userName || 'U')[0].toUpperCase()}
+                  </span>
+                )}
+              </Link>
             </div>
 
             {/* Total Emisi Summary — sits on top of hero bg */}
@@ -360,27 +395,37 @@ export default function Home() {
         </div>
 
         {/* Phase Helper Card */}
-        <div className="px-5 pt-5 fade-in-item" style={{ animationDelay: '0.2s' }}>
-          <div className="bg-gradient-to-br from-[#0a5c42] to-[#1a9668] rounded-2xl p-4 shadow-md text-white">
-            <h3 className="text-[15px] font-medium mb-3 text-white">
-              Tidak tahu sedang di tahapan mana?
-            </h3>
-            <button 
-              onClick={() => {
-                const ongoing = trips.find(t => t.status === 'ongoing');
-                checkCurrentStageAlert(dialogContext, (phaseId) => {
-                  if (ongoing) {
-                    router.push(`/phases/${phaseId}?tripId=${ongoing.id}`);
-                  } else {
-                    router.push('/journeys');
-                  }
-                }, ongoing?.startDate, ongoing?.endDate);
-              }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/20 bg-transparent hover:bg-white/10 transition-colors text-sm font-semibold text-white tracking-wide"
-            >
-              <span className="text-base text-pink-500">📍</span>
-              Saya sedang di tahapan mana sekarang?
-            </button>
+        <div className="px-5 pt-6 pb-2 fade-in-item" style={{ animationDelay: '0.2s' }}>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-5 shadow-sm">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl"></div>
+            <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-teal-500/10 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <span className="text-3xl mb-2">🧭</span>
+              <h3 className="text-gray-800 font-bold mb-1">
+                Bingung sedang di tahapan mana?
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Biar kami yang bantu arahkan tahapan Anda saat ini.
+              </p>
+              
+              <button 
+                onClick={() => {
+                  const ongoing = trips.find(t => t.status === 'ongoing');
+                  checkCurrentStageAlert(dialogContext, (phaseId) => {
+                    if (ongoing) {
+                      router.push(`/phases/${phaseId}?tripId=${ongoing.id}`);
+                    } else {
+                      router.push('/journeys');
+                    }
+                  }, ongoing?.startDate, ongoing?.endDate);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 transition-all font-semibold"
+              >
+                Cek Tahapan Saya
+                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+              </button>
+            </div>
           </div>
         </div>
 

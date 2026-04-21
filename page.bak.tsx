@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense, useRef } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import StatusBar from '@/components/StatusBar'
@@ -96,13 +96,8 @@ function ProfilePageInner() {
   const [savingName, setSavingName] = useState(false)
   const [savingPhone, setSavingPhone] = useState(false)
   const [userPhone, setUserPhone] = useState('')
-  const [displayName, setDisplayName] = useState('')
-  const [userAvatar, setUserAvatar] = useState('')
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [showAvatarMenu, setShowAvatarMenu] = useState(false)
-  const [showViewAvatar, setShowViewAvatar] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
+  const [displayName, setDisplayName] = useState('')    const [userAvatar, setUserAvatar] = useState<string | null>(null)
+    const [uploadingAvatar, setUploadingAvatar] = useState(false)
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin')
@@ -233,10 +228,8 @@ function ProfilePageInner() {
       if (profileRes.ok) {
         const profileData = await profileRes.json()
         setUserPhone(profileData.profile?.metadata?.phone || '')
+          setUserAvatar(profileData.profile?.metadata?.avatar_url || null)
         setDisplayName(profileData.profile?.full_name || session?.user?.name || '')
-        if (profileData.profile?.metadata?.avatar_url) {
-          setUserAvatar(profileData.profile.metadata.avatar_url)
-        }
       }
       
       // Fetch stats
@@ -278,7 +271,7 @@ function ProfilePageInner() {
     
     const link = document.createElement('a')
     link.href = fileUrl
-    link.download = fileName || 'certificate.jpg'
+    link.download = fileName || 'certificate.pdf'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -430,6 +423,7 @@ function ProfilePageInner() {
     setShowEditPhoneModal(true)
   }
 
+  const handleSaveName = async () => {
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (!file) return
@@ -505,10 +499,6 @@ function ProfilePageInner() {
         if (e.target) e.target.value = ''
       }
     }
-
-
-
-  const handleSaveName = async () => {
     if (!editName.trim()) {
       showError('Nama tidak boleh kosong')
       return
@@ -597,28 +587,9 @@ function ProfilePageInner() {
         <div className="bg-gradient-to-r from-primary to-primary/80 text-white pt-6 pb-8 px-5">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4 flex-1">
-              <div 
-                className="w-16 h-16 bg-white/30 border-2 border-white/50 rounded-full flex items-center justify-center text-2xl font-bold cursor-pointer relative group overflow-hidden"
-                onClick={() => setShowAvatarMenu(true)}
-              >
-                {uploadingAvatar ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  (displayName || session?.user?.name || 'U')[0].toUpperCase()
-                )}
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <FaEdit className="text-white text-sm" />
-                </div>
+              <div className="w-16 h-16 bg-white/30 border-2 border-white/50 rounded-full flex items-center justify-center text-2xl font-bold">
+                {(displayName || session?.user?.name || 'U')[0].toUpperCase()}
               </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleAvatarUpload} 
-              />
               <div className="flex-1">
                 <h1 className="text-xl font-bold">{displayName || session.user?.name || 'User'}</h1>
                 <p className="text-white/80 text-sm">{session.user?.email}</p>
@@ -1022,58 +993,6 @@ function ProfilePageInner() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Avatar Options Modal */}
-      {showAvatarMenu && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5" onClick={() => setShowAvatarMenu(false)}>
-          <div className="bg-white rounded-lg max-w-sm w-full p-4 space-y-2" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2 mb-2">Foto Profil</h2>
-            <div className="flex flex-col gap-2">
-              {userAvatar && (
-                <button
-                  onClick={() => {
-                    setShowAvatarMenu(false);
-                    setShowViewAvatar(true);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg text-gray-800 font-medium transition-colors"
-                >
-                  Lihat Foto
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setShowAvatarMenu(false);
-                  fileInputRef.current?.click();
-                }}
-                className="w-full text-left px-4 py-3 hover:bg-gray-100 rounded-lg text-gray-800 font-medium transition-colors"
-              >
-                {userAvatar ? 'Ganti Foto' : 'Upload Foto'}
-              </button>
-              <button
-                onClick={() => setShowAvatarMenu(false)}
-                className="w-full text-center px-4 py-3 mt-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-medium transition-colors"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Avatar Fullscreen Modal */}
-      {showViewAvatar && userAvatar && (
-        <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 p-5" onClick={() => setShowViewAvatar(false)}>
-          <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
-            <img src={userAvatar} alt="Profile Full" className="w-full h-full object-contain rounded-xl" />
-          </div>
-          <button 
-            className="absolute top-5 right-5 text-white bg-black/50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/70"
-            onClick={() => setShowViewAvatar(false)}
-          >
-            ✕
-          </button>
         </div>
       )}
 

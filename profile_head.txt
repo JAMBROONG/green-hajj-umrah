@@ -1,0 +1,120 @@
+'use client'
+
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { signOut, useSession } from 'next-auth/react'
+import StatusBar from '@/components/StatusBar'
+import BottomNav from '@/components/BottomNav'
+import { useDialog } from '@/contexts/DialogContext'
+import { FaSignOutAlt, FaUser, FaPhone, FaEnvelope, FaCalendar, FaEdit, FaLock } from 'react-icons/fa'
+
+interface MidtransSnapResponse {
+  transaction_status: string
+  transaction_id: string
+  [key: string]: unknown
+}
+
+declare global {
+  interface Window {
+    snap: {
+      setClientKey: (key: string) => void
+      pay: (token: string, callbacks: {
+        onSuccess?: (result: MidtransSnapResponse) => void
+        onPending?: (result: MidtransSnapResponse) => void
+        onError?: (result: MidtransSnapResponse) => void
+        onClose?: () => void
+      }) => void
+    }
+  }
+}
+
+interface UserStats {
+  totalTrips: number
+  totalCSRDonations: number
+  totalCertificates: number
+  totalCO2Offset: number
+  totalCO2Emitted: number
+}
+
+interface Trip {
+  id: string
+  name: string
+  type: string
+  startDate: string
+  status: string
+}
+
+interface CSRDonation {
+  id: string
+  csr_activity_id: string
+  type: string
+  amount: number
+  status: string
+  created_at: string
+  activity_title: string
+  thank_you_certificate_url?: string
+  participation_certificate_url?: string
+}
+
+interface Certificate {
+  id: string
+  co2_equivalent: number
+  amount: number
+  units?: number
+  certificate_id: string
+  status: string
+  purchase_date: string
+  thank_you_certificate_url?: string
+  emission_reduction_certificate_url?: string
+  product_code?: string
+  product_name?: string
+}
+
+function ProfilePageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { data: session, status } = useSession()
+  const { showSuccess, showError } = useDialog()
+  const [stats, setStats] = useState<UserStats | null>(null)
+  const [trips, setTrips] = useState<Trip[]>([])
+  const [donations, setDonations] = useState<CSRDonation[]>([])
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'trips' | 'donations' | 'certificates' | 'account'>(() => {
+    const tabParam = searchParams?.get('tab') as any
+    return (tabParam === 'certificates' || tabParam === 'donations' || tabParam === 'trips' || tabParam === 'account') 
+      ? tabParam 
+      : 'dashboard'
+  })
+  const [purchasedId, setPurchasedId] = useState<string | null>(() => {
+    return searchParams?.get('purchased') || null
+  })
+  const [showEditNameModal, setShowEditNameModal] = useState(false)
+  const [showEditPhoneModal, setShowEditPhoneModal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [savingName, setSavingName] = useState(false)
+  const [savingPhone, setSavingPhone] = useState(false)
+  const [userPhone, setUserPhone] = useState('')
+  const [displayName, setDisplayName] = useState('')
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin')
+      return
+    }
+
+    if (status === 'authenticated') {
+      setDisplayName(session?.user?.name || '')
+      fetchUserData()
+    }
+  }, [status])
+
+  // Load Midtrans Snap script for payment popup
+  useEffect(() => {
+    const loadMidtrans = async () => {
+      try {
+        const configResponse = await fetch('/api/payment-config/check')
+        if (!configResponse.ok) {
+          console.warn('Failed to fetch Midtrans config')
+          return

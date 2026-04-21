@@ -113,24 +113,24 @@ export default function JourneysPage() {
             <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center justify-between">
               <div className="text-center">
                 <p className="text-xl font-bold">{trips.length}</p>
-                <p className="text-[10px] text-white/75">Total</p>
+                <p className="text-xs text-white/80 font-medium tracking-wide">Total</p>
               </div>
               <div className="w-px h-8 bg-white/25" />
               <div className="text-center">
                 <p className="text-xl font-bold">{trips.filter(t => t.status === 'ongoing').length}</p>
-                <p className="text-[10px] text-white/75">Berlangsung</p>
+                <p className="text-xs text-white/80 font-medium tracking-wide">Berlangsung</p>
               </div>
               <div className="w-px h-8 bg-white/25" />
               <div className="text-center">
                 <p className="text-xl font-bold">{trips.filter(t => t.status === 'completed').length}</p>
-                <p className="text-[10px] text-white/75">Selesai</p>
+                <p className="text-xs text-white/80 font-medium tracking-wide">Selesai</p>
               </div>
               <div className="w-px h-8 bg-white/25" />
               <div className="text-center">
                 <p className="text-xl font-bold">
                   {(trips.reduce((s, t) => s + parseFloat(t.totalEmission.toString()), 0) / 1000).toFixed(1)}
                 </p>
-                <p className="text-[10px] text-white/75">Ton CO₂</p>
+                <p className="text-xs text-white/80 font-medium tracking-wide">Ton CO₂</p>
               </div>
             </div>
           </div>

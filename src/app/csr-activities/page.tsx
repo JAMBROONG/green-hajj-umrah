@@ -269,11 +269,11 @@ export default function CSRActivitiesPage() {
                         <div className="flex-1 p-3 min-w-0 flex flex-col justify-between">
                           {/* Badges */}
                           <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                            <span className="px-2 py-0.5 bg-primaryLight rounded-full text-[10px] font-semibold text-primary leading-tight">
+                            <span className="px-2.5 py-0.5 bg-primaryLight rounded-full text-xs font-semibold text-primary leading-tight">
                               {categoryIcons[activity.category]} {categoryLabels[activity.category] ?? activity.category.replace(/_/g, ' ')}
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold leading-tight ${
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold leading-tight ${
                                 activity.status === 'active'
                                   ? 'bg-green-100 text-green-700'
                                   : activity.status === 'upcoming'
@@ -288,24 +288,24 @@ export default function CSRActivitiesPage() {
                           </div>
 
                           {/* Title */}
-                          <h3 className="text-sm font-semibold text-textDark leading-snug line-clamp-2 mb-1">
+                          <h3 className="text-sm font-semibold text-textDark leading-snug line-clamp-2 mt-1 mb-1">
                             {activity.title}
                           </h3>
 
                           {/* Location */}
-                          <p className="text-[11px] text-textMuted line-clamp-1 mb-2">
+                          <p className="text-xs text-textMuted line-clamp-1 mb-2">
                             📍 {activity.location}
                           </p>
 
                           {/* Progress bar */}
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-border rounded-full h-1.5 overflow-hidden">
+                            <div className="flex-1 bg-border rounded-full h-2 overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${isInactive ? 'bg-gray-300' : 'bg-primary'}`}
                                 style={{ width: `${progressPct}%` }}
                               />
                             </div>
-                            <span className={`text-[10px] font-bold flex-none ${isInactive ? 'text-textMuted' : 'text-primary'}`}>
+                            <span className={`text-xs font-bold flex-none ${isInactive ? 'text-textMuted' : 'text-primary'}`}>
                               {progressPct}%
                             </span>
                           </div>

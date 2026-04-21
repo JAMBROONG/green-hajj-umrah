@@ -242,19 +242,29 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* Phase Helper Card */}
         <div className="px-5 pt-3">
-          <div className="bg-gradient-to-br from-[#0a5c42] to-[#1a9668] rounded-2xl p-4 shadow-md text-white">
-            <h3 className="text-[15px] font-medium mb-3 text-white">
-              Tidak tahu sedang di tahapan mana?
-            </h3>
-            <button 
-              onClick={() => checkCurrentStageAlert(dialogContext, (phaseId) => {
-                router.push(`/phases/${phaseId}?tripId=${tripId}`);
-              }, trip.startDate, trip.endDate)}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-white/20 bg-transparent hover:bg-white/10 transition-colors text-sm font-semibold text-white tracking-wide"
-            >
-              <span className="text-base text-pink-500">📍</span>
-              Saya sedang di tahapan mana sekarang?
-            </button>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-5 shadow-sm">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl"></div>
+            <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-teal-500/10 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <span className="text-3xl mb-2">🧭</span>
+              <h3 className="text-gray-800 font-bold mb-1">
+                Bingung sedang di tahapan mana?
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Biar kami yang bantu arahkan tahapan Anda saat ini.
+              </p>
+              
+              <button 
+                onClick={() => checkCurrentStageAlert(dialogContext, (phaseId) => {
+                  router.push(`/phases/${phaseId}?tripId=${tripId}`);
+                }, trip.startDate, trip.endDate)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 active:translate-y-0 transition-all font-semibold"
+              >
+                Cek Tahapan Saya
+                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+              </button>
+            </div>
           </div>
         </div>
 
