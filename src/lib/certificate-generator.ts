@@ -1,5 +1,5 @@
 import sharp from 'sharp'
-import * as path from 'path'
+import { getCertificateTemplate } from './certificate-template-loader'
 
 export interface ThankYouCertData {
   recipientName: string
@@ -19,14 +19,6 @@ interface CertificateData {
   certificateNumber?: string
 }
 
-const TEMPLATE_PATH = path.join(
-  process.cwd(),
-  'public',
-  'certificates',
-  'templates',
-  'Template untuk generate - Carbon Market.jpeg'
-)
-
 function escapeXml(s: string): string {
   return s.replace(/[<>&'"]/g, c => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;'
@@ -34,7 +26,8 @@ function escapeXml(s: string): string {
 }
 
 export async function generateThankYouCertificate(data: ThankYouCertData): Promise<Buffer> {
-  const template = sharp(TEMPLATE_PATH)
+  const templateBuffer = await getCertificateTemplate('carbon-market')
+  const template = sharp(templateBuffer)
   const meta = await template.metadata()
   const W = meta.width ?? 3508
   const H = meta.height ?? 2480
