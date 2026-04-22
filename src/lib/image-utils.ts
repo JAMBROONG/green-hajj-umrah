@@ -1,24 +1,23 @@
 /**
- * Build full image URL from relative path
- * Combines IMAGE_URL_PREFIX from env with the image path
+ * Build full image URL from relative path.
+ * Relative paths are routed through /api/image-proxy so Next.js Image Optimizer
+ * can fetch from any backend (including private IPs like 127.0.0.1) without
+ * triggering the SSRF check. The proxy reads NEXT_PUBLIC_IMAGE_URL_PREFIX at
+ * runtime, so the backend URL stays fully configurable via env.
  */
 export function getImageUrl(imagePath?: string | null): string {
   if (!imagePath) {
     return '';
   }
 
-  // If already full URL (starts with http/https), return as is
+  // Already a full URL — return as-is (external CDN, etc.)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
 
-  // Get prefix from env or fallback to localhost
-  const rawPrefix = process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX || 'http://localhost:3000'
-  // Normalise: strip trailing slash from prefix, strip leading slash from path
-  const prefix = rawPrefix.endsWith('/') ? rawPrefix.slice(0, -1) : rawPrefix
-  const path = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath
-
-  return `${prefix}/${path}`
+  // Relative path → proxy through Next.js API route (path params, no query string)
+  const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath
+  return `/api/image-proxy/${cleanPath}`
 }
 
 /**

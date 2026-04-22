@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Get purchase record
     const purchase = await prisma.carbon_certificate_purchases.findUnique({
       where: { id: purchaseId },
-      include: { product: true },
+      include: { standard: true },
     })
 
     if (!purchase) {
@@ -128,10 +128,10 @@ export async function POST(request: NextRequest) {
       },
       item_details: [
         {
-          id: purchase.product_id,
+          id: purchase.standard_id,
           price: unitPrice,
           quantity: units,
-          name: `${purchase.product?.name || 'Carbon Credits'} (${purchase.units} tCO2e)`,
+          name: `${purchase.standard?.series || 'Carbon Credits'} (${purchase.units} tCO2e)`,
           category: 'Carbon Credits',
         },
       ],

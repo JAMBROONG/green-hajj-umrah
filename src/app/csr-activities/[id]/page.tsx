@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav'
 import { useDialog } from '@/contexts/DialogContext'
 import { FaArrowLeft, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
 import { getImageUrl } from '@/lib/image-utils'
+import Image from 'next/image'
 
 interface MidtransSnapResponse {
   transaction_status: string
@@ -457,10 +458,12 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                       {/* Photo slider */}
                       {photos.length > 0 && (
                         <div className="relative w-full h-48 bg-gray-100">
-                          <img
+                          <Image
                             src={getImageUrl(photos[slide])}
                             alt={`${update.title} foto ${slide + 1}`}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="430px"
+                            className="object-cover"
                           />
                           {photos.length > 1 && (
                             <>

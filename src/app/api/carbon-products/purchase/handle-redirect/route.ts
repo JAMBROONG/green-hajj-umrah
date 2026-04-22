@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
         try {
           const fullPurchase = await prisma.carbon_certificate_purchases.findUnique({
             where: { id: purchase.id },
-            include: { user: true, product: true },
+            include: { user: true, standard: true },
           })
 
           const appBaseUrl = (
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
           })
 
           const recipientName = fullPurchase?.user?.full_name || 'Carbon Supporter'
-          const productName   = fullPurchase?.product?.name || 'Carbon Certificate'
+          const productName   = fullPurchase?.standard?.name || fullPurchase?.standard?.series || 'Carbon Certificate'
           const units         = fullPurchase?.units || 0
 
           const pdfBuffer  = generateThankYouCertificate({

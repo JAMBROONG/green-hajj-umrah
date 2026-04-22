@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Get purchase record
     const purchase = await prisma.carbon_certificate_purchases.findUnique({
       where: { id: purchaseId },
-      include: { user: true, product: true },
+      include: { user: true, standard: true },
     })
 
     // Get order_id from metadata first
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
           })
 
           const recipientName = purchase.user?.full_name || 'Carbon Supporter'
-          const productName = purchase.product?.name || 'Carbon Certificate'
+          const productName = purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
           const units = purchase.units || 0
 
           // Base URL for storing absolute certificate links
