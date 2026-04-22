@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { IoArrowBack, IoLockClosed, IoEye, IoEyeOff, IoCheckmarkCircle } from 'react-icons/io5';
 import { APP_NAME } from '@/lib/featureFlags';
 
@@ -84,7 +85,7 @@ function ResetPasswordContent() {
     >
       {/* Logo area */}
       <div className="flex-1 flex flex-col items-center justify-end pb-8">
-        <img src="/logo.png" alt={APP_NAME} className="w-28 h-auto drop-shadow-xl" />
+        <Image src="/logo.png" alt={APP_NAME} width={112} height={112} className="w-28 h-auto drop-shadow-xl" />
         <h1 className="text-xl font-bold text-white drop-shadow-lg mt-3">Buat Kata Sandi Baru</h1>
         <p className="text-sm text-white/75 mt-1 drop-shadow text-center px-10">
           Pilih kata sandi yang kuat dan mudah diingat

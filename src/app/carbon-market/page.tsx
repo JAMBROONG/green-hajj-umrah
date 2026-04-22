@@ -6,44 +6,39 @@ import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { formatEmission, formatCurrency } from '@/lib/utils';
-import { getImageUrl } from '@/lib/image-utils';
 import { IoArrowBack } from 'react-icons/io5';
 import { GiPlantSeed } from 'react-icons/gi';
 
-interface CarbonProduct {
+interface CarbonProductStandard {
   id: string;
-  product_code: string;
+  series: string;
   name: string;
-  description?: string;
-  price: number | string;
-  project: string;
-  category?: string;
-  image_url?: string;
-  color_class?: string;
+  vintage: string;
+  price: string | number;
   is_active: boolean;
 }
 
 export default function CarbonMarketPage() {
   const { journey, isLoading, totalEmission } = useHajiJourney();
-  const [products, setProducts] = useState<CarbonProduct[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [standards, setStandards] = useState<CarbonProductStandard[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchStandards = async () => {
       try {
-        const response = await fetch('/api/carbon-products');
+        const response = await fetch('/api/carbon-product-standards');
         if (response.ok) {
           const data = await response.json();
-          setProducts(data);
+          setStandards(data);
         }
       } catch (error) {
-        console.error('Error fetching carbon products:', error);
+        console.error('Error fetching carbon standards:', error);
       } finally {
-        setProductsLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchStandards();
   }, []);
 
   if (isLoading || !journey) {
@@ -58,7 +53,7 @@ export default function CarbonMarketPage() {
   }
 
   const totalTon = formatEmission(totalEmission, 'ton');
-  const estimatedCost = Math.ceil(totalEmission / 1000) * 58800;
+  const estimatedCost = Math.ceil(totalEmission / 1000) * 58800; // Will be dynamic per standard
 
   return (
     <div className="app-container">
@@ -73,7 +68,7 @@ export default function CarbonMarketPage() {
             </Link>
             <div>
               <h1 className="text-lg font-bold text-textDark">Pasar Karbon IDX</h1>
-              <p className="text-xs text-textMuted">Offset jejak karbon ibadah Anda</p>
+              <p className="text-xs text-textMuted">Pilih Standar Produk Karbon</p>
             </div>
           </div>
         </div>
@@ -90,85 +85,53 @@ export default function CarbonMarketPage() {
                 <p className="text-3xl font-bold leading-none mb-0.5">{totalTon}</p>
                 <p className="text-xs opacity-70">tCO2e perlu dioffset</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs opacity-70 mb-0.5">Estimasi biaya</p>
-                <p className="text-lg font-bold">{formatCurrency(estimatedCost)}</p>
-              </div>
             </div>
           </div>
 
           {/* Products */}
-          <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Pilih Produk IDX Carbon</p>
+          <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3">Daftar Standar Karbon</p>
 
-          {productsLoading ? (
+          {loading ? (
             <div className="pt-10 text-center">
               <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-sm text-textMuted">Memuat produk...</p>
+              <p className="text-sm text-textMuted">Memuat standar...</p>
             </div>
-          ) : products.length === 0 ? (
+          ) : standards.length === 0 ? (
             <div className="pt-10 text-center">
               <p className="text-3xl mb-3">🌿</p>
-              <p className="text-sm font-semibold text-textDark mb-1">Belum ada produk</p>
-              <p className="text-xs text-textMuted">Produk karbon belum tersedia saat ini</p>
+              <p className="text-sm font-semibold text-textDark mb-1">Belum ada standar</p>
+              <p className="text-xs text-textMuted">Standar produk karbon belum tersedia saat ini</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {products.map((product) => {
-                const priceNum = typeof product.price === 'string' ? parseInt(product.price) : product.price;
+              {standards.map((standard) => {
+                const priceNum = typeof standard.price === 'string' ? parseFloat(standard.price) : standard.price;
                 const totalPrice = Math.ceil(totalEmission / 1000) * priceNum;
 
                 return (
-                  <Link key={product.id} href={`/checkout/${product.product_code}`}>
-                    <div className="bg-white rounded-2xl border border-border overflow-hidden flex active:scale-[0.98] transition-transform mt-3">
-                      {/* Thumbnail */}
-                      <div className="w-[108px] flex-none self-stretch relative bg-primaryLight overflow-hidden">
-                        {product.image_url ? (
-                          <img
-                            src={getImageUrl(product.image_url)}
-                            alt={product.name}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-4xl">
-                            🌱
-                          </div>
-                        )}
+                  <Link key={standard.id} href={`/checkout/${standard.series}`}>
+                    <div className="bg-white rounded-2xl border border-border p-4 flex flex-col active:scale-[0.98] transition-transform mt-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="px-2.5 py-1 rounded-full bg-primaryLight text-primary text-[10px] font-bold">
+                          {standard.series}
+                        </span>
+                        <span className="text-[10px] text-textMuted px-2 py-1 bg-gray-50 rounded-full border border-gray-100">
+                          Vintage: {standard.vintage}
+                        </span>
                       </div>
+                      
+                      <h4 className="text-sm font-semibold text-textDark mb-3">
+                        {standard.name}
+                      </h4>
 
-                      {/* Content */}
-                      <div className="flex-1 p-3 min-w-0 flex flex-col justify-between">
-                        {/* Badge */}
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold leading-tight ${product.color_class || 'bg-primaryLight text-primary'}`}>
-                            {product.product_code}
-                          </span>
-                          {product.category && (
-                            <span className="px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-textMuted leading-tight">
-                              {product.category}
-                            </span>
-                          )}
+                      <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                        <div>
+                          <p className="text-[10px] text-textMuted mb-0.5">Harga per tCO2e</p>
+                          <p className="text-sm font-bold text-primary">{formatCurrency(priceNum)}</p>
                         </div>
-
-                        {/* Name */}
-                        <h4 className="text-sm font-semibold text-textDark leading-snug line-clamp-2 mb-1">
-                          {product.name}
-                        </h4>
-
-                        {/* Project */}
-                        <p className="text-xs text-textMuted line-clamp-1 mb-2">
-                          🏭 {product.project}
-                        </p>
-
-                        {/* Price row */}
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-textMuted">Per tCO2e</p>
-                            <p className="text-sm font-bold text-primary">{formatCurrency(priceNum)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-textMuted">Total ≈{totalTon} t</p>
-                            <p className="text-sm font-bold text-textDark">{formatCurrency(totalPrice)}</p>
-                          </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-textMuted mb-0.5">Estimasi {totalTon} t</p>
+                          <p className="text-sm font-bold text-textDark">{formatCurrency(totalPrice)}</p>
                         </div>
                       </div>
                     </div>

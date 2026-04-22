@@ -66,8 +66,9 @@ interface Certificate {
   purchase_date: string
   thank_you_certificate_url?: string
   emission_reduction_certificate_url?: string
-  product_code?: string
-  product_name?: string
+  standard_series?: string
+  standard_name?: string
+  transaction_reference?: string
 }
 
 function ProfilePageInner() {
@@ -847,7 +848,7 @@ function ProfilePageInner() {
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900">{cert.product_name || 'Sertifikat Karbon'}</h3>
+                            <h3 className="font-semibold text-gray-900">{cert.standard_name || cert.standard_series || 'Sertifikat Karbon'}</h3>
                             {isNewPurchase && <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Baru!</span>}
                           </div>
                           <p className="text-sm text-gray-600">{cert.units || cert.co2_equivalent} tCO2e</p>

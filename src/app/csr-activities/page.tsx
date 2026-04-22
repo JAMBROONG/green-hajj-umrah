@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
 import { getImageUrl } from '@/lib/image-utils'
+import Image from 'next/image'
 import { FaArrowLeft, FaLeaf, FaRecycle, FaBolt, FaTint, FaGlobe } from 'react-icons/fa'
 
 interface CSRActivity {
@@ -253,10 +254,12 @@ export default function CSRActivitiesPage() {
                         {/* Image */}
                         <div className={`w-[108px] flex-none self-stretch relative overflow-hidden ${activity.image_url ? '' : (categoryBgColors[activity.category] ?? 'bg-primaryLight')}`}>
                           {activity.image_url ? (
-                            <img
+                            <Image
                               src={getImageUrl(activity.image_url)}
                               alt={activity.title}
-                              className="absolute inset-0 w-full h-full object-cover"
+                              fill
+                              sizes="108px"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="absolute inset-0 flex items-center justify-center">

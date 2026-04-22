@@ -81,7 +81,7 @@ export async function GET(
 
     const cert = await prisma.carbon_certificate_purchases.findFirst({
       where: { id, user_id: user.id },
-      include: { product: true },
+      include: { standard: true },
     })
 
     if (!cert) {
@@ -105,11 +105,10 @@ export async function GET(
       purchase_date: cert.created_at.toISOString(),
       thank_you_certificate_url: cert.thank_you_certificate_url || meta?.thank_you_certificate_url || null,
       emission_reduction_certificate_url: cert.emission_reduction_certificate_url || meta?.emission_reduction_certificate_url || null,
-      product_code: cert.product?.product_code,
-      product_name: cert.product?.name,
-      product_description: cert.product?.description,
-      project: cert.product?.project,
-      snap_token: cert.transaction_reference || null,
+      standard_series: cert.standard?.series,
+      standard_name: cert.standard?.name,
+      standard_vintage: cert.standard?.vintage,
+      transaction_reference: cert.transaction_reference || null,
     })
   } catch (error) {
     console.error('Error fetching certificate:', error)

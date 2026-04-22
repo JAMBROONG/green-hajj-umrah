@@ -4,19 +4,13 @@ import prisma from '@/lib/prisma'
 
 // Helper to create Midtrans transaction via HTTP
 async function createMidtransTransaction(payload: any, serverKey: string, isProduction: boolean) {
-  // Midtrans API endpoint
   const apiUrl = isProduction
     ? 'https://app.midtrans.com/snap/v1/transactions'
     : 'https://app.sandbox.midtrans.com/snap/v1/transactions'
 
-  // Create Basic Auth header
   const auth = Buffer.from(`${serverKey}:`).toString('base64')
 
-  console.log('🔑 Midtrans Auth:', {
-    serverKeyLength: serverKey?.length,
-    apiUrl,
-  })
-
+  console.log('🔑 Midtrans Auth:', { serverKeyLength: serverKey?.length, apiUrl })
   console.log('📤 Carbon Product Purchase Payload:', JSON.stringify(payload, null, 2))
 
   const response = await fetch(apiUrl, {
@@ -30,7 +24,7 @@ async function createMidtransTransaction(payload: any, serverKey: string, isProd
   })
 
   const data = await response.json()
-  
+
   console.log('✅ Midtrans Response:', {
     status: response.status,
     token: data.token ? data.token.substring(0, 20) + '...' : 'MISSING',
@@ -49,96 +43,73 @@ async function createMidtransTransaction(payload: any, serverKey: string, isProd
 
 export async function POST(request: NextRequest) {
   try {
-    // Get Carbon Payment Config from database
     const carbonConfig = await prisma.carbonPaymentConfig.findFirst()
-    
+
     if (!carbonConfig) {
-      return NextResponse.json(
-        { error: 'Carbon payment configuration not found' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Carbon payment configuration not found' }, { status: 500 })
     }
 
     if (!carbonConfig.enabled) {
-      return NextResponse.json(
-        { error: 'Carbon payment is currently disabled' },
-        { status: 503 }
-      )
+      return NextResponse.json({ error: 'Carbon payment is currently disabled' }, { status: 503 })
     }
 
-    // Get user session
     const session = await auth()
-    
     if (!session || !session.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile
     const userProfile = await prisma.profiles.findUnique({
       where: { email: session.user.email! },
     })
 
     if (!userProfile) {
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
     const body = await request.json()
     console.log('📥 Request body:', body)
-    
-    const { product_code, units } = body
 
-    // Validate input — server-side: type, range, and sanity checks
-    if (!product_code || typeof product_code !== 'string') {
-      return NextResponse.json({ error: 'product_code tidak valid.' }, { status: 400 })
+    const { standard_series, units } = body
+
+    if (!standard_series || typeof standard_series !== 'string') {
+      return NextResponse.json({ error: 'standard_series tidak valid.' }, { status: 400 })
     }
 
     const unitsNum = Number(units)
     if (!Number.isInteger(unitsNum) || unitsNum < 1 || unitsNum > 100) {
       return NextResponse.json(
         { error: 'Jumlah unit harus berupa bilangan bulat antara 1 dan 100.' },
-        { status: 400 },
-      )
-    }
-
-    // Get product from database
-    const product = await prisma.carbon_products.findUnique({
-      where: { product_code },
-    })
-
-    if (!product) {
-      console.log('❌ Product not found:', product_code)
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      )
-    }
-
-    if (!product.is_active) {
-      console.log('❌ Product is not active:', product_code)
-      return NextResponse.json(
-        { error: 'Product is not available' },
         { status: 400 }
       )
     }
 
-    console.log('✅ Product found:', product.name)
+    const standard = await prisma.carbon_product_standards.findUnique({
+      where: { series: standard_series },
+    })
 
-    // Calculate total price server-side (price comes from DB, not client)
-    const unitPrice = parseFloat(product.price.toString())
-    const totalAmount = Math.round(unitPrice * unitsNum)
+    if (!standard) {
+      console.log('❌ Standard not found:', standard_series)
+      return NextResponse.json({ error: 'Standard not found' }, { status: 404 })
+    }
 
-    // Hard cap: 50 juta IDR per transaksi
+    if (!standard.is_active) {
+      return NextResponse.json({ error: 'Standard is not available' }, { status: 400 })
+    }
+
+    const serviceSetting = await prisma.service_setting.findFirst()
+    const adminFeeRate = serviceSetting?.idx_admin_fee
+      ? parseFloat(serviceSetting.idx_admin_fee.toString()) / 100
+      : 0
+
+    const unitPrice = parseFloat(standard.price.toString())
+    const baseAmount = Math.round(unitPrice * unitsNum)
+    const totalAmount = Math.round(baseAmount * (1 + adminFeeRate))
+
     const MAX_TRANSACTION_IDR = 50_000_000
     if (totalAmount > MAX_TRANSACTION_IDR) {
       return NextResponse.json(
         { error: 'Total transaksi melebihi batas maksimum yang diizinkan.' },
-        { status: 400 },
+        { status: 400 }
       )
     }
 
@@ -155,28 +126,27 @@ export async function POST(request: NextRequest) {
       },
       item_details: [
         {
-          id: product.id,
-          price: unitPrice,
+          id: standard.id,
+          price: Math.round(totalAmount / unitsNum),
           quantity: unitsNum,
-          name: `${product.name} (${unitsNum} tCO2e)`,
+          name: `${standard.series} - ${unitsNum} tCO2e`,
           category: 'Carbon Credits',
         },
       ],
-      custom_field1: `product:${product_code}`,
+      custom_field1: `standard:${standard_series}`,
       custom_field2: `user:${userProfile.id}`,
       finish_redirect_url: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/carbon-products/purchase/handle-redirect`,
     }
 
     const transaction = await createMidtransTransaction(transactionPayload, carbonConfig.midtrans_server_key, carbonConfig.is_production)
 
-    // Create certificate purchase record with pending status
     const purchase = await prisma.carbon_certificate_purchases.create({
       data: {
         user_id: userProfile.id,
-        product_id: product.id,
+        standard_id: standard.id,
         units: unitsNum,
-        co2_equivalent: unitsNum, // CO2 equivalent in tCO2e
-        amount: totalAmount, // Price amount
+        co2_equivalent: unitsNum,
+        amount: totalAmount,
         total_price: totalAmount,
         transaction_reference: transaction.token,
         status: 'pending',
@@ -198,9 +168,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error in carbon purchase:', error)
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Failed to process purchase' 
-      },
+      { error: error instanceof Error ? error.message : 'Failed to process purchase' },
       { status: 500 }
     )
   }

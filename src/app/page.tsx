@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -178,7 +179,7 @@ export default function Home() {
                 aria-label="Profil Akun"
               >
                 {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+                  <Image src={userAvatar} alt="Profile" fill className="object-cover" sizes="48px" />
                 ) : (
                   <span className="text-white text-lg font-bold drop-shadow-md">
                     {(userName || 'U')[0].toUpperCase()}

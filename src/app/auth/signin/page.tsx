@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { IoMail, IoLockClosed, IoEye, IoEyeOff } from 'react-icons/io5';
 import { APP_NAME } from '@/lib/featureFlags';
@@ -93,9 +94,11 @@ export default function SignInPage() {
     >
       {/* Logo area — takes upper ~55% of screen */}
       <div className="flex-1 flex flex-col items-center justify-end pb-8">
-        <img
+        <Image
           src="/logo.png"
           alt={APP_NAME}
+          width={144}
+          height={144}
           className="w-36 h-auto drop-shadow-xl"
         />
         <h1 className="text-2xl font-bold text-white drop-shadow-lg mt-3 tracking-wide">

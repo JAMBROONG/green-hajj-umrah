@@ -283,7 +283,7 @@ model csr_activity_updates {
 model carbon_certificate_purchases {
   id                                 String   @id @default(uuid())
   user_id                            String
-  product_id                         String?
+  standard_id                        String?
   certificate_provider               String   @default("IDX_CARBON")
   co2_equivalent                     Decimal  @db.Decimal(12, 2)
   amount                             Decimal  @db.Decimal(12, 2)
@@ -302,8 +302,8 @@ model carbon_certificate_purchases {
   created_at                         DateTime @default(now())
   updated_at                         DateTime @updatedAt
 
-  user    profiles         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  product carbon_products? @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  user     profiles                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  standard carbon_product_standards? @relation(fields: [standard_id], references: [id], onDelete: SetNull)
 
   @@index([user_id])
   @@index([status])
@@ -353,7 +353,6 @@ model carbon_products {
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
 
-  purchases carbon_certificate_purchases[]
   standards carbon_product_standard_relations[]
 
   @@index([is_active])
@@ -369,7 +368,8 @@ model carbon_product_standards {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  products   carbon_product_standard_relations[]
+  products  carbon_product_standard_relations[]
+  purchases carbon_certificate_purchases[]
 }
 
 model carbon_product_standard_relations {
