@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
               new URL(request.url).origin
             ).replace(/\/$/, '')
 
-            const certificatesDir = path.join(process.cwd(), 'storage', 'certificates')
+            const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
             if (!fs.existsSync(certificatesDir)) {
               fs.mkdirSync(certificatesDir, { recursive: true })
             }
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
             const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`
             fs.writeFileSync(path.join(certificatesDir, filename), certBuffer)
 
-            const certUrl = `${appBaseUrl}/api/cert-files/${filename}`
+            const certUrl = `${appBaseUrl}/api/certificate-file/${filename}`
             await prisma.carbon_certificate_purchases.update({
               where: { id: purchase.id },
               data: {

@@ -73,9 +73,9 @@ export async function generateCSRCertificate(data: CSRCertData): Promise<Buffer>
   // CATATAN: Kategori (reforestation, dll) SUDAH ADA di template CSR — tidak perlu overlay
 
   // Info box
-  const labelY      = Math.round(H * 0.718)
-  const valueY      = Math.round(H * 0.770)
-  const certNoY     = Math.round(H * 0.824)
+  const labelY      = Math.round(H * 0.700)
+  const valueY      = Math.round(H * 0.750)
+  const certNoY     = Math.round(H * 0.792)
   const labelFSize  = Math.round(H * 0.026)
   const valueFSize  = Math.round(H * 0.028)
   const certNoFSize = Math.round(H * 0.022)

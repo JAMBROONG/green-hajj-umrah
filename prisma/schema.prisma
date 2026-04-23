@@ -326,6 +326,7 @@ model TenantPaymentConfig {
   tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 
   @@index([tenant_id])
+  @@map("tenant_payment_configs")
 }
 
 model CarbonPaymentConfig {
@@ -337,6 +338,8 @@ model CarbonPaymentConfig {
   enabled              Boolean  @default(true)
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
+
+  @@map("carbon_payment_configs")
 }
 
 model carbon_products {
@@ -392,6 +395,8 @@ model service_setting {
   updated_at    DateTime @updatedAt
 
   tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("service_settings")
 }
 
 /// Per-tenant certificate templates. Admin pilih tenant → upload

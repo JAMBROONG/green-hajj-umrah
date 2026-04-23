@@ -20,8 +20,8 @@
     purchase_date: string
     thank_you_certificate_url: string | null
     emission_reduction_certificate_url: string | null
-    product_code: string | null
-    product_name: string | null
+    standard_series: string | null
+    standard_name: string | null
     product_description: string | null
     project: string | null
     snap_token: string | null
@@ -275,7 +275,7 @@
       if (!cert) return
       if (!window.snap) {
         // Snap JS not loaded yet — fall back to checkout page
-        if (cert.product_code) router.push(`/checkout/${cert.product_code}`)
+        if (cert.standard_series) router.push(`/checkout/${cert.standard_series}`)
         return
       }
       setIsPayLoading(true)
@@ -315,7 +315,7 @@
         console.error('Retry payment error:', err)
         setIsPayLoading(false)
         // Fall back to checkout page if something goes wrong
-        if (cert.product_code) router.push(`/checkout/${cert.product_code}`)
+        if (cert.standard_series) router.push(`/checkout/${cert.standard_series}`)
       }
     }
 
@@ -409,7 +409,7 @@
                 </div>
                 <div>
                   <h1 className="text-xl font-bold leading-tight">Sertifikat Karbon</h1>
-                  <p className="text-sm text-white/75">{cert.product_name || 'Kredit Karbon'}</p>
+                  <p className="text-sm text-white/75">{cert.standard_name || 'Kredit Karbon'}</p>
                 </div>
               </div>
             </div>
@@ -477,7 +477,7 @@
                   {/* Product */}
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-500">Produk</p>
-                    <p className="text-xs font-semibold text-gray-900 text-right max-w-[60%]">{cert.product_name || '-'}</p>
+                    <p className="text-xs font-semibold text-gray-900 text-right max-w-[60%]">{cert.standard_name || '-'}</p>
                   </div>
                   {cert.project && (
                     <div className="flex items-center justify-between">
@@ -516,7 +516,8 @@
                   subtitle="Bukti partisipasi offset karbon Anda"
                   emoji="📜"
                   fileUrl={cert.thank_you_certificate_url}
-                  fileName={`sertifikat-ucapan-${cert.product_code || cert.id}.jpg`}
+
+                  fileName={`sertifikat-ucapan-${cert.standard_series || cert.id}.pdf`}
                   accentClass="bg-blue-500"
                 />
                 <CertCard
@@ -524,7 +525,7 @@
                   subtitle="Bukti resmi kredit karbon yang dibeli"
                   emoji="🌍"
                   fileUrl={cert.emission_reduction_certificate_url}
-                  fileName={`sertifikat-emisi-${cert.product_code || cert.id}.jpg`}
+                  fileName={`sertifikat-emisi-${cert.standard_series || cert.id}.pdf`}
                   accentClass="bg-green-500"
                 />
               </>

@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     // STEP 2: Try to generate and attach certificates (optional, won't block status update)
     console.log('📄 [Verify] Step 2: Generating certificates...')
     try {
-      const certificatesDir = path.join(process.cwd(), 'storage', 'certificates')
+      const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
       
       // Create directory if not exists
       if (!fs.existsSync(certificatesDir)) {
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         const certFilename = `csr-cert-${participationId}-${Date.now()}.jpg`
         const certPath = path.join(certificatesDir, certFilename)
         fs.writeFileSync(certPath, certBuffer)
-        thankYouUrl = `${appBaseUrl}/api/cert-files/${certFilename}`
+        thankYouUrl = `${appBaseUrl}/api/certificate-file/${certFilename}`
         console.log('✅ [Verify] CSR certificate generated:', thankYouUrl)
       } catch (e) {
         console.error('❌ [Verify] Failed to generate CSR certificate:', e)
