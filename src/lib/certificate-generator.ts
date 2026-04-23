@@ -83,9 +83,9 @@ export async function generateThankYouCertificate(data: ThankYouCertData): Promi
   const programFSize = Math.round(H * 0.040)
 
   // Info box — sama dengan CSR yang sudah benar
-  const labelY      = Math.round(H * 0.718)
-  const valueY      = Math.round(H * 0.770)
-  const certNoY     = Math.round(H * 0.824)
+  const labelY      = Math.round(H * 0.700)
+  const valueY      = Math.round(H * 0.750)
+  const certNoY     = Math.round(H * 0.792)
   const labelFSize  = Math.round(H * 0.026)
   const valueFSize  = Math.round(H * 0.028)   // sama dengan CSR
   const certNoFSize = Math.round(H * 0.022)
