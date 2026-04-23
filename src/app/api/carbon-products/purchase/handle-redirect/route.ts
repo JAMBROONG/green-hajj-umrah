@@ -132,14 +132,19 @@ export async function GET(request: NextRequest) {
           const recipientName = fullPurchase?.user?.full_name || 'Carbon Supporter'
           const productName   = fullPurchase?.standard?.name || fullPurchase?.standard?.series || 'Carbon Certificate'
           const units         = fullPurchase?.units || 0
+          const userMeta      = fullPurchase?.user?.metadata as Record<string, unknown> | null
+          const avatarUrl     = (userMeta?.avatar_url as string | undefined) ?? null
+          const certificateId = purchase.id.slice(0, 8).toUpperCase()
 
           const certBuffer = await generateThankYouCertificate({
             recipientName,
-            activityTitle: `${productName} (${units} tCO2e)`,
+            activityTitle: productName,
+            units,
             amount: parseFloat(fullPurchase?.total_price?.toString() || '0'),
             donationDate: purchaseDate,
-            certificateNumber: purchase.id.substring(0, 8).toUpperCase(),
+            certificateNumber: certificateId,
             tenantId: fullPurchase?.user?.tenant_id ?? null,
+            avatarUrl,
           })
 
           const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`
@@ -148,7 +153,10 @@ export async function GET(request: NextRequest) {
           const certUrl = `${appBaseUrl}/certificates/${filename}`
           await prisma.carbon_certificate_purchases.update({
             where: { id: purchase.id },
-            data: { thank_you_certificate_url: certUrl },
+            data: {
+              thank_you_certificate_url: certUrl,
+              certificate_id: certificateId,
+            },
           })
 
           console.log('✅ Thank You Certificate generated:', certUrl)

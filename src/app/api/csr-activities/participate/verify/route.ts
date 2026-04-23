@@ -150,6 +150,8 @@ export async function POST(request: NextRequest) {
       const recipientName = donation.user?.full_name || 'Donor'
       const activityTitle = activity.title || 'Kegiatan CSR'
       const amount = parseFloat(donation.amount?.toString() || '0')
+      const userMeta = donation.user?.metadata as Record<string, unknown> | null
+      const avatarUrl = (userMeta?.avatar_url as string | undefined) ?? null
 
       let thankYouUrl: string | null = null
 
@@ -163,6 +165,7 @@ export async function POST(request: NextRequest) {
           donationDate,
           certificateNumber: `CSR-${participationId.slice(-8).toUpperCase()}`,
           tenantId: donation.user?.tenant_id ?? null,
+          avatarUrl,
         })
         const certFilename = `csr-cert-${participationId}-${Date.now()}.jpg`
         const certPath = path.join(certificatesDir, certFilename)

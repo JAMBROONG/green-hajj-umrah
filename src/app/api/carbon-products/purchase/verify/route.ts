@@ -56,8 +56,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Only verify if still pending
-    if (purchase.status !== 'pending') {
+    // If the purchase is already processed AND the certificate was generated,
+    // there is nothing to do. If it was marked completed but the cert is still
+    // missing (rare race when webhook/redirect land before generation), fall
+    // through so we can regenerate below.
+    const alreadyCompleted =
+      purchase.status === 'completed' || purchase.status === 'confirmed'
+    const certAlreadyGenerated = !!purchase.thank_you_certificate_url
+
+    if (purchase.status !== 'pending' && !(alreadyCompleted && !certAlreadyGenerated)) {
       console.log('ℹ️ Purchase already processed:', purchase.status)
       return NextResponse.json({
         status: purchase.status,
@@ -142,6 +149,7 @@ export async function POST(request: NextRequest) {
 
     // Update purchase status based on transaction status
     let newStatus = 'pending'
+    const paymentMethod: string | null = statusData.payment_type ?? null
 
     if (statusData.transaction_status === 'capture' || statusData.transaction_status === 'settlement') {
       newStatus = 'completed'
@@ -164,6 +172,7 @@ export async function POST(request: NextRequest) {
         where: { id: purchaseId },
         data: {
           status: newStatus,
+          ...(paymentMethod ? { payment_method: paymentMethod } : {}),
           metadata: {
             ...(purchase.metadata as Record<string, unknown>),
             transaction_id: statusData.transaction_id,
@@ -193,9 +202,12 @@ export async function POST(request: NextRequest) {
             day: 'numeric',
           })
 
-          const recipientName = purchase.user?.full_name || 'Carbon Supporter'
-          const productName = purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
-          const units = purchase.units || 0
+          const recipientName  = purchase.user?.full_name || 'Carbon Supporter'
+          const productName    = purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
+          const units          = purchase.units || 0
+          const userMeta       = purchase.user?.metadata as Record<string, unknown> | null
+          const avatarUrl      = (userMeta?.avatar_url as string | undefined) ?? null
+          const certificateId  = purchaseId.slice(0, 8).toUpperCase()
 
           // Base URL for storing absolute certificate links
           const appBaseUrl = (
@@ -210,10 +222,13 @@ export async function POST(request: NextRequest) {
           try {
             const thankYouBuffer = await generateThankYouCertificate({
               recipientName,
-              activityTitle: `${productName} (${units} tCO2e)`,
+              activityTitle: productName,
+              units,
               amount: parseFloat(purchase.total_price?.toString() || '0'),
               donationDate: purchaseDate,
               tenantId: purchase.user?.tenant_id ?? null,
+              avatarUrl,
+              certificateNumber: certificateId,
             })
             const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.jpg`
             const thankYouPath = path.join(certificatesDir, thankYouFilename)
@@ -231,6 +246,7 @@ export async function POST(request: NextRequest) {
               where: { id: purchaseId },
               data: {
                 thank_you_certificate_url: thankYouUrl,
+                certificate_id: certificateId,
                 updated_at: new Date(),
               },
             })

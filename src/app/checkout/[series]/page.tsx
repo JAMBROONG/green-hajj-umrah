@@ -187,19 +187,32 @@ export default function CheckoutSeriesPage({
       // Open Midtrans Snap UI
       if (window.snap && typeof window.snap.pay === 'function') {
         window.snap.pay(data.snapToken, {
-          onSuccess: function(result) {
+          onSuccess: async function() {
+            // Snap popup flow: Midtrans never hits our finish_redirect_url,
+            // so we MUST call verify manually here to confirm + update status
+            // + generate the tenant-based certificate before routing.
+            try {
+              await fetch('/api/carbon-products/purchase/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ purchaseId: data.id }),
+              });
+            } catch (e) {
+              console.error('[Checkout] verify call failed (non-blocking):', e);
+            }
             router.push(`/certificates/${data.id}?status=success`);
           },
-          onPending: function(result) {
+          onPending: function() {
             router.push(`/certificates/${data.id}?status=pending`);
           },
-          onError: function(result) {
+          onError: function() {
             setError('Pembayaran gagal atau dibatalkan.');
             setIsProcessing(false);
           },
           onClose: function() {
-            setError('Pembayaran ditutup tanpa diselesaikan.');
-            setIsProcessing(false);
+            // Purchase sudah dibuat di DB (status pending).
+            // Arahkan ke halaman sertifikat agar user bisa melanjutkan pembayaran kapan saja.
+            router.push(`/certificates/${data.id}`)
           }
         });
       } else {

@@ -2,16 +2,19 @@ import sharp from 'sharp'
 import { getCertificateTemplate } from './certificate-template-loader'
 
 export interface ThankYouCertData {
-  /** Tenant dari user yang membeli — untuk pilih template per-tenant */
   tenantId?: string | null
   recipientName: string
+  /** standard.name dari carbon_product_standards */
   activityTitle: string
+  /** Jumlah unit (ton CO2e) */
+  units?: number
   amount: number
   donationDate: string
   certificateNumber?: string
+  /** avatar_url dari profiles.metadata */
+  avatarUrl?: string | null
 }
 
-// Legacy interface kept for backward-compat with old callers
 interface CertificateData {
   recipientName: string
   activityTitle: string
@@ -23,78 +26,127 @@ interface CertificateData {
 
 function escapeXml(s: string): string {
   return s.replace(/[<>&'"]/g, c => ({
-    '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;'
+    '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
   }[c]!))
+}
+
+async function fetchAndResizeAvatar(
+  avatarUrl: string,
+  targetW: number,
+  targetH: number,
+): Promise<Buffer | null> {
+  try {
+    const prefix = process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX?.trim().replace(/\/+$/, '')
+    const url = /^https?:\/\//i.test(avatarUrl)
+      ? avatarUrl
+      : `${prefix}/${avatarUrl.replace(/^\/+/, '')}`
+    console.log('🖼️ Fetching avatar:', url)
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' })
+    if (!res.ok) { console.warn('⚠️ Avatar fetch failed:', res.status); return null }
+    const ab = await res.arrayBuffer()
+    return await sharp(Buffer.from(ab))
+      .resize(targetW, targetH, { fit: 'cover', position: 'top' })
+      .jpeg({ quality: 88 })
+      .toBuffer()
+  } catch (e) {
+    console.warn('⚠️ Avatar fetch error:', e)
+    return null
+  }
 }
 
 export async function generateThankYouCertificate(data: ThankYouCertData): Promise<Buffer> {
   const templateBuffer = await getCertificateTemplate('carbon-market', data.tenantId ?? null)
   const template = sharp(templateBuffer)
   const meta = await template.metadata()
-  const W = meta.width ?? 3508
-  const H = meta.height ?? 2480
+  const W = meta.width ?? 1536
+  const H = meta.height ?? 1024
 
-  const name         = escapeXml(data.recipientName)
-  const title        = escapeXml(data.activityTitle)
-  const kontribusi   = escapeXml(`Rp ${data.amount.toLocaleString('id-ID')}`)
-  const tanggal      = escapeXml(data.donationDate)
-  const certNo       = data.certificateNumber ? escapeXml(data.certificateNumber) : ''
+  console.log('📐 Carbon Template:', W, 'x', H)
 
-  const cx         = W / 2
-  const leftColX   = 870
-  const rightColX  = W - 870
+  // ─── KOORDINAT FINAL — dikalibrasi dari test-certificate.mjs (CSR yang sudah benar) ───
+  // Template: 1536 × 1024
 
+  // Foto profil
+  const photoLeft   = Math.round(W * 0.076)
+  const photoTop    = Math.round(H * 0.338)
+  const photoWidth  = Math.round(W * 0.158)
+  const photoHeight = Math.round(H * 0.260)
+
+  // Nama user — sama dengan CSR yang sudah benar
+  const nameCx    = Math.round(W * 0.520)
+  const nameY     = Math.round(H * 0.450)
+  const nameFSize = Math.round(H * 0.053)
+
+  // Nama program (standard.name + units tCO2e)
+  const programCx    = Math.round(W * 0.500)
+  const programY     = Math.round(H * 0.640)
+  const programFSize = Math.round(H * 0.040)
+
+  // Info box — sama dengan CSR yang sudah benar
+  const labelY      = Math.round(H * 0.718)
+  const valueY      = Math.round(H * 0.770)
+  const certNoY     = Math.round(H * 0.824)
+  const labelFSize  = Math.round(H * 0.026)
+  const valueFSize  = Math.round(H * 0.028)   // sama dengan CSR
+  const certNoFSize = Math.round(H * 0.022)
+  const leftX       = Math.round(W * 0.240)   // sama dengan CSR
+  const rightX      = Math.round(W * 0.755)   // sama dengan CSR
+
+  // ── Prepare text ──────────────────────────────────────────────────────────
+  const name       = escapeXml(data.recipientName)
+  const program    = escapeXml(
+    data.units ? `${data.activityTitle} (${data.units} tCO2e)` : data.activityTitle
+  )
+  const kontribusi = escapeXml(`Rp ${data.amount.toLocaleString('id-ID')}`)
+  const tanggal    = escapeXml(data.donationDate)
+  const certNo     = data.certificateNumber ? escapeXml(data.certificateNumber) : ''
+
+  // ── SVG overlay ───────────────────────────────────────────────────────────
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <!-- Recipient name (gold, serif italic small-caps) -->
-    <text x="${cx}" y="1160"
-          text-anchor="middle"
-          font-family="'Palatino Linotype','Book Antiqua',Palatino,serif"
-          font-size="110" font-weight="bold" font-style="italic"
-          font-variant="small-caps" fill="#7B5E1E">${name}</text>
+    <text x="${nameCx}" y="${nameY}" text-anchor="middle"
+          font-family="'Palatino Linotype','Book Antiqua',Georgia,serif"
+          font-size="${nameFSize}" font-weight="bold" font-style="italic"
+          fill="#1A4731">${name}</text>
 
-    <!-- Activity title (dark green, bold) -->
-    <text x="${cx}" y="1490"
-          text-anchor="middle"
+    <text x="${programCx}" y="${programY}" text-anchor="middle"
           font-family="Arial,Helvetica,sans-serif"
-          font-size="78" font-weight="bold" fill="#164C2E">${title}</text>
+          font-size="${programFSize}" font-weight="bold"
+          fill="#1A4731">${program}</text>
 
-    <!-- Kontribusi label (left cell, small) -->
-    <text x="${leftColX}" y="1795"
-          font-family="Arial,Helvetica,sans-serif"
-          font-size="46" fill="#3A3A3A">Kontribusi</text>
+    <text x="${leftX}" y="${labelY}"
+          font-family="Arial,Helvetica,sans-serif" font-size="${labelFSize}" fill="#3A3A3A">Kontribusi</text>
 
-    <!-- Kontribusi value (left cell, big bold) -->
-    <text x="${leftColX}" y="1885"
-          font-family="Arial,Helvetica,sans-serif"
-          font-size="68" font-weight="bold" fill="#164C2E">${kontribusi}</text>
+    <text x="${leftX}" y="${valueY}"
+          font-family="Arial,Helvetica,sans-serif" font-size="${valueFSize}" font-weight="bold" fill="#1A4731">${kontribusi}</text>
 
-    <!-- Tanggal label (right cell, small) -->
-    <text x="${rightColX}" y="1795"
-          text-anchor="end"
-          font-family="Arial,Helvetica,sans-serif"
-          font-size="46" fill="#3A3A3A">Tanggal</text>
+    <text x="${rightX}" y="${labelY}" text-anchor="end"
+          font-family="Arial,Helvetica,sans-serif" font-size="${labelFSize}" fill="#3A3A3A">Tanggal:</text>
 
-    <!-- Tanggal value (right cell, big bold) -->
-    <text x="${rightColX}" y="1885"
-          text-anchor="end"
-          font-family="Arial,Helvetica,sans-serif"
-          font-size="58" font-weight="bold" fill="#164C2E">${tanggal}</text>
+    <text x="${rightX}" y="${valueY}" text-anchor="end"
+          font-family="Arial,Helvetica,sans-serif" font-size="${valueFSize}" font-weight="bold" fill="#1A4731">${tanggal}</text>
 
     ${certNo ? `
-    <!-- Certificate number (tiny, below left column) -->
-    <text x="${leftColX}" y="2030"
-          font-family="Arial,Helvetica,sans-serif"
-          font-size="34" fill="#555">No. Sertifikat <tspan font-weight="bold" fill="#164C2E">${certNo}</tspan></text>
+    <text x="${leftX}" y="${certNoY}"
+          font-family="Arial,Helvetica,sans-serif" font-size="${certNoFSize}" fill="#555555">No. Sertifikat: <tspan font-weight="bold" fill="#1A4731">${certNo}</tspan></text>
     ` : ''}
   </svg>`
 
+  // ── Composite ─────────────────────────────────────────────────────────────
+  const composites: sharp.OverlayOptions[] = []
+
+  if (data.avatarUrl) {
+    const avatarBuf = await fetchAndResizeAvatar(data.avatarUrl, photoWidth, photoHeight)
+    if (avatarBuf) composites.push({ input: avatarBuf, left: photoLeft, top: photoTop })
+  }
+  composites.push({ input: Buffer.from(svg), top: 0, left: 0 })
+
   return await template
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .composite(composites)
     .jpeg({ quality: 92, mozjpeg: true })
     .toBuffer()
 }
 
-// ── Legacy wrappers for backward compatibility ───────────────────────────────
+// Legacy wrappers
 export async function generateCertificatePDF(data: CertificateData): Promise<Buffer> {
   return generateThankYouCertificate({
     recipientName: data.recipientName,
@@ -106,7 +158,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Buf
 }
 
 export async function generateParticipationCertificate(
-  data: Omit<CertificateData, 'certificateType'>
+  data: Omit<CertificateData, 'certificateType'>,
 ): Promise<Buffer> {
   return generateThankYouCertificate(data)
 }

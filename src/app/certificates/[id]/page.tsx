@@ -170,29 +170,48 @@
         window.location.replace(redirectUrl)
         return
       }
-      // Detect ?paid=1 — handle-redirect adds this to signal a fresh fetch is needed
-      if (sp.get('paid') === '1') {
+      // Signals that a payment was just completed and we need to verify + poll:
+      //   ?paid=1         → set by handle-redirect (full-page redirect flow)
+      //   ?status=success → set by Snap popup onSuccess (in-page flow)
+      const justPaid = sp.get('paid') === '1' || sp.get('status') === 'success'
+      if (justPaid) {
         // Clean the URL immediately so it's not shown to the user
         window.history.replaceState({}, '', `/certificates/${id}`)
         setShouldPoll(true)
       }
     }, [id])
 
-    // Poll until status becomes confirmed/completed (avoids stale Next.js router cache)
+    // Poll until status becomes confirmed/completed (avoids stale Next.js router cache).
+    // On each attempt: (1) call verify to query Midtrans + update DB + generate cert,
+    // (2) fetch the latest cert data. Stop once status is confirmed/completed.
     useEffect(() => {
       if (!shouldPoll) return
       let attempts = 0
       const MAX = 12
       let timer: ReturnType<typeof setTimeout>
+      let cancelled = false
 
       const poll = async () => {
+        if (cancelled) return
+        // Ask backend to verify payment with Midtrans — this updates DB status
+        // to completed/failed AND generates the tenant-based certificate.
+        try {
+          await fetch('/api/carbon-products/purchase/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ purchaseId: id }),
+          })
+        } catch {}
+
         try {
           const res = await fetch(`/api/user/certificates/${id}`, { cache: 'no-store' })
           if (res.ok) {
             const data = await res.json()
-            setCert(data)
-            setLoading(false)
-            if (data.status === 'completed' || data.status === 'confirmed') {
+            if (!cancelled) {
+              setCert(data)
+              setLoading(false)
+            }
+            if (data.status === 'completed' || data.status === 'confirmed' || data.status === 'failed') {
               setShouldPoll(false)
               return
             }
@@ -204,8 +223,11 @@
       }
 
       // First poll after a short delay to let DB commits settle
-      timer = setTimeout(poll, 600)
-      return () => clearTimeout(timer)
+      timer = setTimeout(poll, 400)
+      return () => {
+        cancelled = true
+        clearTimeout(timer)
+      }
     }, [shouldPoll, id])
 
     // Load Midtrans Snap script so "Bayar Sekarang" works on pending orders
@@ -272,6 +294,9 @@
 
         window.snap.pay(snapToken, {
           onSuccess: async () => {
+            // Verify once server-side (updates DB + generates tenant cert),
+            // then trigger the poll loop on this page so the UI reflects the
+            // new status + shows the certificate once generation finishes.
             try {
               await fetch('/api/carbon-products/purchase/verify', {
                 method: 'POST',
@@ -279,7 +304,8 @@
                 body: JSON.stringify({ purchaseId: cert.id }),
               })
             } catch {}
-            router.replace(`/certificates/${cert.id}`)
+            setIsPayLoading(false)
+            setShouldPoll(true)
           },
           onPending: () => { setIsPayLoading(false) },
           onError: () => { setIsPayLoading(false) },
