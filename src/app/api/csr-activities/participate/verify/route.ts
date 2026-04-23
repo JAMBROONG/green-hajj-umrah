@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         const certFilename = `csr-cert-${participationId}-${Date.now()}.jpg`
         const certPath = path.join(certificatesDir, certFilename)
         fs.writeFileSync(certPath, certBuffer)
-        thankYouUrl = `${appBaseUrl}/certificates/${certFilename}`
+        thankYouUrl = `${appBaseUrl}/api/certificate-file/${certFilename}`
         console.log('✅ [Verify] CSR certificate generated:', thankYouUrl)
       } catch (e) {
         console.error('❌ [Verify] Failed to generate CSR certificate:', e)

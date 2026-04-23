@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
             const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`
             fs.writeFileSync(path.join(certificatesDir, filename), certBuffer)
 
-            const certUrl = `${appBaseUrl}/certificates/${filename}`
+            const certUrl = `${appBaseUrl}/api/certificate-file/${filename}`
             await prisma.carbon_certificate_purchases.update({
               where: { id: purchase.id },
               data: {

@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
             const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.jpg`
             const thankYouPath = path.join(certificatesDir, thankYouFilename)
             fs.writeFileSync(thankYouPath, thankYouBuffer)
-            thankYouUrl = `${appBaseUrl}/certificates/${thankYouFilename}`
+            thankYouUrl = `${appBaseUrl}/api/certificate-file/${thankYouFilename}`
             console.log('✅ Thank you certificate generated:', thankYouUrl)
           } catch (e) {
             console.error('❌ Failed to generate thank you certificate:', e)
