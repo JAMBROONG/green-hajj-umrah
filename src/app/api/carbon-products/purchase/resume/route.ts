@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       ],
       custom_field1: `purchase:${purchaseId}`,
       custom_field2: `user:${userProfile.id}`,
-      finish_redirect_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/profile?tab=certificates`,
+      finish_redirect_url: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/profile?tab=certificates`,
     }
 
     // Create new transaction

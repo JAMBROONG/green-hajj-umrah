@@ -259,6 +259,12 @@ export default function CheckoutSeriesPage({
   const totalPrice = subtotal + adminFee + ppn;
   const totalEmissionTon = formatEmission(totalEmission, 'ton');
 
+  // Midtrans limit: maksimal Rp 5.000.000 per transaksi
+  const MAX_TRANSACTION_IDR = 5_000_000;
+  const totalMultiplier = (1 + adminFeePct / 100) * (1 + ppnPct / 100);
+  const maxUnits = Math.max(1, Math.floor(MAX_TRANSACTION_IDR / (unitPrice * totalMultiplier)));
+  const exceedsLimit = totalPrice > MAX_TRANSACTION_IDR;
+
   return (
     <div className="app-container">
       <StatusBar />
@@ -350,7 +356,9 @@ export default function CheckoutSeriesPage({
           <div className="flex items-center justify-between mb-1">
             <div>
               <p className="text-sm font-semibold text-gray-900">Jumlah Unit</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">Kewajiban offset Anda: {totalEmissionTon} tCO₂e</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">
+                Kewajiban offset Anda: {totalEmissionTon} tCO₂e · Maks {maxUnits} unit/transaksi
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -363,14 +371,20 @@ export default function CheckoutSeriesPage({
               </button>
               <span className="text-xl font-bold min-w-[2.5rem] text-center tabular-nums">{units}</span>
               <button
-                onClick={() => setUnits(units + 1)}
-                className="text-primary active:scale-90 transition-transform"
+                onClick={() => setUnits(Math.min(maxUnits, units + 1))}
+                disabled={units >= maxUnits}
+                className="text-primary disabled:text-gray-300 active:scale-90 transition-transform"
                 aria-label="Tambah"
               >
                 <IoAddCircle className="text-3xl" />
               </button>
             </div>
           </div>
+          {exceedsLimit && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-[11px] text-red-700">
+              ⚠️ Total transaksi melebihi batas Midtrans (Rp 5.000.000). Kurangi jumlah unit.
+            </div>
+          )}
         </div>
 
         {/* Payment breakdown */}
@@ -412,9 +426,9 @@ export default function CheckoutSeriesPage({
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border p-4 px-5">
         <button
           onClick={handleCheckout}
-          disabled={isProcessing || !standard.products || standard.products.length === 0}
+          disabled={isProcessing || !standard.products || standard.products.length === 0 || exceedsLimit}
           className={`w-full py-4 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 ${
-            isProcessing || !standard.products || standard.products.length === 0 ? 'bg-gray-400' : 'bg-primary hover:bg-primaryDark'
+            isProcessing || !standard.products || standard.products.length === 0 || exceedsLimit ? 'bg-gray-400' : 'bg-primary hover:bg-primaryDark'
           } transition-colors`}
         >
           {isProcessing ? (

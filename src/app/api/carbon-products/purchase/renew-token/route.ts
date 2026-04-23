@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       finish_redirect_url: `${
         process.env.NEXTAUTH_URL ||
         process.env.NEXT_PUBLIC_BASE_URL ||
-        'http://localhost:3000'
+        request.nextUrl.origin
       }/api/carbon-products/purchase/handle-redirect`,
     }
 

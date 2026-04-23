@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
     }
 
     const unitsNum = Number(units)
-    if (!Number.isInteger(unitsNum) || unitsNum < 1 || unitsNum > 100) {
+    if (!Number.isInteger(unitsNum) || unitsNum < 1) {
       return NextResponse.json(
-        { error: 'Jumlah unit harus berupa bilangan bulat antara 1 dan 100.' },
+        { error: 'Jumlah unit minimal 1.' },
         { status: 400 }
       )
     }
@@ -111,10 +111,13 @@ export async function POST(request: NextRequest) {
     const ppn = (subtotal + adminFee) * PPN_RATE
     const totalAmount = Math.round(subtotal + adminFee + ppn)
 
-    const MAX_TRANSACTION_IDR = 50_000_000
+    // Midtrans membatasi transaksi pertransaksi maksimal Rp 5.000.000
+    const MAX_TRANSACTION_IDR = 5_000_000
     if (totalAmount > MAX_TRANSACTION_IDR) {
       return NextResponse.json(
-        { error: 'Total transaksi melebihi batas maksimum yang diizinkan.' },
+        {
+          error: `Total transaksi (Rp ${totalAmount.toLocaleString('id-ID')}) melebihi batas maksimum Midtrans (Rp 5.000.000). Silakan kurangi jumlah unit.`,
+        },
         { status: 400 }
       )
     }
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
       ],
       custom_field1: `standard:${standard_series}`,
       custom_field2: `user:${userProfile.id}`,
-      finish_redirect_url: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/carbon-products/purchase/handle-redirect`,
+      finish_redirect_url: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/api/carbon-products/purchase/handle-redirect`,
     }
 
     const transaction = await createMidtransTransaction(transactionPayload, carbonConfig.midtrans_server_key, carbonConfig.is_production)
