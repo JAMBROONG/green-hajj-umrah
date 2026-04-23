@@ -160,6 +160,11 @@ export default function CheckoutSeriesPage({
   }, [resolvedParams.series]);
 
   const handleCheckout = async () => {
+    if (!standard) {
+      setError('Data standar belum dimuat. Silakan tunggu.');
+      return;
+    }
+
     try {
       setIsProcessing(true);
       setError(null);
