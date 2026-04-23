@@ -19,7 +19,7 @@ export async function GET() {
 
     return NextResponse.json({
       items: factors.map((item) => ({
-        id: item.id,
+        id: Number(item.id),
         name: item.name,
         emissionFactor: Number(item.emission_factor),
         emissionFactorName: item.emission_factor_name

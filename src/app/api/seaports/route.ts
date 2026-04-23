@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       seaports: filtered.map((item) => ({
-        id: item.id,
-        sourceId: item.source_id,
+        id: Number(item.id),
+        sourceId: item.source_id !== null ? Number(item.source_id) : null,
         name: item.name,
         aliasName: item.alias_name,
         lat: Number(item.latitude),
