@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 import { generateThankYouCertificate } from '@/lib/certificate-generator'
-import { generateCSRCertificate } from '@/lib/csr-certificate-generator'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -170,107 +169,15 @@ export async function POST() {
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // 2) CSR activity participations (tenant config, fallback to global)
+    // 2) CSR activity participations — disabled
+    //    CSR participation schema belum punya field metadata/order_id,
+    //    jadi ga bisa query status ke Midtrans by order_id.
+    //    Sync dilakukan via redirect handler & verify endpoint aja.
     // ─────────────────────────────────────────────────────────────────
-    const pendingCsr = await prisma.csr_activity_participations.findMany({
-      where: { user_id: userProfile.id, status: 'pending' },
-      include: { user: true, csr_activity: true },
-    })
-
-    for (const donation of pendingCsr) {
-      const meta = (donation.metadata as Record<string, unknown>) || {}
-      const orderId = meta.order_id as string | undefined
-      if (!orderId) continue
-
-      let serverKey: string | null = null
-      let isProduction = false
-
-      if (donation.csr_activity?.tenant_id) {
-        const tenantConfig = await prisma.tenantPaymentConfig.findUnique({
-          where: { tenant_id: donation.csr_activity.tenant_id },
-        })
-        if (tenantConfig?.enabled && tenantConfig.midtrans_server_key) {
-          serverKey = tenantConfig.midtrans_server_key
-          isProduction = tenantConfig.is_production ?? false
-        }
-      }
-      if (!serverKey && carbonConfig) {
-        serverKey = carbonConfig.midtrans_server_key
-        isProduction = carbonConfig.is_production
-      }
-      if (!serverKey) continue
-
-      const statusData = await queryMidtrans(orderId, serverKey, isProduction)
-      if (!statusData) continue
-
-      const newStatus = mapMidtransStatus(statusData.transaction_status)
-      if (newStatus === 'pending') continue
-
-      const dbStatus = newStatus === 'completed' ? 'confirmed' : newStatus
-
-      await prisma.csr_activity_participations.update({
-        where: { id: donation.id },
-        data: {
-          status: dbStatus,
-          payment_method: donation.payment_method || 'midtrans',
-          metadata: {
-            ...meta,
-            transaction_id: statusData.transaction_id,
-            verified_at: new Date().toISOString(),
-            verified_via: 'sync_pending',
-          },
-          updated_at: new Date(),
-        },
-      })
-      updated.push({ type: 'csr', id: donation.id, status: dbStatus })
-
-      if (dbStatus === 'confirmed' && !donation.thank_you_certificate_url) {
-        try {
-          ensureCertsDir()
-          const donationDate = new Date(donation.created_at).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
-          const userMeta = donation.user?.metadata as Record<string, unknown> | null
-          const avatarUrl = (userMeta?.avatar_url as string | undefined) ?? null
-
-          const certBuffer = await generateCSRCertificate({
-            recipientName: donation.user?.full_name || 'Donor',
-            activityTitle: donation.csr_activity?.title || 'Kegiatan CSR',
-            activityCategory: donation.csr_activity?.category || undefined,
-            amount: parseFloat(donation.amount?.toString() || '0'),
-            donationDate,
-            certificateNumber: `CSR-${donation.id.slice(-8).toUpperCase()}`,
-            tenantId: donation.user?.tenant_id ?? null,
-            avatarUrl,
-          })
-          const filename = `csr-cert-${donation.id}-${Date.now()}.jpg`
-          fs.writeFileSync(path.join(CERTS_DIR, filename), certBuffer)
-
-          await prisma.csr_activity_participations.update({
-            where: { id: donation.id },
-            data: { thank_you_certificate_url: `${APP_BASE_URL}/api/cert-files/${filename}` },
-          })
-
-          if (donation.csr_activity) {
-            await prisma.csr_activities.update({
-              where: { id: donation.csr_activity.id },
-              data: {
-                total_donations_amount: { increment: donation.amount || 0 },
-              },
-            })
-          }
-        } catch (e) {
-          console.error('[sync-pending] csr cert gen failed:', donation.id, e)
-        }
-      }
-    }
 
     return NextResponse.json({
       success: true,
-      scanned: { carbon: pendingCarbon.length, csr: pendingCsr.length },
+      scanned: { carbon: pendingCarbon.length, csr: 0 },
       updated,
     })
   } catch (error) {
