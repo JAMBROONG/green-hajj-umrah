@@ -30,6 +30,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Backward-compat: old DB records store URLs like /certificates/carbon-thankyou-xxx.jpg
+  // but that path collides with the dynamic page route /certificates/[id] (pages win
+  // over static files in Next.js). Rewrite those legacy filenames to the new API route
+  // which can serve from disk without ambiguity.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/certificates/:filename((?:carbon-thankyou|csr-cert)[^/]+\\.(?:jpe?g|png|webp))',
+          destination: '/api/cert-files/:filename',
+        },
+      ],
+    };
+  },
 };
 
 export default nextConfig;

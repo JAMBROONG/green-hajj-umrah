@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       if (newStatus === 'completed') {
         console.log('📄 Generating thank you certificate...')
         try {
-          const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
+          const certificatesDir = path.join(process.cwd(), 'storage', 'certificates')
           
           // Create directory if not exists
           if (!fs.existsSync(certificatesDir)) {
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
             const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.jpg`
             const thankYouPath = path.join(certificatesDir, thankYouFilename)
             fs.writeFileSync(thankYouPath, thankYouBuffer)
-            thankYouUrl = `${appBaseUrl}/certificates/${thankYouFilename}`
+            thankYouUrl = `${appBaseUrl}/api/cert-files/${thankYouFilename}`
             console.log('✅ Thank you certificate generated:', thankYouUrl)
           } catch (e) {
             console.error('❌ Failed to generate thank you certificate:', e)
