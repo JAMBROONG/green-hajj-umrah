@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
           amount,
           donationDate,
           certificateNumber: `CSR-${participationId.slice(-8).toUpperCase()}`,
+          tenantId: donation.user?.tenant_id ?? null,
         })
         const certFilename = `csr-cert-${participationId}-${Date.now()}.jpg`
         const certPath = path.join(certificatesDir, certFilename)

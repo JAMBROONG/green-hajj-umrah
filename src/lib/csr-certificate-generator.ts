@@ -8,6 +8,8 @@ export interface CSRCertData {
   amount: number
   donationDate: string
   certificateNumber?: string
+  /** Tenant user yang melakukan partisipasi — untuk pilih template per-tenant */
+  tenantId?: string | null
 }
 
 function escapeXml(s: string): string {
@@ -17,7 +19,7 @@ function escapeXml(s: string): string {
 }
 
 export async function generateCSRCertificate(data: CSRCertData): Promise<Buffer> {
-  const templateBuffer = await getCertificateTemplate('csr')
+  const templateBuffer = await getCertificateTemplate('csr', data.tenantId ?? null)
   const template = sharp(templateBuffer)
   const meta = await template.metadata()
   const W = meta.width ?? 3508

@@ -185,7 +185,7 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
                 <IoArrowBack className="text-lg text-white" />
               </Link>
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-bold leading-tight">{phase.name}</h1>
+                <h1 className="text-lg font-bold leading-tight truncate">{phase.name}</h1>
                 <p className="text-xs text-white/75 truncate">{phase.description}</p>
               </div>
             </div>
@@ -274,21 +274,21 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
                   className="block bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-all fade-in-item"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="flex">
+                  <div className="flex items-stretch">
                     <div className={`w-1.5 flex-shrink-0 ${accentColor[catId] ?? 'bg-primary'}`} />
-                    <div className="flex-1 flex items-center gap-3 p-4">
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 p-3 sm:p-4">
                       <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
                         {getCategoryIcon(catId)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-gray-900 mb-0.5">{catDef.name}</h4>
+                        <h4 className="text-sm font-bold text-gray-900 mb-0.5 truncate">{catDef.name}</h4>
                         <p className="text-xs text-gray-500 truncate">{description}</p>
-                        <p className="text-xs font-semibold text-primary mt-1">
+                        <p className="text-xs font-semibold text-primary mt-1 truncate">
                           {formatEmission(emission, 'kg')} kg CO₂e
                         </p>
                       </div>
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0 ml-1">
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${statusClass}`}>
                           {statusLabel}
                         </span>
                         <IoChevronForward className="text-base text-gray-400" />

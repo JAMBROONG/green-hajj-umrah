@@ -78,16 +78,20 @@ function ResetPasswordContent() {
     <div
       className="min-h-screen flex flex-col"
       style={{
-        backgroundImage: "url('/BG Mobile Login.png')",
+        backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.15) 100%), url('/BG Mobile Login.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
       }}
     >
-      {/* Logo area */}
-      <div className="flex-1 flex flex-col items-center justify-end pb-8">
-        <Image src="/logo.png" alt={APP_NAME} width={112} height={112} className="w-28 h-auto drop-shadow-xl" />
-        <h1 className="text-xl font-bold text-white drop-shadow-lg mt-3">Buat Kata Sandi Baru</h1>
-        <p className="text-sm text-white/75 mt-1 drop-shadow text-center px-10">
+      {/* Logo + title area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="w-20 h-20 rounded-2xl bg-white shadow-2xl flex items-center justify-center p-2.5 ring-1 ring-black/5">
+          <Image src="/logo.png" alt={APP_NAME} width={80} height={80} className="w-full h-full object-contain" priority />
+        </div>
+        <h1 className="text-2xl font-bold text-white drop-shadow-lg mt-5 tracking-tight text-center">
+          Buat Kata Sandi Baru
+        </h1>
+        <p className="text-sm text-white/85 drop-shadow mt-1 text-center max-w-xs">
           Pilih kata sandi yang kuat dan mudah diingat
         </p>
       </div>

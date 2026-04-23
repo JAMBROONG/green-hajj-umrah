@@ -87,24 +87,29 @@ export default function SignInPage() {
     <div
       className="min-h-screen flex flex-col"
       style={{
-        backgroundImage: "url('/BG Mobile Login.png')",
+        backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.15) 100%), url('/BG Mobile Login.png')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
       }}
     >
-      {/* Logo area — takes upper ~55% of screen */}
-      <div className="flex-1 flex flex-col items-center justify-end pb-8">
-        <Image
-          src="/logo.png"
-          alt={APP_NAME}
-          width={144}
-          height={144}
-          className="w-36 h-auto drop-shadow-xl"
-        />
-        <h1 className="text-2xl font-bold text-white drop-shadow-lg mt-3 tracking-wide">
+      {/* Logo + title area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl flex items-center justify-center p-3 ring-1 ring-black/5">
+          <Image
+            src="/logo.png"
+            alt={APP_NAME}
+            width={96}
+            height={96}
+            className="w-full h-full object-contain"
+            priority
+          />
+        </div>
+        <h1 className="text-2xl font-bold text-white drop-shadow-lg mt-5 tracking-tight text-center">
           {APP_NAME}
         </h1>
-        <p className="text-sm text-white/80 mt-1 drop-shadow">Jejak Karbon Perjalanan Ibadahmu</p>
+        <p className="text-sm text-white/85 drop-shadow mt-1 text-center">
+          Jejak Karbon Perjalanan Ibadahmu
+        </p>
       </div>
 
       {/* Form card — bottom sheet style */}

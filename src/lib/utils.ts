@@ -263,7 +263,14 @@ export function formatTruncated(num: number): string {
 }
 
 export function formatCurrency(amount: number): string {
-  return 'Rp ' + amount.toLocaleString('id-ID');
+  // Show 2 decimals for non-integer amounts (e.g. admin fee 2% of Rp 1 = Rp 0,02),
+  // otherwise show whole rupiah. Avoids both "Rp 0" (hidden fractions) and
+  // "Rp 100.000,5" (awkward single decimals on clean amounts).
+  const isInteger = Math.abs(amount - Math.round(amount)) < 0.005;
+  return 'Rp ' + amount.toLocaleString('id-ID', {
+    minimumFractionDigits: isInteger ? 0 : 2,
+    maximumFractionDigits: isInteger ? 0 : 2,
+  });
 }
 
 // Time Functions

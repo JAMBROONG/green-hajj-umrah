@@ -213,6 +213,7 @@ export async function POST(request: NextRequest) {
               activityTitle: `${productName} (${units} tCO2e)`,
               amount: parseFloat(purchase.total_price?.toString() || '0'),
               donationDate: purchaseDate,
+              tenantId: purchase.user?.tenant_id ?? null,
             })
             const thankYouFilename = `carbon-thankyou-${purchaseId}-${Date.now()}.jpg`
             const thankYouPath = path.join(certificatesDir, thankYouFilename)

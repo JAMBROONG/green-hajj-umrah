@@ -139,6 +139,7 @@ export async function GET(request: NextRequest) {
             amount: parseFloat(fullPurchase?.total_price?.toString() || '0'),
             donationDate: purchaseDate,
             certificateNumber: purchase.id.substring(0, 8).toUpperCase(),
+            tenantId: fullPurchase?.user?.tenant_id ?? null,
           })
 
           const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`

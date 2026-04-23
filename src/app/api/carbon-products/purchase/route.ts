@@ -96,14 +96,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Standard is not available' }, { status: 400 })
     }
 
-    const serviceSetting = await prisma.service_setting.findFirst()
+    // Scope service_setting to the user's tenant (fallback to 0% if not set)
+    const serviceSetting = userProfile.tenant_id
+      ? await prisma.service_setting.findUnique({ where: { tenant_id: userProfile.tenant_id } })
+      : null
     const adminFeeRate = serviceSetting?.idx_admin_fee
       ? parseFloat(serviceSetting.idx_admin_fee.toString()) / 100
       : 0
+    const PPN_RATE = 0.11
 
     const unitPrice = parseFloat(standard.price.toString())
-    const baseAmount = Math.round(unitPrice * unitsNum)
-    const totalAmount = Math.round(baseAmount * (1 + adminFeeRate))
+    const subtotal = unitPrice * unitsNum
+    const adminFee = subtotal * adminFeeRate
+    const ppn = (subtotal + adminFee) * PPN_RATE
+    const totalAmount = Math.round(subtotal + adminFee + ppn)
 
     const MAX_TRANSACTION_IDR = 50_000_000
     if (totalAmount > MAX_TRANSACTION_IDR) {
@@ -153,6 +159,13 @@ export async function POST(request: NextRequest) {
         metadata: {
           snap_url: transaction.redirect_url,
           order_id: transactionPayload.transaction_details.order_id,
+          breakdown: {
+            subtotal: Math.round(subtotal),
+            admin_fee: Math.round(adminFee),
+            admin_fee_pct: Number((adminFeeRate * 100).toFixed(2)),
+            ppn: Math.round(ppn),
+            ppn_pct: 11,
+          },
         },
       },
     })

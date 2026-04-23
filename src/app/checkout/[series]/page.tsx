@@ -7,7 +7,7 @@ import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
 import { formatCurrency, formatEmission } from '@/lib/utils';
-import { IoArrowBack, IoMapOutline, IoLocationOutline } from 'react-icons/io5';
+import { IoArrowBack, IoLocationOutline, IoChevronForward, IoRemoveCircle, IoAddCircle } from 'react-icons/io5';
 
 interface CarbonProduct {
   id: string;
@@ -68,6 +68,8 @@ export default function CheckoutSeriesPage({
   const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState(Math.ceil(totalEmission / 1000) || 1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [adminFeePct, setAdminFeePct] = useState<number>(0);
+  const [ppnPct] = useState<number>(11);
 
   // Detect when Midtrans redirects back
   useEffect(() => {
@@ -130,23 +132,30 @@ export default function CheckoutSeriesPage({
     };
   }, []);
 
-  // Load standard data
+  // Load standard data + service setting (admin fee per tenant user)
   useEffect(() => {
     async function loadData() {
       try {
-        const response = await fetch(`/api/carbon-product-standards/${resolvedParams.series}`);
-        if (!response.ok) {
-          throw new Error('Gagal memuat detail standar');
-        }
-        const data = await response.json();
+        const [stdRes, settingRes] = await Promise.all([
+          fetch(`/api/carbon-product-standards/${resolvedParams.series}`),
+          fetch('/api/service-setting/me'),
+        ]);
+
+        if (!stdRes.ok) throw new Error('Gagal memuat detail standar');
+        const data = await stdRes.json();
         setStandard(data);
+
+        if (settingRes.ok) {
+          const s = await settingRes.json();
+          setAdminFeePct(typeof s.idx_admin_fee_pct === 'number' ? s.idx_admin_fee_pct : 0);
+        }
       } catch (err: any) {
         setError(err.message || 'Terjadi kesalahan sistem');
       } finally {
         setLoading(false);
       }
     }
-    
+
     loadData();
   }, [resolvedParams.series]);
 
@@ -225,7 +234,11 @@ export default function CheckoutSeriesPage({
   }
 
   const unitPrice = typeof standard.price === 'string' ? parseFloat(standard.price) : standard.price;
-  const totalPrice = unitPrice * units;
+  const subtotal = unitPrice * units;
+  const adminFee = subtotal * (adminFeePct / 100);
+  const ppnBase  = subtotal + adminFee;
+  const ppn      = ppnBase * (ppnPct / 100);
+  const totalPrice = subtotal + adminFee + ppn;
   const totalEmissionTon = formatEmission(totalEmission, 'ton');
 
   return (
@@ -243,93 +256,136 @@ export default function CheckoutSeriesPage({
         </div>
       </div>
 
-      <div className="p-5 pb-32">
+      <div className="px-4 py-4 pb-32 space-y-4">
         {/* Error message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-4 rounded-2xl mb-5 flex items-start gap-3">
-            <span className="text-xl">⚠️</span>
-            <p className="flex-1 mt-0.5">{error}</p>
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+            <span>⚠️</span>
+            <p className="flex-1">{error}</p>
           </div>
         )}
 
-        {/* Standard Detail summary */}
-        <div className="bg-white p-5 rounded-2xl border border-border shadow-sm mb-5">
-          <div className="flex justify-between items-start mb-3">
-            <span className="px-2.5 py-1 rounded-full bg-primaryLight text-primary text-[10px] font-bold">
-              {standard.series}
-            </span>
-            <span className="text-[10px] text-textMuted px-2 py-1 bg-gray-50 rounded-full border border-gray-100">
-              Vintage: {standard.vintage}
-            </span>
-          </div>
-          <h2 className="text-lg font-bold text-textDark mb-1">{standard.name}</h2>
-          <p className="text-xs text-textMuted mb-4">Nilai pasar karbon Standar Nasional</p>
-
-          <div className="flex items-center justify-between border-t border-border pt-4">
-            <span className="text-sm text-textMuted">Harga Satuan (tCO2e)</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(unitPrice)}</span>
+        {/* Standard detail card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="flex items-stretch">
+            <div className="w-1.5 flex-shrink-0 bg-primary" />
+            <div className="flex-1 min-w-0 p-4">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full bg-primaryLight text-primary text-[10px] font-bold uppercase tracking-wide">
+                  {standard.series}
+                </span>
+                <span className="text-[10px] text-gray-500">Vintage {standard.vintage}</span>
+              </div>
+              <h2 className="text-sm font-bold text-gray-900 leading-snug">{standard.name}</h2>
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs text-gray-500">Harga per tCO₂e</span>
+                <span className="text-base font-bold text-primary">{formatCurrency(unitPrice)}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Pick Product Section */}
-        <h3 className="text-sm font-bold text-textDark mb-3">Terkait dengan Proyek Karbon:</h3>
-        {standard.products && standard.products.length > 0 ? (
-          <div className="space-y-3 mb-6">
-            {standard.products.map(({ product }) => (
-              <div 
-                key={product.id}
-                className="flex gap-3 p-4 rounded-2xl border bg-white border-border hover:border-primary/30 transition-colors"
-              >
-                <div className="flex-1">
-                  <h4 className="text-sm font-bold text-textDark mb-1">{product.name}</h4>
-                  <div className="flex items-center gap-1 text-[10px] text-textMuted mb-2">
-                    <IoLocationOutline />
-                    <span>{product.location || 'Lokasi tidak diketahui'}</span>
+        {/* Allocation info — explain where the money goes (IDX Carbon) */}
+        <div>
+          <div className="flex items-start gap-2 mb-2 px-1">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Dana Anda Akan Dialokasikan</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                Pembelian kredit karbon ini disalurkan melalui bursa IDX Carbon ke salah satu proyek pengurangan emisi di bawah ini.
+              </p>
+            </div>
+            {standard.products?.length > 0 && (
+              <span className="text-[10px] text-gray-400 whitespace-nowrap pt-0.5">{standard.products.length} proyek</span>
+            )}
+          </div>
+
+          {standard.products && standard.products.length > 0 ? (
+            <div className="space-y-2">
+              {standard.products.map(({ product }) => (
+                <Link
+                  key={product.id}
+                  href={`/carbon-market/project/${product.id}`}
+                  className="block bg-white rounded-xl shadow-sm border border-gray-100 hover:border-primary/30 hover:shadow-md transition-all overflow-hidden"
+                >
+                  <div className="flex items-center p-3 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-900 leading-snug break-words">{product.name}</h4>
+                      <div className="flex items-center gap-1 text-[10px] text-gray-500 mt-1">
+                        <IoLocationOutline className="flex-shrink-0" />
+                        <span className="truncate">{product.location || 'Lokasi tidak diketahui'}</span>
+                      </div>
+                    </div>
+                    <IoChevronForward className="text-base text-gray-400 flex-shrink-0" />
                   </div>
-                  <p className="text-xs text-textMuted line-clamp-2 mb-3">
-                    {product.description || 'Tidak ada deskripsi proyek.'}
-                  </p>
-                  
-                  {/* Link to Detail Project */}
-                  <Link href={`/carbon-market/project/${product.id}`} className="inline-flex py-1.5 px-3 bg-white text-primary border border-primary/20 rounded-lg text-[10px] font-bold items-center gap-1.5 hover:bg-gray-50 transition-colors">
-                    Lihat Detail Proyek <span className="text-lg">→</span>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-gray-50 p-6 rounded-2xl border border-dashed border-gray-200 text-center mb-6">
-            <p className="text-sm text-textMuted">Gagal memuat produk, belum ada produk yang terikat ke standar ini.</p>
-          </div>
-        )}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-gray-50 p-5 rounded-xl border border-dashed border-gray-200 text-center">
+              <p className="text-xs text-gray-500">Belum ada proyek yang terdaftar di standar ini.</p>
+            </div>
+          )}
+        </div>
 
-        {/* Calculation */}
-        <h3 className="text-sm font-bold text-textDark mb-3">Rincian Pembayaran</h3>
-        <div className="bg-white rounded-2xl border border-border p-4 shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-xs text-textMuted">Kewajiban Offset Anda</span>
-            <span className="text-sm font-semibold">{totalEmissionTon} tCO2e</span>
-          </div>
-
-          <div className="flex justify-between items-center py-4 border-y border-border mb-4">
-            <span className="text-sm text-textDark">Jumlah Unit Dibeli</span>
-            <div className="flex items-center gap-4 bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-200">
-              <button 
+        {/* Units selector */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Jumlah Unit</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">Kewajiban offset Anda: {totalEmissionTon} tCO₂e</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
                 onClick={() => setUnits(Math.max(1, units - 1))}
-                className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-primary font-bold active:scale-95"
-              >-</button>
-              <span className="text-lg font-bold min-w-[2rem] text-center">{units}</span>
-              <button 
+                disabled={units <= 1}
+                className="text-primary disabled:text-gray-300 active:scale-90 transition-transform"
+                aria-label="Kurangi"
+              >
+                <IoRemoveCircle className="text-3xl" />
+              </button>
+              <span className="text-xl font-bold min-w-[2.5rem] text-center tabular-nums">{units}</span>
+              <button
                 onClick={() => setUnits(units + 1)}
-                className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-primary font-bold active:scale-95"
-              >+</button>
+                className="text-primary active:scale-90 transition-transform"
+                aria-label="Tambah"
+              >
+                <IoAddCircle className="text-3xl" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment breakdown */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Rincian Pembayaran</p>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600">
+                Subtotal
+                <span className="text-[10px] text-gray-400 ml-1 tabular-nums">{units} × {formatCurrency(unitPrice)}</span>
+              </span>
+              <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600">
+                Biaya Admin
+                <span className="text-[10px] text-gray-400 ml-1">{adminFeePct.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%</span>
+              </span>
+              <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(adminFee)}</span>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600">
+                PPN
+                <span className="text-[10px] text-gray-400 ml-1">{ppnPct}%</span>
+              </span>
+              <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(ppn)}</span>
             </div>
           </div>
 
-          <div className="flex justify-between items-end">
-            <span className="text-sm font-bold text-textDark">Total Pembayaran</span>
-            <span className="text-xl font-bold text-primary">{formatCurrency(totalPrice)}</span>
+          <div className="mt-3 pt-3 border-t border-dashed border-gray-200 flex justify-between items-baseline">
+            <span className="text-sm font-bold text-gray-900">Total Pembayaran</span>
+            <span className="text-xl font-bold text-primary tabular-nums">{formatCurrency(totalPrice)}</span>
           </div>
         </div>
       </div>

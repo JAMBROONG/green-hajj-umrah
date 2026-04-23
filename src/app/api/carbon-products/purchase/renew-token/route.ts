@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Find the purchase (must belong to this user and be pending)
     const purchase = await prisma.carbon_certificate_purchases.findFirst({
       where: { id: purchaseId, user_id: userProfile.id },
-      include: { product: true },
+      include: { standard: true },
     })
 
     if (!purchase) {
@@ -53,13 +53,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment config not found' }, { status: 500 })
     }
 
-    const product = purchase.product
-    if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    const standard = purchase.standard
+    if (!standard) {
+      return NextResponse.json({ error: 'Standard not found' }, { status: 404 })
     }
 
-    const unitPrice = parseFloat(product.price.toString())
-    const totalAmount = Math.round(unitPrice * (purchase.units ?? 1))
+    // Reuse the total_price already stored (it includes admin fee + PPN at creation time)
+    const units = purchase.units ?? 1
+    const totalAmount = Math.round(parseFloat(purchase.total_price.toString()))
 
     // New order_id — must be unique in Midtrans
     const newOrderId = `CARBON${Date.now()}`
@@ -77,14 +78,14 @@ export async function POST(request: NextRequest) {
       },
       item_details: [
         {
-          id: product.id,
-          price: unitPrice,
-          quantity: purchase.units,
-          name: `${product.name} (${purchase.units} tCO2e)`,
+          id: standard.id,
+          price: Math.round(totalAmount / units),
+          quantity: units,
+          name: `${standard.series} - ${units} tCO2e`,
           category: 'Carbon Credits',
         },
       ],
-      custom_field1: `product:${product.product_code}`,
+      custom_field1: `standard:${standard.series}`,
       custom_field2: `user:${userProfile.id}`,
       finish_redirect_url: `${
         process.env.NEXTAUTH_URL ||

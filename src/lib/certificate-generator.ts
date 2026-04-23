@@ -2,6 +2,8 @@ import sharp from 'sharp'
 import { getCertificateTemplate } from './certificate-template-loader'
 
 export interface ThankYouCertData {
+  /** Tenant dari user yang membeli — untuk pilih template per-tenant */
+  tenantId?: string | null
   recipientName: string
   activityTitle: string
   amount: number
@@ -26,7 +28,7 @@ function escapeXml(s: string): string {
 }
 
 export async function generateThankYouCertificate(data: ThankYouCertData): Promise<Buffer> {
-  const templateBuffer = await getCertificateTemplate('carbon-market')
+  const templateBuffer = await getCertificateTemplate('carbon-market', data.tenantId ?? null)
   const template = sharp(templateBuffer)
   const meta = await template.metadata()
   const W = meta.width ?? 3508

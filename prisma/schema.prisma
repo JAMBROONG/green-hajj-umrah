@@ -17,11 +17,13 @@ model tenants {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  profiles       profiles[]
-  trips          trips[]
-  csr_activities csr_activities[]
-  payment_config TenantPaymentConfig?
-  hotels         hotels[]
+  profiles             profiles[]
+  trips                trips[]
+  csr_activities       csr_activities[]
+  payment_config       TenantPaymentConfig?
+  service_setting      service_setting?
+  certificate_template tenant_certificate_templates?
+  hotels               hotels[]
   // carbon_payment_config is now global, not per-tenant
 }
 
@@ -384,9 +386,27 @@ model carbon_product_standard_relations {
 
 model service_setting {
   id            String   @id @default(uuid())
+  tenant_id     String   @unique
   idx_admin_fee Decimal?
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+
+  tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+}
+
+/// Per-tenant certificate templates. Admin pilih tenant → upload
+/// 2 template: CSR (participation) & Carbon Market (thank-you).
+/// Saat generate sertifikat di sisi jemaah, lookup by tenant_id user;
+/// fallback ke template default bila tidak ada row.
+model tenant_certificate_templates {
+  id                   String   @id @default(uuid())
+  tenant_id            String   @unique
+  csr_template_path    String?  // path relatif di Laravel storage/public, mis. "certificate-templates/bpkh/csr.jpg"
+  carbon_template_path String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 }
 
 model password_reset_tokens {
