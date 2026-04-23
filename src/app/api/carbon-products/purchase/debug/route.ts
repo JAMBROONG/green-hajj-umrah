@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       where: { id: purchaseId },
       include: {
         user: true,
-        product: true,
+        standard: true,
       },
     })
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         id: purchase.id,
         status: purchase.status,
         user_id: purchase.user_id,
-        product_id: purchase.product_id,
+        standard_id: purchase.standard_id,
         units: purchase.units,
         amount: purchase.amount,
         total_price: purchase.total_price,
@@ -46,9 +46,9 @@ export async function POST(request: NextRequest) {
         created_at: purchase.created_at,
         updated_at: purchase.updated_at,
       },
-      product: {
-        name: purchase.product?.name,
-        code: purchase.product?.product_code,
+      standard: {
+        name: purchase.standard?.name,
+        series: purchase.standard?.series,
       },
       user: {
         email: purchase.user?.email,
