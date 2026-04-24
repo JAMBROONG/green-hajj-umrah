@@ -1,5 +1,6 @@
 import sharp from 'sharp'
 import { getCertificateTemplate } from './certificate-template-loader'
+import { fetchAndResizeAvatar } from './avatar-fetcher'
 
 export interface ThankYouCertData {
   tenantId?: string | null
@@ -30,29 +31,6 @@ function escapeXml(s: string): string {
   }[c]!))
 }
 
-async function fetchAndResizeAvatar(
-  avatarUrl: string,
-  targetW: number,
-  targetH: number,
-): Promise<Buffer | null> {
-  try {
-    const prefix = process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX?.trim().replace(/\/+$/, '')
-    const url = /^https?:\/\//i.test(avatarUrl)
-      ? avatarUrl
-      : `${prefix}/${avatarUrl.replace(/^\/+/, '')}`
-    console.log('🖼️ Fetching avatar:', url)
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' })
-    if (!res.ok) { console.warn('⚠️ Avatar fetch failed:', res.status); return null }
-    const ab = await res.arrayBuffer()
-    return await sharp(Buffer.from(ab))
-      .resize(targetW, targetH, { fit: 'cover', position: 'top' })
-      .jpeg({ quality: 88 })
-      .toBuffer()
-  } catch (e) {
-    console.warn('⚠️ Avatar fetch error:', e)
-    return null
-  }
-}
 
 export async function generateThankYouCertificate(data: ThankYouCertData): Promise<Buffer> {
   const templateBuffer = await getCertificateTemplate('carbon-market', data.tenantId ?? null)
@@ -67,10 +45,10 @@ export async function generateThankYouCertificate(data: ThankYouCertData): Promi
   // Template: 1536 × 1024
 
   // Foto profil
-  const photoLeft   = Math.round(W * 0.076)
+  const photoLeft   = Math.round(W * 0.2142)
   const photoTop    = Math.round(H * 0.338)
-  const photoWidth  = Math.round(W * 0.158)
-  const photoHeight = Math.round(H * 0.260)
+  const photoWidth  = Math.round(W * 0.0912)
+  const photoHeight = Math.round(H * 0.190)
 
   // Nama user — sama dengan CSR yang sudah benar
   const nameCx    = Math.round(W * 0.520)

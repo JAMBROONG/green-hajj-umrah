@@ -91,7 +91,13 @@ const LOCAL_FALLBACK = {
 }
 
 async function getCertificateTemplate(type, tenantId = null) {
-  // Try per-tenant template from DB first
+  // 0. ENV OVERRIDE — TEMPLATE_PATH=C:\path\to\template.jpg
+  if (process.env.TEMPLATE_PATH && fs.existsSync(process.env.TEMPLATE_PATH)) {
+    console.log('🎯 Using TEMPLATE_PATH override:', process.env.TEMPLATE_PATH)
+    return fs.readFileSync(process.env.TEMPLATE_PATH)
+  }
+
+  // 1. Try per-tenant template from DB
   if (tenantId) {
     try {
       const tpl = await prisma.tenant_certificate_templates.findUnique({
@@ -105,26 +111,31 @@ async function getCertificateTemplate(type, tenantId = null) {
         if (prefix) {
           const url = prefix.replace(/\/+$/, '') + '/' + relPath.replace(/^\/+/, '')
           console.log('🌐 Fetching tenant template:', url)
-          try {
-            const res = await fetch(url, { cache: 'no-store' })
-            if (res.ok) {
-              const ab = await res.arrayBuffer()
-              return Buffer.from(ab)
-            }
-          } catch {
-            // fall through to local fallback
-          }
+          const result = await httpGet(url)
+          if (!result.error) return result.buffer
         }
       }
-    } catch (e) {
+    } catch {
       console.warn('⚠️  Tenant template lookup failed, using local fallback')
     }
   }
 
-  // Local fallback
+  // 2. Local fallback
   const localPath = path.join(process.cwd(), LOCAL_FALLBACK[type])
-  console.log('📁 Loading local template:', localPath)
-  return fs.readFileSync(localPath)
+  if (fs.existsSync(localPath)) {
+    console.log('📁 Loading local template:', localPath)
+    return fs.readFileSync(localPath)
+  }
+
+  // 3. Helpful error
+  throw new Error(
+    `Template '${type}' ga ketemu.\n` +
+    `   - TEMPLATE_PATH env var ga di-set / file ga ada\n` +
+    `   - Local file ga ada: ${localPath}\n` +
+    `   - DB tenant ga punya template path (atau DB ga bisa diakses)\n\n` +
+    `💡 Quick fix:\n` +
+    `   TEMPLATE_PATH="C:\\path\\ke\\template.jpg" AVATAR_URL=https://i.pravatar.cc/300 node test-certificate-standalone.mjs`
+  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,6 +160,17 @@ async function tryFetch(url, label) {
 
 async function fetchAndResizeAvatar(avatarUrl, targetW, targetH) {
   try {
+    // CASE 0: Data URI base64 — decode langsung, skip network
+    const dataUriMatch = /^data:image\/[a-z+]+;base64,(.+)$/i.exec(avatarUrl.trim())
+    if (dataUriMatch) {
+      console.log('🖼️  Decoding base64 data URI avatar')
+      const buf = Buffer.from(dataUriMatch[1], 'base64')
+      return await sharp(buf)
+        .resize(targetW, targetH, { fit: 'cover', position: 'top' })
+        .jpeg({ quality: 88 })
+        .toBuffer()
+    }
+
     // CASE 1: Local file path (misal C:\... atau /path/to/file)
     if (/^([a-zA-Z]:\\|\/)/.test(avatarUrl) && fs.existsSync(avatarUrl)) {
       console.log('🖼️  Loading local avatar file:', avatarUrl)
@@ -219,11 +241,11 @@ async function generateThankYouCertificate(data) {
 
   console.log('📐 Carbon Template:', W, 'x', H)
 
-  // Foto profil
-  const photoLeft   = Math.round(W * 0.076)
+  // Foto profil — match oval silhouette frame di template
+  const photoLeft   = Math.round(W * 0.2142)
   const photoTop    = Math.round(H * 0.338)
-  const photoWidth  = Math.round(W * 0.158)
-  const photoHeight = Math.round(H * 0.260)
+  const photoWidth  = Math.round(W * 0.0912)
+  const photoHeight = Math.round(H * 0.190)
 
   // Nama user
   const nameCx    = Math.round(W * 0.520)
@@ -307,36 +329,50 @@ async function main() {
 
   // ─── STEP 1: Ambil data purchase dari DB ──────────────────────────────────
   let purchase
-  if (arg) {
-    console.log('🔍 Looking up purchase by ID:', arg)
-    purchase = await prisma.carbon_certificate_purchases.findUnique({
-      where: { id: arg },
-      include: { user: true, standard: true },
-    })
-    if (!purchase) {
-      console.error('❌ Purchase not found with ID:', arg)
-      console.log('\n💡 Tip: run tanpa argumen untuk pakai latest purchase:')
-      console.log('    node test-certificate-standalone.mjs\n')
-      await prisma.$disconnect()
-      process.exit(1)
-    }
-  } else {
-    console.log('🔍 Using latest purchase from DB (no ID provided)')
-    purchase = await prisma.carbon_certificate_purchases.findFirst({
-      orderBy: { created_at: 'desc' },
-      include: { user: true, standard: true },
-    })
-    if (!purchase) {
-      console.log('⚠️  No purchase found in DB. Using DUMMY data instead...\n')
-      purchase = {
-        id: 'dummy-' + Date.now(),
-        total_price: 150000,
-        units: 1,
-        created_at: new Date(),
-        user: { full_name: 'Ahmad Fauzi (DUMMY)', metadata: {} },
-        standard: { name: 'Standar Nasional - Peatland', series: 'IDNBS' },
+  const makeDummy = (label = '(DUMMY)') => ({
+    id: 'dummy-' + Date.now(),
+    total_price: 150000,
+    units: 1,
+    created_at: new Date(),
+    user: {
+      full_name: `Ahmad Fauzi ${label}`,
+      tenant_id: null,
+      metadata: {},
+    },
+    standard: { name: 'Standar Nasional - Peatland', series: 'IDNBS' },
+  })
+
+  try {
+    if (arg) {
+      console.log('🔍 Looking up purchase by ID:', arg)
+      purchase = await prisma.carbon_certificate_purchases.findUnique({
+        where: { id: arg },
+        include: { user: true, standard: true },
+      })
+      if (!purchase) {
+        console.error('❌ Purchase not found with ID:', arg)
+        console.log('\n💡 Tip: run tanpa argumen untuk pakai latest purchase:')
+        console.log('    node test-certificate-standalone.mjs\n')
+        await prisma.$disconnect()
+        process.exit(1)
+      }
+    } else {
+      console.log('🔍 Using latest purchase from DB (no ID provided)')
+      purchase = await prisma.carbon_certificate_purchases.findFirst({
+        orderBy: { created_at: 'desc' },
+        include: { user: true, standard: true },
+      })
+      if (!purchase) {
+        console.log('⚠️  No purchase found in DB. Using DUMMY data instead...\n')
+        purchase = makeDummy('(DUMMY)')
       }
     }
+  } catch (dbErr) {
+    console.warn('⚠️  Database unreachable — falling back to DUMMY data')
+    console.warn('    Reason:', dbErr.message?.split('\n')[0] || dbErr)
+    console.warn('    💡 Pastikan Postgres jalan kalau mau pake data real')
+    console.warn('')
+    purchase = makeDummy('(DUMMY - no DB)')
   }
 
   console.log('✅ Purchase loaded:', {
@@ -356,19 +392,37 @@ async function main() {
   const productName   = purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
   const units         = purchase.units || 0
 
+  // ─── DEBUG: Print full user metadata supaya keliatan apa yang tersimpan ──
+  console.log('\n🔍 DEBUG user.metadata:')
+  console.log('   Raw object:', JSON.stringify(purchase.user?.metadata, null, 2))
+  console.log('   Type:', typeof purchase.user?.metadata)
+  const keys = purchase.user?.metadata ? Object.keys(purchase.user.metadata) : []
+  console.log('   Keys:', keys.length > 0 ? keys.join(', ') : '(empty)')
+
   // Avatar URL resolution priority:
   //   1. AVATAR_URL env var (bypass untuk testing manual)
-  //   2. avatar_url dari DB user metadata
+  //   2. avatar_url dari DB user metadata (coba beberapa field name)
   //   3. null (skip avatar)
-  const metadataAvatar = purchase.user?.metadata?.avatar_url || null
+  const meta = purchase.user?.metadata || {}
+  const metadataAvatar =
+    meta.avatar_url ||
+    meta.avatarUrl ||
+    meta.photo ||
+    meta.photo_url ||
+    meta.foto ||
+    meta.image ||
+    null
   const avatarUrl = process.env.AVATAR_URL || metadataAvatar
 
   if (process.env.AVATAR_URL) {
     console.log('🎯 Using AVATAR_URL override:', process.env.AVATAR_URL)
   } else if (metadataAvatar) {
     console.log('📦 Avatar from DB metadata:', metadataAvatar)
+    console.log('   Prefix env:', process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX || '(NOT SET)')
   } else {
-    console.log('ℹ️  No avatar in user metadata — will skip avatar rendering')
+    console.log('ℹ️  No avatar field found in user metadata')
+    console.log('   💡 User metadata biasanya nyimpan avatar di key: avatar_url, photo, atau foto')
+    console.log('   💡 Check di DB: SELECT metadata FROM profiles WHERE id = \'' + purchase.user?.id + '\';')
   }
 
   // Tenant ID untuk lookup template per-tenant (kalau ada)
@@ -418,11 +472,11 @@ async function main() {
   console.log('\n💾 Saved to:', outputPath)
   console.log('\n🎉 Done! Open the file to inspect result.\n')
 
-  await prisma.$disconnect()
+  await prisma.$disconnect().catch(() => {})
 }
 
 main().catch(async (err) => {
   console.error('\n❌ Error:', err)
-  await prisma.$disconnect()
+  await prisma.$disconnect().catch(() => {})
   process.exit(1)
 })

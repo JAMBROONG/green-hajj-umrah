@@ -92,7 +92,13 @@ const LOCAL_FALLBACK = {
 }
 
 async function getCertificateTemplate(type, tenantId = null) {
-  // Try per-tenant template from DB first
+  // 0. ENV OVERRIDE — TEMPLATE_PATH=C:\path\to\template.jpg
+  if (process.env.TEMPLATE_PATH && fs.existsSync(process.env.TEMPLATE_PATH)) {
+    console.log('🎯 Using TEMPLATE_PATH override:', process.env.TEMPLATE_PATH)
+    return fs.readFileSync(process.env.TEMPLATE_PATH)
+  }
+
+  // 1. Try per-tenant template from DB
   if (tenantId) {
     try {
       const tpl = await prisma.tenant_certificate_templates.findUnique({
@@ -115,10 +121,22 @@ async function getCertificateTemplate(type, tenantId = null) {
     }
   }
 
-  // Local fallback
+  // 2. Local fallback
   const localPath = path.join(process.cwd(), LOCAL_FALLBACK[type])
-  console.log('📁 Loading local template:', localPath)
-  return fs.readFileSync(localPath)
+  if (fs.existsSync(localPath)) {
+    console.log('📁 Loading local template:', localPath)
+    return fs.readFileSync(localPath)
+  }
+
+  // 3. Helpful error
+  throw new Error(
+    `Template '${type}' ga ketemu.\n` +
+    `   - TEMPLATE_PATH env var ga di-set / file ga ada\n` +
+    `   - Local file ga ada: ${localPath}\n` +
+    `   - DB tenant ga punya template path (atau DB ga bisa diakses)\n\n` +
+    `💡 Quick fix:\n` +
+    `   TEMPLATE_PATH="C:\\path\\ke\\template.jpg" AVATAR_URL=https://i.pravatar.cc/300 node test-csr-certificate-standalone.mjs`
+  )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -143,6 +161,17 @@ async function tryFetch(url, label) {
 
 async function fetchAndResizeAvatar(avatarUrl, targetW, targetH) {
   try {
+    // CASE 0: Data URI base64 — decode langsung, skip network
+    const dataUriMatch = /^data:image\/[a-z+]+;base64,(.+)$/i.exec(avatarUrl.trim())
+    if (dataUriMatch) {
+      console.log('🖼️  Decoding base64 data URI avatar')
+      const buf = Buffer.from(dataUriMatch[1], 'base64')
+      return await sharp(buf)
+        .resize(targetW, targetH, { fit: 'cover', position: 'top' })
+        .jpeg({ quality: 88 })
+        .toBuffer()
+    }
+
     // CASE 1: Local file path
     if (/^([a-zA-Z]:\\|\/)/.test(avatarUrl) && fs.existsSync(avatarUrl)) {
       console.log('🖼️  Loading local avatar file:', avatarUrl)
@@ -207,10 +236,10 @@ async function generateCSRCertificate(data) {
   console.log('📐 CSR Template:', W, 'x', H)
 
   // Foto profil
-  const photoLeft   = Math.round(W * 0.076)
+  const photoLeft   = Math.round(W * 0.2142)
   const photoTop    = Math.round(H * 0.338)
-  const photoWidth  = Math.round(W * 0.158)
-  const photoHeight = Math.round(H * 0.260)
+  const photoWidth  = Math.round(W * 0.0912)
+  const photoHeight = Math.round(H * 0.190)
 
   // Nama user
   const nameCx    = Math.round(W * 0.520)
@@ -291,44 +320,55 @@ async function main() {
   console.log('════════════════════════════════════════════════\n')
 
   // ─── STEP 1: Ambil data participation dari DB ─────────────────────────────
+  const makeDummy = (label = '(DUMMY)') => ({
+    id: 'dummy-' + Date.now(),
+    amount: 500000,
+    created_at: new Date(),
+    csr_activity_id: null,
+    user: { full_name: `Siti Aminah ${label}`, tenant_id: null, metadata: {} },
+  })
+
   let donation
-  if (arg) {
-    console.log('🔍 Looking up participation by ID:', arg)
-    donation = await prisma.csr_activity_participations.findUnique({
-      where: { id: arg },
-      include: { user: true },
-    })
-    if (!donation) {
-      console.error('❌ Participation not found with ID:', arg)
-      console.log('\n💡 Tip: run tanpa argumen untuk pakai latest participation:')
-      console.log('    node test-csr-certificate-standalone.mjs\n')
-      await prisma.$disconnect()
-      process.exit(1)
-    }
-  } else {
-    console.log('🔍 Using latest participation from DB (no ID provided)')
-    donation = await prisma.csr_activity_participations.findFirst({
-      orderBy: { created_at: 'desc' },
-      include: { user: true },
-    })
-    if (!donation) {
-      console.log('⚠️  No participation found in DB. Using DUMMY data instead...\n')
-      donation = {
-        id: 'dummy-' + Date.now(),
-        amount: 500000,
-        created_at: new Date(),
-        csr_activity_id: null,
-        user: { full_name: 'Siti Aminah (DUMMY)', tenant_id: null, metadata: {} },
+  let activity = null
+
+  try {
+    if (arg) {
+      console.log('🔍 Looking up participation by ID:', arg)
+      donation = await prisma.csr_activity_participations.findUnique({
+        where: { id: arg },
+        include: { user: true },
+      })
+      if (!donation) {
+        console.error('❌ Participation not found with ID:', arg)
+        console.log('\n💡 Tip: run tanpa argumen untuk pakai latest participation:')
+        console.log('    node test-csr-certificate-standalone.mjs\n')
+        await prisma.$disconnect().catch(() => {})
+        process.exit(1)
+      }
+    } else {
+      console.log('🔍 Using latest participation from DB (no ID provided)')
+      donation = await prisma.csr_activity_participations.findFirst({
+        orderBy: { created_at: 'desc' },
+        include: { user: true },
+      })
+      if (!donation) {
+        console.log('⚠️  No participation found in DB. Using DUMMY data instead...\n')
+        donation = makeDummy('(DUMMY)')
       }
     }
-  }
 
-  // ─── STEP 2: Ambil data activity terkait ──────────────────────────────────
-  let activity = null
-  if (donation.csr_activity_id) {
-    activity = await prisma.csr_activities.findUnique({
-      where: { id: donation.csr_activity_id },
-    })
+    // ─── STEP 2: Ambil data activity terkait ────────────────────────────────
+    if (donation.csr_activity_id) {
+      activity = await prisma.csr_activities.findUnique({
+        where: { id: donation.csr_activity_id },
+      })
+    }
+  } catch (dbErr) {
+    console.warn('⚠️  Database unreachable — falling back to DUMMY data')
+    console.warn('    Reason:', dbErr.message?.split('\n')[0] || dbErr)
+    console.warn('    💡 Pastikan Postgres jalan kalau mau pake data real')
+    console.warn('')
+    donation = makeDummy('(DUMMY - no DB)')
   }
 
   if (!activity) {
@@ -413,11 +453,11 @@ async function main() {
   console.log('\n💾 Saved to:', outputPath)
   console.log('\n🎉 Done! Open the file to inspect result.\n')
 
-  await prisma.$disconnect()
+  await prisma.$disconnect().catch(() => {})
 }
 
 main().catch(async (err) => {
   console.error('\n❌ Error:', err)
-  await prisma.$disconnect()
+  await prisma.$disconnect().catch(() => {})
   process.exit(1)
 })
