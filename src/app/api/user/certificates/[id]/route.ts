@@ -109,6 +109,8 @@ export async function GET(
       standard_name: cert.standard?.name,
       standard_vintage: cert.standard?.vintage,
       transaction_reference: cert.transaction_reference || null,
+      snap_token: meta?.snap_token || cert.transaction_reference || null,
+      breakdown: meta?.breakdown || null,
     })
   } catch (error) {
     console.error('Error fetching certificate:', error)

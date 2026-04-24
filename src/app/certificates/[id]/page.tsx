@@ -25,6 +25,16 @@
     product_description: string | null
     project: string | null
     snap_token: string | null
+    breakdown: {
+      subtotal: number
+      admin_fee: number
+      admin_fee_pct: number
+      ppn: number
+      ppn_pct: number
+      // tenant fee (jika ada)
+      tenant_fee?: number
+      tenant_fee_pct?: number
+    } | null
   }
 
   function CertCard({
@@ -493,6 +503,47 @@
                     <p className="text-xs text-gray-500">Total Dibayar</p>
                     <p className="text-xs font-bold text-gray-900">{formatCurrency(Number(cert.amount))}</p>
                   </div>
+
+                  {/* Rincian Biaya Breakdown */}
+                  {cert.breakdown && (
+                    <>
+                      <div className="h-px bg-gray-100" />
+                      <div>
+                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Rincian Biaya</p>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                              Subtotal
+                              <span className="text-[10px] text-gray-400 ml-1">{cert.units} × harga</span>
+                            </span>
+                            <span className="text-xs text-gray-700">{formatCurrency(cert.breakdown.subtotal)}</span>
+                          </div>
+                          {(cert.breakdown.admin_fee + (cert.breakdown.tenant_fee ?? 0)) > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500">
+                                Biaya Layanan
+                                <span className="text-[10px] text-gray-400 ml-1">
+                                  {(cert.breakdown.admin_fee_pct + (cert.breakdown.tenant_fee_pct ?? 0)).toLocaleString('id-ID', { maximumFractionDigits: 2 })}%
+                                </span>
+                              </span>
+                              <span className="text-xs text-gray-700">{formatCurrency(cert.breakdown.admin_fee + (cert.breakdown.tenant_fee ?? 0))}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                              PPN
+                              <span className="text-[10px] text-gray-400 ml-1">{cert.breakdown.ppn_pct}%</span>
+                            </span>
+                            <span className="text-xs text-gray-700">{formatCurrency(cert.breakdown.ppn)}</span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-dashed border-gray-200">
+                            <span className="text-xs font-semibold text-gray-700">Total</span>
+                            <span className="text-xs font-bold text-primary">{formatCurrency(Number(cert.amount))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-500">Tanggal Pembelian</p>
                     <p className="text-xs font-semibold text-gray-900">

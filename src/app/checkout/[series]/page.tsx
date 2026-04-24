@@ -402,20 +402,13 @@ export default function CheckoutSeriesPage({
               </span>
               <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(subtotal)}</span>
             </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-gray-600">
-                Biaya Admin
-                <span className="text-[10px] text-gray-400 ml-1">{adminFeePct.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%</span>
-              </span>
-              <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(adminFee)}</span>
-            </div>
-            {tenantFeePct > 0 && (
+            {(adminFeePct + tenantFeePct) > 0 && (
               <div className="flex justify-between items-baseline">
                 <span className="text-gray-600">
                   Biaya Layanan
-                  <span className="text-[10px] text-gray-400 ml-1">{tenantFeePct.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%</span>
+                  <span className="text-[10px] text-gray-400 ml-1">{(adminFeePct + tenantFeePct).toLocaleString('id-ID', { maximumFractionDigits: 2 })}%</span>
                 </span>
-                <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(tenantFee)}</span>
+                <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(adminFee + tenantFee)}</span>
               </div>
             )}
             <div className="flex justify-between items-baseline">
