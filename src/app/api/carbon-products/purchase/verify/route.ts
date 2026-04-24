@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
           const appBaseUrl = (
             process.env.NEXTAUTH_URL ||
             process.env.NEXT_PUBLIC_BASE_URL ||
-            'http://localhost:3000'
+            request.nextUrl.origin
           ).replace(/\/$/, '')
 
           let thankYouUrl: string | null = null

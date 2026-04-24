@@ -388,11 +388,12 @@ model carbon_product_standard_relations {
 }
 
 model service_setting {
-  id            String   @id @default(uuid())
-  tenant_id     String   @unique
-  idx_admin_fee Decimal?
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id             String   @id @default(uuid())
+  tenant_id      String   @unique
+  idx_admin_fee  Decimal?
+  idx_tenant_fee Decimal?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
 
   tenant tenants @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
 

@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 
 // Helper to create Midtrans transaction via HTTP
-async function createMidtransTransaction(payload: any, serverKey: string, isProduction: boolean) {
+async function createMidtransTransaction(payload: Record<string, unknown>, serverKey: string, isProduction: boolean) {
   const apiUrl = isProduction
     ? 'https://app.midtrans.com/snap/v1/transactions'
     : 'https://app.sandbox.midtrans.com/snap/v1/transactions'
@@ -103,13 +103,17 @@ export async function POST(request: NextRequest) {
     const adminFeeRate = serviceSetting?.idx_admin_fee
       ? parseFloat(serviceSetting.idx_admin_fee.toString()) / 100
       : 0
+    const tenantFeeRate = serviceSetting?.idx_tenant_fee
+      ? parseFloat(serviceSetting.idx_tenant_fee.toString()) / 100
+      : 0
     const PPN_RATE = 0.11
 
-    const unitPrice = parseFloat(standard.price.toString())
-    const subtotal = unitPrice * unitsNum
-    const adminFee = subtotal * adminFeeRate
-    const ppn = (subtotal + adminFee) * PPN_RATE
-    const totalAmount = Math.round(subtotal + adminFee + ppn)
+    const unitPrice  = parseFloat(standard.price.toString())
+    const subtotal   = unitPrice * unitsNum
+    const adminFee   = subtotal * adminFeeRate
+    const tenantFee  = subtotal * tenantFeeRate
+    const ppn        = (subtotal + adminFee + tenantFee) * PPN_RATE
+    const totalAmount = Math.round(subtotal + adminFee + tenantFee + ppn)
 
     // Midtrans membatasi transaksi pertransaksi maksimal Rp 5.000.000
     const MAX_TRANSACTION_IDR = 5_000_000
@@ -166,6 +170,8 @@ export async function POST(request: NextRequest) {
             subtotal: Math.round(subtotal),
             admin_fee: Math.round(adminFee),
             admin_fee_pct: Number((adminFeeRate * 100).toFixed(2)),
+            tenant_fee: Math.round(tenantFee),
+            tenant_fee_pct: Number((tenantFeeRate * 100).toFixed(2)),
             ppn: Math.round(ppn),
             ppn_pct: 11,
           },
