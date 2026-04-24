@@ -17,20 +17,43 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [debugUsers, setDebugUsers] = useState<any[]>([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [demoLoadingId, setDemoLoadingId] = useState<string | null>(null);
+
+  const isDev = process.env.NODE_ENV !== 'production';
 
   useEffect(() => {
-    // Load debug users on mount - only jemaah
+    if (!isDev) return;
+    // Endpoint /api/debug/users sudah filter role='jemaah' + tenant aktif
+    // di server-side, jadi tidak perlu filter ulang di client.
     fetch('/api/debug/users')
-      .then(res => res.json())
+      .then(res => (res.ok ? res.json() : { success: false }))
       .then(data => {
-        if (data.success) {
-          // Filter only jemaah users
-          const jemaahOnly = data.users.filter((u: any) => u.role === 'jemaah');
-          setDebugUsers(jemaahOnly);
-        }
+        if (data.success) setDebugUsers(data.users || []);
       })
       .catch(err => console.error('Debug fetch error:', err));
-  }, []);
+  }, [isDev]);
+
+  // One-click login sebagai jemaah tertentu (dev only). Memakai provider
+  // `demo` di NextAuth yang hanya ter-register saat NODE_ENV=development.
+  const handleDemoLogin = async (userId: string) => {
+    if (!isDev || demoLoadingId) return;
+    setError('');
+    setDemoLoadingId(userId);
+    try {
+      const result = await signIn('demo', { userId, redirect: false });
+      if (result?.error) {
+        setError('Gagal login sebagai user ini. User mungkin sudah tidak aktif.');
+      } else {
+        router.push('/');
+        router.refresh();
+      }
+    } catch (err) {
+      console.error('Demo login error:', err);
+      setError('Terjadi kesalahan saat demo login.');
+    } finally {
+      setDemoLoadingId(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +119,7 @@ export default function SignInPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         <div className="w-24 h-24 rounded-2xl bg-white shadow-2xl flex items-center justify-center p-3 ring-1 ring-black/5">
           <Image
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt={APP_NAME}
             width={96}
             height={96}
@@ -193,37 +216,81 @@ export default function SignInPage() {
           <Link href="/legal/privacy-policy" className="text-primary underline">Kebijakan Privasi</Link>
           {' '}kami.
         </p>
+        
+        {isDev && (
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => setShowDebug(!showDebug)}
+              className="w-full flex items-center justify-between text-xs text-gray-400 hover:text-gray-600 transition-colors px-1"
+            >
+              <span className="flex items-center gap-1.5">
+                <span>🔧</span>
+                <span className="font-semibold uppercase tracking-wider">Quick Login (Dev)</span>
+                <span className="text-gray-300">· {debugUsers.length} jemaah</span>
+              </span>
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${showDebug ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-        {/* Debug Panel — only in development */}
-        {process.env.NODE_ENV !== 'production' && <div className="mt-5 pt-4 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={() => setShowDebug(!showDebug)}
-            className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            🔧 Debug: {showDebug ? 'Hide' : 'Show'} Users ({debugUsers.length})
-          </button>
-
-          {showDebug && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-xl text-xs max-h-80 overflow-y-auto space-y-2">
-              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                {debugUsers.map((user) => (
-                  <div key={user.id} className="bg-white p-2 rounded-lg mb-2 last:mb-0">
-                    <div className="font-semibold text-gray-900">{user.full_name || 'No Name'}</div>
-                    <div className="text-gray-500">📧 {user.email}</div>
-                    <button
-                      type="button"
-                      onClick={() => { setEmail(user.email); setPassword('password'); }}
-                      className="mt-1 text-green-600 hover:underline font-medium text-[11px]"
-                    >
-                      → Login sebagai ini
-                    </button>
+            {showDebug && (
+              <div className="mt-3 max-h-80 overflow-y-auto space-y-1.5 pr-1">
+                {debugUsers.length === 0 ? (
+                  <div className="text-center text-xs text-gray-400 py-6">
+                    Tidak ada jemaah terdaftar.<br />
+                    Pastikan database sudah di-seed.
                   </div>
-                ))} 
-              </div> 
-            </div>
-          )}
-        </div>}
+                ) : (
+                  debugUsers.map((user) => {
+                    const initials = (user.full_name || user.email || '?')
+                      .trim().charAt(0).toUpperCase();
+                    const tenantName = user.tenant?.name || '—';
+                    const isLoading = demoLoadingId === user.id;
+                    return (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => handleDemoLogin(user.id)}
+                        disabled={!!demoLoadingId}
+                        className="w-full flex items-center gap-2.5 p-2.5 bg-white border border-gray-200 hover:border-primary/40 hover:bg-primaryLight rounded-xl transition group disabled:opacity-60 disabled:cursor-not-allowed text-left"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primaryDark flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-gray-900 truncate">
+                            {user.full_name || '(tanpa nama)'}
+                          </div>
+                          <div className="text-[10px] text-gray-500 truncate">
+                            {user.email}
+                          </div>
+                          <div className="text-[9px] text-primary font-medium uppercase tracking-wider truncate mt-0.5">
+                            {tenantName}
+                          </div>
+                        </div>
+                        {isLoading ? (
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                        ) : (
+                          <svg className="w-4 h-4 text-gray-300 group-hover:text-primary flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+
+                <p className="text-[10px] text-gray-400 text-center pt-2">
+                  ⚡ Sekali klik langsung login · hanya jemaah di tenant aktif
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

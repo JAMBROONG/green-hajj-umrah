@@ -12,6 +12,47 @@ class LoginRateLimitError extends CredentialsSignin {
   code = 'TOO_MANY_ATTEMPTS'
 }
 
+/**
+ * Dev-only "demo" credentials provider — satu klik login sebagai jemaah mana
+ * pun untuk memudahkan testing. Hanya ter-register saat NODE_ENV='development'.
+ * Di produksi, provider ini tidak ada di list, jadi endpoint `signIn('demo', …)`
+ * gagal sendiri — defense-in-depth selain check runtime di authorize.
+ */
+const demoProvider = Credentials({
+  id: 'demo',
+  name: 'Demo (Dev Only)',
+  credentials: {
+    userId: { label: 'User ID', type: 'text' },
+  },
+  authorize: async (credentials) => {
+    // Runtime guard — walaupun provider tidak ter-register di prod, ini
+    // jaga-jaga kalau ada bundling edge-case yang membuatnya ter-expose.
+    if (process.env.NODE_ENV !== 'development') {
+      return null
+    }
+
+    const userId = (credentials?.userId as string | undefined)?.trim()
+    if (!userId) return null
+
+    const user = await prisma.profiles.findUnique({
+      where: { id: userId },
+      include: { tenant: true },
+    })
+
+    // Hanya jemaah dengan tenant aktif — sama strict-nya dengan login normal.
+    if (!user || user.role !== 'jemaah') return null
+    if (!user.tenant || !user.tenant.is_active) return null
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.full_name,
+      tenantId: user.tenant_id,
+      tenant: user.tenant,
+    }
+  },
+})
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
@@ -80,6 +121,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       },
     }),
+    // Tambahkan demo provider HANYA di dev. Spread array kosong di prod
+    // supaya tidak pernah terdaftar di environment production.
+    ...(process.env.NODE_ENV === 'development' ? [demoProvider] : []),
   ],
   callbacks: {
     jwt: async ({ token, user }) => {
