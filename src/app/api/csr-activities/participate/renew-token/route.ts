@@ -110,7 +110,8 @@ export async function POST(request: NextRequest) {
     const appBaseUrl = (
       process.env.AUTH_URL ||
       process.env.NEXTAUTH_URL ||
-      'http://localhost:3000'
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      request.nextUrl.origin
     ).replace(/\/$/, '')
 
     const transactionPayload = {

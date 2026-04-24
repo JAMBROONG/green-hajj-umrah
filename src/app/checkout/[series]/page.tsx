@@ -69,6 +69,7 @@ export default function CheckoutSeriesPage({
   const [units, setUnits] = useState(Math.ceil(totalEmission / 1000) || 1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [adminFeePct, setAdminFeePct] = useState<number>(0);
+  const [tenantFeePct, setTenantFeePct] = useState<number>(0);
   const [ppnPct] = useState<number>(11);
 
   // Detect when Midtrans redirects back
@@ -148,6 +149,7 @@ export default function CheckoutSeriesPage({
         if (settingRes.ok) {
           const s = await settingRes.json();
           setAdminFeePct(typeof s.idx_admin_fee_pct === 'number' ? s.idx_admin_fee_pct : 0);
+          setTenantFeePct(typeof s.tenant_fee_pct === 'number' ? s.tenant_fee_pct : 0);
         }
       } catch (err: any) {
         setError(err.message || 'Terjadi kesalahan sistem');
@@ -252,16 +254,17 @@ export default function CheckoutSeriesPage({
   }
 
   const unitPrice = typeof standard.price === 'string' ? parseFloat(standard.price) : standard.price;
-  const subtotal = unitPrice * units;
-  const adminFee = subtotal * (adminFeePct / 100);
-  const ppnBase  = subtotal + adminFee;
-  const ppn      = ppnBase * (ppnPct / 100);
-  const totalPrice = subtotal + adminFee + ppn;
+  const subtotal  = unitPrice * units;
+  const adminFee  = subtotal * (adminFeePct / 100);
+  const tenantFee = subtotal * (tenantFeePct / 100);
+  const ppnBase   = subtotal + adminFee + tenantFee;
+  const ppn       = ppnBase * (ppnPct / 100);
+  const totalPrice = subtotal + adminFee + tenantFee + ppn;
   const totalEmissionTon = formatEmission(totalEmission, 'ton');
 
   // Midtrans limit: maksimal Rp 5.000.000 per transaksi
   const MAX_TRANSACTION_IDR = 5_000_000;
-  const totalMultiplier = (1 + adminFeePct / 100) * (1 + ppnPct / 100);
+  const totalMultiplier = (1 + adminFeePct / 100 + tenantFeePct / 100) * (1 + ppnPct / 100);
   const maxUnits = Math.max(1, Math.floor(MAX_TRANSACTION_IDR / (unitPrice * totalMultiplier)));
   const exceedsLimit = totalPrice > MAX_TRANSACTION_IDR;
 
@@ -406,6 +409,15 @@ export default function CheckoutSeriesPage({
               </span>
               <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(adminFee)}</span>
             </div>
+            {tenantFeePct > 0 && (
+              <div className="flex justify-between items-baseline">
+                <span className="text-gray-600">
+                  Biaya Layanan
+                  <span className="text-[10px] text-gray-400 ml-1">{tenantFeePct.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%</span>
+                </span>
+                <span className="font-medium text-gray-900 tabular-nums">{formatCurrency(tenantFee)}</span>
+              </div>
+            )}
             <div className="flex justify-between items-baseline">
               <span className="text-gray-600">
                 PPN

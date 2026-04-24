@@ -34,11 +34,6 @@ type MidtransStatus = {
   gross_amount?: string
 }
 
-const APP_BASE_URL = (
-  process.env.NEXTAUTH_URL ||
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  'http://localhost:3000'
-).replace(/\/$/, '')
 
 const CERTS_DIR = path.join(process.cwd(), 'storage', 'certificates')
 
@@ -81,8 +76,14 @@ function ensureCertsDir() {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const APP_BASE_URL = (
+      process.env.NEXTAUTH_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      new URL(request.url).origin
+    ).replace(/\/$/, '')
+
     const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
