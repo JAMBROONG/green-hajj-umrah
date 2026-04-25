@@ -1,15 +1,52 @@
 import sharp from 'sharp'
 import http from 'node:http'
 import https from 'node:https'
+import { isHostnameSafeForFetch } from './url-safety'
+
+/**
+ * Whether SSRF protection (DNS-resolved private-IP check) is active for
+ * avatar fetches. Kita ALLOW localhost/private hanya saat NODE_ENV=development
+ * supaya alur `/api/image-proxy` yang resolve ke 127.0.0.1 saat dev tetap
+ * berjalan. Di production, tetap diblokir.
+ */
+const ALLOW_PRIVATE_IPS = process.env.NODE_ENV !== 'production'
 
 /**
  * Native HTTP GET — bypass undici fetch quirks (especially for private IPs on Windows/localhost).
  * Forces IPv4, handles redirects, returns buffer or null.
+ *
+ * SSRF DEFENSE-IN-DEPTH:
+ *   - Sebelum konek, cek hostname/IP via DNS. Kalau resolve ke private range
+ *     dan kita di production, batalkan request. Walaupun PUT avatar sudah
+ *     validate URL, defense ini melindungi dari kasus DNS rebinding & data
+ *     legacy yang tersimpan sebelum patch.
  */
-function httpGetBuffer(url: string, timeoutMs = 8000): Promise<Buffer | null> {
+async function httpGetBuffer(url: string, timeoutMs = 8000, hops = 0): Promise<Buffer | null> {
+  if (hops > 4) return null // hard cap untuk redirect chain
+
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch (e) {
+    console.warn('⚠️ Avatar invalid URL:', url, e)
+    return null
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    console.warn('⚠️ Avatar non-http(s) protocol blocked:', parsed.protocol)
+    return null
+  }
+
+  if (!ALLOW_PRIVATE_IPS) {
+    const safe = await isHostnameSafeForFetch(parsed.hostname)
+    if (!safe) {
+      console.warn('⚠️ Avatar host blocked (SSRF guard):', parsed.hostname)
+      return null
+    }
+  }
+
   return new Promise((resolve) => {
     try {
-      const parsed = new URL(url)
       const isHttps = parsed.protocol === 'https:'
       const lib = isHttps ? https : http
 
@@ -26,7 +63,9 @@ function httpGetBuffer(url: string, timeoutMs = 8000): Promise<Buffer | null> {
           if (res.statusCode && [301, 302, 307, 308].includes(res.statusCode) && res.headers.location) {
             const nextUrl = new URL(res.headers.location, url).toString()
             res.destroy()
-            return resolve(httpGetBuffer(nextUrl, timeoutMs))
+            // Re-validate target URL setelah redirect — attacker bisa redirect
+            // ke private IP padahal URL awal aman.
+            return resolve(httpGetBuffer(nextUrl, timeoutMs, hops + 1))
           }
           if (res.statusCode !== 200) {
             console.warn(`⚠️ Avatar HTTP ${res.statusCode} for ${url}`)

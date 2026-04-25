@@ -160,7 +160,7 @@ export async function PUT(
       stack: error instanceof Error ? error.stack : undefined
     });
     return NextResponse.json(
-      { error: "Failed to mark phase complete", details: error instanceof Error ? error.message : String(error) },
+      { error: "Failed to mark phase complete" },
       { status: 500 }
     );
   }

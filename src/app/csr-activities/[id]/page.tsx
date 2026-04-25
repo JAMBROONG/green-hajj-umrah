@@ -97,6 +97,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
   const [donationAmount, setDonationAmount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const [activeSlides, setActiveSlides] = useState<Record<string, number>>({})
+  const [csrFeePct, setCsrFeePct] = useState<number>(0)
   const { showError } = useDialog()
 
   // Fallback: handle Midtrans redirect-back to this page (redirect-based payment methods)
@@ -185,6 +186,14 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
     }
   }, [activityId])
 
+  // Load CSR admin fee for this user's tenant
+  useEffect(() => {
+    fetch('/api/service-setting/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(s => { if (s) setCsrFeePct(s.csr_admin_fee_pct ?? 0) })
+      .catch(() => {})
+  }, [])
+
   const handleDonate = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -194,8 +203,8 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
     }
 
     const amount = parseFloat(donationAmount)
-    if (amount < 1) {
-      showError('Minimal donasi adalah Rp 1')
+    if (amount < 1000) {
+      showError('Minimal donasi adalah Rp 1.000')
       return
     }
     if (amount > 5000000) {
@@ -562,7 +571,7 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                   <label className="block text-xs font-semibold text-textDark mb-1">
                     Jumlah Donasi
                   </label>
-                  <p className="text-[11px] text-textMuted mb-2">Min Rp 1 · Maks Rp 5.000.000</p>
+                  <p className="text-[11px] text-textMuted mb-2">Min Rp 1.000 · Maks Rp 5.000.000</p>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted text-sm">Rp</span>
                     <input
@@ -571,7 +580,8 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                       value={donationAmount ? Number(donationAmount).toLocaleString('id-ID') : ''}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/\D/g, '')
-                        if (raw === '' || parseInt(raw) <= 5000000) {
+                        const num = parseInt(raw)
+                        if (raw === '' || num <= 5000000) {
                           setDonationAmount(raw)
                         }
                       }}
@@ -597,6 +607,32 @@ export default function CSRActivityDetailPage({ params }: { params: Promise<{ id
                       </button>
                     ))}
                   </div>
+
+                  {/* Live Breakdown */}
+                  {donationAmount && Number(donationAmount) > 0 && (() => {
+                    const base = Number(donationAmount)
+                    const fee  = Math.round(base * csrFeePct / 100)
+                    const total = base + fee
+                    return (
+                      <div className="mt-3 bg-gray-50 border border-border rounded-lg p-3 space-y-1.5 text-xs">
+                        <p className="font-semibold text-textDark mb-2">Rincian Pembayaran</p>
+                        <div className="flex justify-between text-textMuted">
+                          <span>Donasi</span>
+                          <span>{formatRupiah(base)}</span>
+                        </div>
+                        {csrFeePct > 0 && (
+                          <div className="flex justify-between text-textMuted">
+                            <span>Biaya Layanan ({csrFeePct.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%)</span>
+                            <span>{formatRupiah(fee)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-bold text-textDark pt-1 border-t border-border">
+                          <span>Total</span>
+                          <span className="text-primary">{formatRupiah(total)}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
 
               {/* Submit Button */}

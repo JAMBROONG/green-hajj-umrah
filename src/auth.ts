@@ -133,6 +133,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.tenant = user.tenant
         // @ts-ignore - Add role to token for middleware check
         token.role = 'jemaah'
+        // Stamp issued-at supaya hybrid DB check tahu kapan token diterbitkan.
+        token.iat = Math.floor(Date.now() / 1000)
       }
       return token
     },
@@ -142,6 +144,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.tenantId = token.tenantId
         session.user.tenant = token.tenant
       }
+
+      // Hybrid revocation check: walaupun JWT belum expire, kalau tenant
+      // user di-nonaktifkan oleh admin di tengah session, langsung drop
+      // session. Ini penting untuk skenario "admin nonaktifkan tenant
+      // → user yang sedang login harus langsung kehilangan akses".
+      //
+      // DB query cuma sekali per request session — overhead kecil, dan
+      // session() callback memang dipanggil setiap auth() dipakai server
+      // side / setiap useSession refresh client side.
+      if (token.id) {
+        try {
+          const profile = await prisma.profiles.findUnique({
+            where: { id: token.id as string },
+            select: {
+              role: true,
+              tenant: { select: { is_active: true } },
+            },
+          })
+
+          if (!profile || profile.role !== 'jemaah' || !profile.tenant?.is_active) {
+            // Return null/empty session → NextAuth treat as logged-out.
+            return { ...session, user: undefined as unknown as typeof session.user }
+          }
+        } catch {
+          // DB unreachable — degrade gracefully, masih return session asli.
+          // Jangan auto-logout user massal kalau DB blip.
+        }
+      }
+
       return session
     },
   },
@@ -150,6 +181,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    // 2 hari (turun dari 7) — kompromi antara UX (jangan logout terlalu
+    // sering) dan window of compromise (kalau token leak, max 2 hari sebelum
+    // self-expire). Hybrid DB check di session() callback nge-cover skenario
+    // tenant deactivate / role change yang harus efek instant.
+    maxAge: 2 * 24 * 60 * 60,
+    // Update token iat tiap kali session dipakai → activity-based renewal.
+    updateAge: 6 * 60 * 60, // refresh tiap 6 jam aktivitas
   },
 })

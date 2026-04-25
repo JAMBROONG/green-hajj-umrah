@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { isValidMetadataField, mergeAndSanitizeMetadata } from '@/lib/profile-metadata';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -20,6 +21,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Validate phone format (digit, +, -, space, dll, 6-20 char) sebelum query
+    if (!isValidMetadataField('phone', phone)) {
+      return NextResponse.json(
+        { error: 'Format nomor HP tidak valid (6-20 digit, hanya angka & + - ( ) spasi).' },
+        { status: 400 },
+      );
+    }
+
     // Update profile metadata with phone number
     const profile = await prisma.profiles.findUnique({
       where: { id: session.user.id },
@@ -29,13 +38,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
+    // mergeAndSanitizeMetadata strip key non-allowlist + validate per-field
+    // sebelum simpan. Mencegah injection key tidak dikenal ke kolom JSON.
+    const newMetadata = mergeAndSanitizeMetadata(profile.metadata, { phone });
+
     const updatedProfile = await prisma.profiles.update({
       where: { id: session.user.id },
       data: {
-        metadata: {
-          ...(profile.metadata as Record<string, unknown>),
-          phone: phone.trim(),
-        },
+        metadata: newMetadata,
       },
       include: {
         tenant: {

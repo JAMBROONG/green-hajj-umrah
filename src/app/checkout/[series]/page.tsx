@@ -1,13 +1,14 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBar from '@/components/StatusBar';
 import BottomNav from '@/components/BottomNav';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useUserCarbonStats } from '@/hooks/useUserCarbonStats';
 import { formatCurrency, formatEmission } from '@/lib/utils';
-import { IoArrowBack, IoLocationOutline, IoChevronForward, IoRemoveCircle, IoAddCircle } from 'react-icons/io5';
+import { IoArrowBack, IoLocationOutline, IoChevronForward, IoRemoveCircle, IoAddCircle, IoCheckmarkCircle } from 'react-icons/io5';
 
 interface CarbonProduct {
   id: string;
@@ -62,7 +63,14 @@ export default function CheckoutSeriesPage({
   const resolvedParams = use(params);
   const router = useRouter();
   const { totalEmission } = useHajiJourney();
-  
+  // Net emission = total - kredit yang sudah dibeli (SAMA dengan logic di /profile)
+  const {
+    netEmissionKg,
+    totalEmittedKg,
+    totalOffsetKg,
+    isNeutral,
+  } = useUserCarbonStats();
+
   const [standard, setStandard] = useState<CarbonProductStandard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +79,10 @@ export default function CheckoutSeriesPage({
   const [adminFeePct, setAdminFeePct] = useState<number>(0);
   const [tenantFeePct, setTenantFeePct] = useState<number>(0);
   const [ppnPct] = useState<number>(11);
+  // Flag supaya auto-set jumlah unit dari kewajiban offset jemaah hanya jalan
+  // SEKALI saat mount, bukan setiap kali units kebetulan == 1. Tanpa ini,
+  // klik minus dari 2 ke 1 langsung di-bouncing balik ke calculatedUnits.
+  const unitsAutoSetRef = useRef(false);
 
   // Detect when Midtrans redirects back
   useEffect(() => {
@@ -85,13 +97,20 @@ export default function CheckoutSeriesPage({
     }
   }, []);
 
-  // Set units when total emission is ready
+  // Set units once when net emission siap — pakai SISA emisi (setelah dikurangi
+  // kredit yang sudah dibeli), bukan total emisi mentah. Logic match dengan
+  // /profile yang tampilkan "Net Carbon Balance".
+  // Kalau user sudah carbon-netral (offset >= emisi), default = 1 (minimum).
   useEffect(() => {
-    const calculatedUnits = Math.ceil(totalEmission / 1000);
-    if (calculatedUnits > 0 && units === 1) {
-      setUnits(calculatedUnits);
-    }
-  }, [totalEmission, units]);
+    if (unitsAutoSetRef.current) return;
+    // Tunggu data /api/user/stats siap (totalEmittedKg ada angka atau user belum punya trip)
+    // Pakai netEmissionKg sebagai sumber utama; fallback ke totalEmission lokal.
+    const netUnits = Math.ceil(netEmissionKg / 1000);
+    const fallbackUnits = Math.ceil(totalEmission / 1000);
+    const recommended = Math.max(1, netUnits || fallbackUnits || 1);
+    setUnits(recommended);
+    unitsAutoSetRef.current = true;
+  }, [netEmissionKg, totalEmission]);
 
   // Load Midtrans Snap JavaScript
   useEffect(() => {
@@ -253,16 +272,25 @@ export default function CheckoutSeriesPage({
     );
   }
 
-  const unitPrice = typeof standard.price === 'string' ? parseFloat(standard.price) : standard.price;
+  // Pakai integer rupiah (round dari Decimal DB) supaya matematika checkout
+  // konsisten dengan backend Midtrans payload — sum item_details harus tepat
+  // sama dengan gross_amount, kalau pakai pecahan bisa beda 1-2 rupiah.
+  const unitPriceRaw = typeof standard.price === 'string' ? parseFloat(standard.price) : standard.price;
+  const unitPrice = Math.round(unitPriceRaw);
   const subtotal  = unitPrice * units;
-  const adminFee  = subtotal * (adminFeePct / 100);
-  const tenantFee = subtotal * (tenantFeePct / 100);
-  const ppnBase   = subtotal + adminFee + tenantFee;
-  const ppn       = ppnBase * (ppnPct / 100);
+  const adminFee  = Math.round(subtotal * (adminFeePct / 100));
+  const tenantFee = Math.round(subtotal * (tenantFeePct / 100));
+  const ppn       = Math.round((subtotal + adminFee + tenantFee) * (ppnPct / 100));
   const totalPrice = subtotal + adminFee + tenantFee + ppn;
-  const totalEmissionTon = formatEmission(totalEmission, 'ton');
+  // Format ton untuk display — pakai net (sisa kewajiban) kalau sudah ada
+  // data stats user, fallback ke totalEmission lokal.
+  const netTon          = (netEmissionKg / 1000).toFixed(2);
+  const totalEmittedTon = (totalEmittedKg / 1000).toFixed(2);
+  const totalOffsetTon  = (totalOffsetKg / 1000).toFixed(2);
+  const fallbackTotalTon = formatEmission(totalEmission, 'ton');
 
-  // Midtrans limit: maksimal Rp 5.000.000 per transaksi
+  // Midtrans limit: maksimal Rp 5.000.000 per transaksi.
+  // Hitung max units yang masih lulus = floor(5.000.000 / per-unit-price-with-fees).
   const MAX_TRANSACTION_IDR = 5_000_000;
   const totalMultiplier = (1 + adminFeePct / 100 + tenantFeePct / 100) * (1 + ppnPct / 100);
   const maxUnits = Math.max(1, Math.floor(MAX_TRANSACTION_IDR / (unitPrice * totalMultiplier)));
@@ -354,13 +382,33 @@ export default function CheckoutSeriesPage({
           )}
         </div>
 
+        {/* Status carbon balance — kalau sudah neutral, beri tahu user */}
+        {isNeutral && (
+          <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+            <IoCheckmarkCircle className="text-2xl text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-emerald-800">Anda Sudah Carbon Netral 🎉</p>
+              <p className="text-[11px] text-emerald-700 leading-relaxed mt-0.5">
+                Total kredit yang Anda beli ({totalOffsetTon} ton) sudah menutupi seluruh emisi perjalanan ({totalEmittedTon} ton).
+                Pembelian ini bersifat opsional — kontribusi tambahan untuk lingkungan.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Units selector */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex items-center justify-between mb-1">
             <div>
               <p className="text-sm font-semibold text-gray-900">Jumlah Unit</p>
               <p className="text-[10px] text-gray-500 mt-0.5">
-                Kewajiban offset Anda: {totalEmissionTon} tCO₂e · Maks {maxUnits} unit/transaksi
+                {isNeutral
+                  ? `Sisa offset: 0 tCO₂e · Maks ${maxUnits} unit/transaksi`
+                  : (totalEmittedKg > 0
+                      ? `Sisa offset: ${netTon} tCO₂e · Maks ${maxUnits} unit/transaksi`
+                      : `Estimasi: ${fallbackTotalTon} tCO₂e · Maks ${maxUnits} unit/transaksi`
+                    )
+                }
               </p>
             </div>
             <div className="flex items-center gap-2">

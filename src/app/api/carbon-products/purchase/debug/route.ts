@@ -1,23 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
+import { denyInProduction } from '@/lib/dev-guard'
 
 /**
  * Debug endpoint to view purchase details
  * POST /api/carbon-products/purchase/debug
+ *
+ * SECURITY:
+ *   - Diblokir total di production (return 404)
+ *   - Di dev/staging: wajib login + hanya boleh lihat purchase milik sendiri
+ *   - Tidak mengembalikan field sensitif config (merchant_id) walaupun lolos guard
  */
 export async function POST(request: NextRequest) {
+  const blocked = denyInProduction()
+  if (blocked) return blocked
+
   try {
-    // Skip auth for debugging
+    const session = await auth()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { purchaseId } = await request.json()
 
     if (!purchaseId) {
       return NextResponse.json({ error: 'Purchase ID required' }, { status: 400 })
     }
 
-    // Get purchase with all details
-    const purchase = await prisma.carbon_certificate_purchases.findUnique({
-      where: { id: purchaseId },
+    const userProfile = await prisma.profiles.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    })
+    if (!userProfile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Hanya boleh lihat purchase milik user yang sedang login.
+    const purchase = await prisma.carbon_certificate_purchases.findFirst({
+      where: { id: purchaseId, user_id: userProfile.id },
       include: {
         user: true,
         standard: true,
@@ -28,10 +49,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
     }
 
-    // Get Carbon Config
-    const carbonConfig = await prisma.carbonPaymentConfig.findFirst()
-
-    // Show all details
+    // Tidak ekspos config Midtrans (merchant_id) — info itu tidak diperlukan
+    // untuk debugging UI, dan kalau bocor bantu attacker recon.
     const debugInfo = {
       purchase: {
         id: purchase.id,
@@ -54,20 +73,11 @@ export async function POST(request: NextRequest) {
         email: purchase.user?.email,
         name: purchase.user?.full_name,
       },
-      carbonConfig: {
-        merchant_id: carbonConfig?.midtrans_merchant_id,
-        is_production: carbonConfig?.is_production,
-      },
     }
-
-    console.log('🔍 DEBUG INFO:', JSON.stringify(debugInfo, null, 2))
 
     return NextResponse.json(debugInfo)
   } catch (error) {
     console.error('❌ Debug error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
+import { devLog, devError } from '@/lib/safe-logger'
+import { generateOrderId } from '@/lib/order-id'
 
 // Helper to create Midtrans transaction via HTTP
 async function createMidtransTransaction(payload: Record<string, unknown>, serverKey: string, isProduction: boolean) {
@@ -10,8 +12,10 @@ async function createMidtransTransaction(payload: Record<string, unknown>, serve
 
   const auth = Buffer.from(`${serverKey}:`).toString('base64')
 
-  console.log('🔑 Midtrans Auth:', { serverKeyLength: serverKey?.length, apiUrl })
-  console.log('📤 Carbon Product Purchase Payload:', JSON.stringify(payload, null, 2))
+  // Log payload + Midtrans response HANYA di dev — production tidak boleh
+  // tercatat full body (PII + Midtrans key recon).
+  devLog('🔑 Midtrans Auth:', { apiUrl, serverKeyLength: serverKey?.length })
+  devLog('📤 Carbon Product Purchase Payload:', JSON.stringify(payload, null, 2))
 
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -25,14 +29,14 @@ async function createMidtransTransaction(payload: Record<string, unknown>, serve
 
   const data = await response.json()
 
-  console.log('✅ Midtrans Response:', {
+  devLog('✅ Midtrans Response:', {
     status: response.status,
-    token: data.token ? data.token.substring(0, 20) + '...' : 'MISSING',
+    hasToken: !!data.token,
     error: data.error_messages,
   })
 
   if (!response.ok) {
-    console.error('❌ Full Midtrans Error:', JSON.stringify(data, null, 2))
+    devError('❌ Full Midtrans Error:', JSON.stringify(data, null, 2))
     throw new Error(
       `Midtrans API error (${response.status}): ${data.error_messages?.join(', ') || response.statusText}`
     )
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    console.log('📥 Request body:', body)
+    devLog('📥 Request body:', body)
 
     const { standard_series, units } = body
 
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!standard) {
-      console.log('❌ Standard not found:', standard_series)
+      devLog('❌ Standard not found:', standard_series)
       return NextResponse.json({ error: 'Standard not found' }, { status: 404 })
     }
 
@@ -108,27 +112,53 @@ export async function POST(request: NextRequest) {
       : 0
     const PPN_RATE = 0.11
 
-    const unitPrice  = parseFloat(standard.price.toString())
-    const subtotal   = unitPrice * unitsNum
-    const adminFee   = subtotal * adminFeeRate
-    const tenantFee  = subtotal * tenantFeeRate
-    const ppn        = (subtotal + adminFee + tenantFee) * PPN_RATE
-    const totalAmount = Math.round(subtotal + adminFee + tenantFee + ppn)
+    // Hitung semua sebagai INTEGER rupiah supaya total Midtrans valid.
+    // Midtrans memvalidasi strict: gross_amount === Σ(item.price × item.quantity).
+    // Kalau pakai pembagian + Math.round, hasil bisa beda 1-2 rupiah dan reject.
+    const unitPriceInt = Math.round(parseFloat(standard.price.toString()))
+    const subtotal     = unitPriceInt * unitsNum                                    // exact int
+    const adminFee     = Math.round(subtotal * adminFeeRate)                        // exact int
+    const tenantFee    = Math.round(subtotal * tenantFeeRate)                       // exact int
+    const ppn          = Math.round((subtotal + adminFee + tenantFee) * PPN_RATE)   // exact int
+    const totalAmount  = subtotal + adminFee + tenantFee + ppn                      // exact int sum
 
-    // Midtrans membatasi transaksi pertransaksi maksimal Rp 5.000.000
+    // Midtrans membatasi transaksi maksimal Rp 5.000.000.
+    // Hitung max units yang masih muat ke 5jt — supaya error message kasih saran konkret.
     const MAX_TRANSACTION_IDR = 5_000_000
     if (totalAmount > MAX_TRANSACTION_IDR) {
+      const totalMultiplier = (1 + adminFeeRate + tenantFeeRate) * (1 + PPN_RATE)
+      const maxUnits = Math.max(1, Math.floor(MAX_TRANSACTION_IDR / (unitPriceInt * totalMultiplier)))
       return NextResponse.json(
         {
-          error: `Total transaksi (Rp ${totalAmount.toLocaleString('id-ID')}) melebihi batas maksimum Midtrans (Rp 5.000.000). Silakan kurangi jumlah unit.`,
+          error: `Total transaksi (Rp ${totalAmount.toLocaleString('id-ID')}) melebihi batas Midtrans Rp 5.000.000. Maksimal ${maxUnits} unit untuk standar ini.`,
+          maxUnits,
         },
         { status: 400 }
       )
     }
 
+    // Build item_details dengan multi-line: subtotal + admin + tenant + ppn.
+    // Setiap line punya quantity 1 (kecuali subtotal pakai unitsNum), jadi sum
+    // = (unitPriceInt × unitsNum) + adminFee + tenantFee + ppn = totalAmount.
+    type MidtransItem = { id: string; price: number; quantity: number; name: string; category: string }
+    const itemDetails: MidtransItem[] = [
+      {
+        id: standard.id,
+        price: unitPriceInt,
+        quantity: unitsNum,
+        name: `${standard.series} - ${unitsNum} tCO2e`,
+        category: 'Carbon Credits',
+      },
+    ]
+    // Hanya tambahkan baris fee/tax kalau > 0 supaya Snap UI tidak menampilkan
+    // "Rp 0" line yang membingungkan jemaah.
+    if (adminFee > 0)  itemDetails.push({ id: 'admin-fee',  price: adminFee,  quantity: 1, name: 'Biaya Admin',   category: 'Fee' })
+    if (tenantFee > 0) itemDetails.push({ id: 'tenant-fee', price: tenantFee, quantity: 1, name: 'Biaya Layanan', category: 'Fee' })
+    if (ppn > 0)       itemDetails.push({ id: 'ppn',        price: ppn,       quantity: 1, name: 'PPN 11%',       category: 'Tax' })
+
     const transactionPayload = {
       transaction_details: {
-        order_id: `CARBON${Date.now()}`,
+        order_id: generateOrderId('CARBON'),
         gross_amount: totalAmount,
       },
       customer_details: {
@@ -137,15 +167,7 @@ export async function POST(request: NextRequest) {
         email: userProfile.email,
         phone: (userProfile.metadata as Record<string, string>)?.phone || '',
       },
-      item_details: [
-        {
-          id: standard.id,
-          price: Math.round(totalAmount / unitsNum),
-          quantity: unitsNum,
-          name: `${standard.series} - ${unitsNum} tCO2e`,
-          category: 'Carbon Credits',
-        },
-      ],
+      item_details: itemDetails,
       custom_field1: `standard:${standard_series}`,
       custom_field2: `user:${userProfile.id}`,
       finish_redirect_url: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin}/api/carbon-products/purchase/handle-redirect`,
@@ -167,19 +189,19 @@ export async function POST(request: NextRequest) {
           snap_url: transaction.redirect_url,
           order_id: transactionPayload.transaction_details.order_id,
           breakdown: {
-            subtotal: Math.round(subtotal),
-            admin_fee: Math.round(adminFee),
-            admin_fee_pct: Number((adminFeeRate * 100).toFixed(2)),
-            tenant_fee: Math.round(tenantFee),
+            subtotal,        // exact integer
+            admin_fee:  adminFee,
+            admin_fee_pct:  Number((adminFeeRate * 100).toFixed(2)),
+            tenant_fee: tenantFee,
             tenant_fee_pct: Number((tenantFeeRate * 100).toFixed(2)),
-            ppn: Math.round(ppn),
+            ppn,
             ppn_pct: 11,
           },
         },
       },
     })
 
-    console.log('✅ Purchase record created:', purchase.id)
+    devLog('✅ Purchase record created:', purchase.id)
 
     return NextResponse.json({
       id: purchase.id,

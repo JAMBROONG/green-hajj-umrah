@@ -8,8 +8,18 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tenantSlug = searchParams.get('tenant') || 'default';
 
+  // Endpoint ini publik (dipakai sebelum login untuk render branding di
+  // halaman signin). Karena itu, hanya field branding & display yang
+  // boleh dikembalikan. JANGAN ekspos `settings` (potensi config rahasia)
+  // atau `is_active`/`created_at` (info recon).
   const tenant = await prisma.tenants.findUnique({
-    where: { slug: tenantSlug }
+    where: { slug: tenantSlug },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      branding: true,
+    },
   });
 
   if (!tenant) {

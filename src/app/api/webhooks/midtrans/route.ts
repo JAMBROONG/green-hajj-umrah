@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { devLog, maskSensitive } from '@/lib/safe-logger'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Midtrans = require('midtrans-client')
 
@@ -14,12 +15,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    console.log('Midtrans webhook received:', body)
+    // Body lengkap (order_id, transaction_id, gross_amount, fraud_status, dll)
+    // hanya boleh tampil di dev. Production: log fingerprint saja.
+    devLog('Midtrans webhook received:', body)
 
     // Verify the notification with Midtrans
     const transactionStatus = await snap.transaction.notification(body)
 
-    console.log('Transaction status:', transactionStatus)
+    devLog('Transaction status:', transactionStatus)
 
     const transactionToken = transactionStatus.order_id
     const paymentStatus = transactionStatus.transaction_status
@@ -30,7 +33,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (!participation) {
-      console.warn('Participation record not found for token:', transactionToken)
+      // Production: log fingerprint masked, jangan masukkan token full ke
+      // log aggregator publik.
+      console.warn('[midtrans-webhook] Participation not found:', maskSensitive(transactionToken, 4, 4))
       return NextResponse.json(
         { error: 'Participation not found' },
         { status: 404 }
@@ -41,20 +46,14 @@ export async function POST(request: NextRequest) {
     let newStatus = participation.status
 
     if (paymentStatus === 'capture' || paymentStatus === 'settlement') {
-      // Payment successful
       newStatus = 'confirmed'
-      console.log('Payment confirmed for participation:', participation.id)
     } else if (paymentStatus === 'pending') {
-      // Payment pending
       newStatus = 'pending'
     } else if (paymentStatus === 'deny' || paymentStatus === 'cancel' || paymentStatus === 'expire') {
-      // Payment failed
       newStatus = 'cancelled'
-      console.log('Payment failed for participation:', participation.id)
     }
 
-    // Update participation record
-    const updatedParticipation = await prisma.csr_activity_participations.update({
+    await prisma.csr_activity_participations.update({
       where: { id: participation.id },
       data: {
         status: newStatus,
@@ -62,7 +61,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log('Updated participation:', updatedParticipation)
+    devLog('[midtrans-webhook] participation updated:', { id: participation.id, status: newStatus })
 
     return NextResponse.json({
       success: true,
@@ -70,9 +69,10 @@ export async function POST(request: NextRequest) {
       status: newStatus,
     })
   } catch (error) {
-    console.error('Error processing Midtrans webhook:', error)
+    console.error('[midtrans-webhook] error processing webhook')
+    devLog('Webhook error detail:', error)
     return NextResponse.json(
-      { error: 'Failed to process webhook', details: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to process webhook' },
       { status: 500 }
     )
   }

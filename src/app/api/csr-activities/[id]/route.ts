@@ -55,7 +55,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching CSR activity:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch activity', details: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to fetch activity' },
       { status: 500 }
     )
   }

@@ -29,9 +29,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get purchase record
-    const purchase = await prisma.carbon_certificate_purchases.findUnique({
-      where: { id: purchaseId },
+    // Ownership filter: user yang login HARUS pemilik purchase. Tanpa filter ini,
+    // user A yang login bisa verify purchase user B → leak detail purchase
+    // (status, total_price, metadata, transaction_id) plus trigger Midtrans
+    // status API call atas nama user lain.
+    const userProfile = await prisma.profiles.findUnique({
+      where: { email: session.user.email! },
+      select: { id: true },
+    })
+    if (!userProfile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Get purchase record (filter by user_id)
+    const purchase = await prisma.carbon_certificate_purchases.findFirst({
+      where: { id: purchaseId, user_id: userProfile.id },
       include: { user: true, standard: true },
     })
 

@@ -4,7 +4,7 @@ import { use, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
-import { IoArrowBack, IoShareSocialOutline, IoDownloadOutline, IoOpenOutline, IoLocationOutline, IoCalendarOutline } from 'react-icons/io5'
+import { IoArrowBack, IoShareSocialOutline, IoDownloadOutline, IoOpenOutline, IoLocationOutline, IoCalendarOutline, IoCheckmarkCircle } from 'react-icons/io5'
 import { MdVolunteerActivism } from 'react-icons/md'
 import { FaLeaf, FaRecycle, FaBolt, FaTint } from 'react-icons/fa'
 import { getImageUrl } from '@/lib/image-utils'
@@ -45,6 +45,12 @@ interface CSRDonation {
   thank_you_certificate_url: string | null
   participation_certificate_url: string | null
   snap_token: string | null
+  breakdown: {
+    donation: number
+    csr_admin_fee: number
+    csr_admin_fee_pct: number
+    total: number
+  } | null
 }
 
 const categoryLabels: Record<string, string> = {
@@ -190,6 +196,11 @@ export default function CSRDonationDetailPage({ params }: { params: Promise<{ id
   const [showCancelSheet, setShowCancelSheet] = useState(false)
   const [shouldPoll, setShouldPoll] = useState(false)
   const pollCountRef = useRef(0)
+  // Track status sebelumnya untuk detect transition pending → confirmed.
+  // Kalau berubah dari pending ke confirmed (entah via polling, sync global,
+  // atau visibility refetch), tampilkan modal sukses sekali.
+  const prevStatusRef = useRef<string | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   // Load Midtrans Snap script
   useEffect(() => {
@@ -258,6 +269,49 @@ export default function CSRDonationDetailPage({ params }: { params: Promise<{ id
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  // Listen ke event 'pending-payments-synced' dari <PendingPaymentSyncer> global.
+  // Saat global syncer detect ada update payment (mis. user balik ke tab dari
+  // m-banking, atau setelah throttle 30s), refetch data donasi ini supaya
+  // status terbaru reflect tanpa perlu reload.
+  useEffect(() => {
+    const handler = async () => {
+      try {
+        const data = await fetchDonation(true)
+        if (data) setDonation(data)
+      } catch { /* ignore */ }
+    }
+    window.addEventListener('pending-payments-synced', handler)
+    return () => window.removeEventListener('pending-payments-synced', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  // Detect transition pending → confirmed/completed → trigger success modal.
+  // Inisialisasi prevStatusRef saat data pertama load — kalau awalnya sudah
+  // confirmed (user revisit halaman), tidak perlu spam modal. Hanya transition
+  // murni dari pending ke confirmed yang trigger modal.
+  useEffect(() => {
+    if (!donation) return
+    const prev = prevStatusRef.current
+    const curr = donation.status
+
+    // Inisialisasi snapshot status awal — modal tidak fire saat first load
+    if (prev === null) {
+      prevStatusRef.current = curr
+      return
+    }
+
+    if (prev !== curr) {
+      const wasPending = prev === 'pending'
+      const isNowConfirmed = curr === 'confirmed' || curr === 'completed'
+      if (wasPending && isNowConfirmed) {
+        setShowSuccessModal(true)
+        // Stop polling jika masih jalan — sudah confirmed
+        setShouldPoll(false)
+      }
+      prevStatusRef.current = curr
+    }
+  }, [donation])
 
   // Polling after paid=1
   useEffect(() => {
@@ -538,6 +592,28 @@ export default function CSRDonationDetailPage({ params }: { params: Promise<{ id
                   <p className="text-[11px] font-mono text-gray-500 break-all">{donation.id}</p>
                 </div>
 
+                {/* Rincian Biaya Breakdown */}
+                {donation.breakdown && (
+                  <div className="px-4 py-3 bg-gray-50">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Rincian Biaya</p>
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between text-gray-600">
+                        <span>Donasi</span>
+                        <span>Rp {donation.breakdown.donation.toLocaleString('id-ID')}</span>
+                      </div>
+                      {donation.breakdown.csr_admin_fee > 0 && (
+                        <div className="flex justify-between text-gray-600">
+                          <span>Biaya Layanan ({donation.breakdown.csr_admin_fee_pct.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%)</span>
+                          <span>Rp {donation.breakdown.csr_admin_fee.toLocaleString('id-ID')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-200">
+                        <span>Total</span>
+                        <span className="text-primary">Rp {donation.breakdown.total.toLocaleString('id-ID')}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -573,6 +649,63 @@ export default function CSRDonationDetailPage({ params }: { params: Promise<{ id
 
         </div>
       </div>
+
+      {/* ── Success modal: pembayaran berhasil terdeteksi ──────────────────
+          Tampil saat status berubah pending → confirmed (entah via polling
+          internal halaman atau global PendingPaymentSyncer). Modal ini cuma
+          sekali — kalau user dismiss atau auto-close, tidak muncul lagi
+          kecuali ada transition pending → confirmed lagi (yang dalam praktek
+          tidak terjadi). */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-5 pointer-events-none">
+          <div
+            className="absolute inset-0 bg-black/50 pointer-events-auto"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="relative w-full max-w-sm bg-white rounded-3xl px-6 pt-8 pb-6 shadow-2xl pointer-events-auto"
+            style={{ animation: 'success-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+          >
+            {/* Animated checkmark */}
+            <div className="flex justify-center mb-4">
+              <div
+                className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-100 flex items-center justify-center"
+                style={{ animation: 'check-bounce 480ms ease-out' }}
+              >
+                <IoCheckmarkCircle className="text-6xl text-emerald-500" />
+              </div>
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="text-lg font-bold text-gray-900">Pembayaran Berhasil!</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Donasi Anda telah dikonfirmasi. Sertifikat partisipasi sedang dibuat dan akan tersedia di halaman ini sebentar lagi.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full mt-5 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition active:scale-95"
+            >
+              Lihat Detail Donasi
+            </button>
+          </div>
+
+          {/* Inline keyframes — biar tidak konflik dengan utility lain */}
+          <style jsx>{`
+            @keyframes success-pop {
+              0%   { transform: scale(0.85); opacity: 0; }
+              60%  { transform: scale(1.04); opacity: 1; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes check-bounce {
+              0%   { transform: scale(0); }
+              60%  { transform: scale(1.15); }
+              100% { transform: scale(1); }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* Cancel confirmation bottom sheet */}
       {showCancelSheet && (

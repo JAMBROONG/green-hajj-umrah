@@ -60,40 +60,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get purchase record
-    const purchase = await prisma.carbon_certificate_purchases.findUnique({
-      where: { id: purchaseId },
-      include: { standard: true },
-    })
-
-    if (!purchase) {
-      console.error('❌ [Resume Carbon] Purchase not found:', purchaseId)
-      return NextResponse.json(
-        { error: 'Purchase not found' },
-        { status: 404 }
-      )
-    }
-
-    // Only allow status pending or failed
-    if (!['pending', 'failed'].includes(purchase.status)) {
-      console.log('ℹ️ [Resume Carbon] Purchase already processed:', purchase.status)
-      return NextResponse.json({
-        status: purchase.status,
-        message: 'Purchase already processed',
-      })
-    }
-
-    // Get Carbon Payment Config
-    const carbonConfig = await prisma.carbonPaymentConfig.findFirst()
-    
-    if (!carbonConfig || !carbonConfig.enabled) {
-      return NextResponse.json(
-        { error: 'Carbon payment configuration not available' },
-        { status: 500 }
-      )
-    }
-
-    // Get user profile
+    // Get user profile dulu — kita perlu user_id untuk filter ownership
+    // pada query purchase di bawah (mencegah IDOR resume purchase milik
+    // user lain).
     const userProfile = await prisma.profiles.findUnique({
       where: { email: session.user.email! },
     })
@@ -102,6 +71,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'User profile not found' },
         { status: 404 }
+      )
+    }
+
+    // Cari purchase HARUS milik user yang sedang login (filter user_id).
+    const purchase = await prisma.carbon_certificate_purchases.findFirst({
+      where: { id: purchaseId, user_id: userProfile.id },
+      include: { standard: true },
+    })
+
+    if (!purchase) {
+      return NextResponse.json(
+        { error: 'Purchase not found' },
+        { status: 404 }
+      )
+    }
+
+    // Only allow status pending or failed
+    if (!['pending', 'failed'].includes(purchase.status)) {
+      return NextResponse.json({
+        status: purchase.status,
+        message: 'Purchase already processed',
+      })
+    }
+
+    // Get Carbon Payment Config
+    const carbonConfig = await prisma.carbonPaymentConfig.findFirst()
+
+    if (!carbonConfig || !carbonConfig.enabled) {
+      return NextResponse.json(
+        { error: 'Carbon payment configuration not available' },
+        { status: 500 }
       )
     }
 
@@ -179,9 +179,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ [Resume Carbon] Error:', error)
-    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: 'Failed to resume payment', details: errorMessage },
+      { error: 'Failed to resume payment' },
       { status: 500 }
     )
   }

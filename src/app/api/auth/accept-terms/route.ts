@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { buildTermsCookie } from '@/lib/signed-cookie';
+import { mergeAndSanitizeMetadata } from '@/lib/profile-metadata';
 
 export const runtime = 'nodejs';
 
@@ -25,27 +27,31 @@ export async function POST() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const currentMetadata = (profile.metadata as Record<string, unknown>) ?? {};
+    // Save acceptance timestamp to metadata (DB = source of truth).
+    // mergeAndSanitizeMetadata: strip key tidak dikenal + validate per field.
+    const newMetadata = mergeAndSanitizeMetadata(profile.metadata, {
+      terms_accepted_at: now,
+      terms_version: '1.0',
+    });
 
-    // Save acceptance timestamp to metadata
     await prisma.profiles.update({
       where: { id: userId },
       data: {
-        metadata: {
-          ...currentMetadata,
-          terms_accepted_at: now,
-          terms_version: '1.0',
-        },
+        metadata: newMetadata,
       },
     });
 
-    // Set a persistent cookie so middleware can check without querying DB
+    // Set SIGNED cookie. Tanpa signature, user bisa set
+    // `terms_accepted=1` manual di browser dan bypass agreement.
+    // Cookie sekarang: <userId>.<timestamp>.<HMAC(userId+ts, AUTH_SECRET)>
+    // Middleware verify HMAC + cocokkan userId dengan token JWT.
+    const { value, maxAge } = buildTermsCookie(userId);
     const response = NextResponse.json({ success: true });
-    response.cookies.set('terms_accepted', '1', {
-      httpOnly: true, // not readable via JS — checked server-side in middleware only
+    response.cookies.set('terms_accepted', value, {
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 365 * 24 * 60 * 60, // 1 year
+      maxAge,
       path: '/',
     });
 

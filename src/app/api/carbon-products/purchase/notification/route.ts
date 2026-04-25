@@ -88,7 +88,10 @@ export async function POST(request: NextRequest) {
               new URL(request.url).origin
             ).replace(/\/$/, '')
 
-            const certificatesDir = path.join(process.cwd(), 'public', 'certificates')
+            // Tulis ke storage/certificates/ (di luar public/) supaya tidak
+            // bentrok dengan dynamic route /certificates/[id], lalu serve via
+            // /api/cert-files/{filename} yang sudah ada.
+            const certificatesDir = path.join(process.cwd(), 'storage', 'certificates')
             if (!fs.existsSync(certificatesDir)) {
               fs.mkdirSync(certificatesDir, { recursive: true })
             }
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
             const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`
             fs.writeFileSync(path.join(certificatesDir, filename), certBuffer)
 
-            const certUrl = `${appBaseUrl}/api/certificate-file/${filename}`
+            const certUrl = `${appBaseUrl}/api/cert-files/${filename}`
             await prisma.carbon_certificate_purchases.update({
               where: { id: purchase.id },
               data: {

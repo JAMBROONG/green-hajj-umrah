@@ -43,6 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'Donation not found' }, { status: 404 })
     }
 
+    const meta = donation.metadata as any
     return NextResponse.json({
       id: donation.id,
       csr_activity_id: donation.csr_activity_id,
@@ -59,6 +60,7 @@ export async function GET(
       thank_you_certificate_url: donation.thank_you_certificate_url,
       participation_certificate_url: donation.participation_certificate_url,
       snap_token: donation.status === 'pending' ? donation.transaction_reference : null,
+      breakdown: meta?.breakdown || null,
     })
   } catch (error) {
     console.error('Error fetching CSR donation:', error)

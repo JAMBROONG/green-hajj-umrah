@@ -241,12 +241,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to verify donation', 
-        details: errorMessage 
+        error: 'Failed to verify donation',
       },
       { status: 500 }
     )

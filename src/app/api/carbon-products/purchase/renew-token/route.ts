@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
+import { generateOrderId } from '@/lib/order-id'
 
 /**
  * POST /api/carbon-products/purchase/renew-token
@@ -62,8 +63,9 @@ export async function POST(request: NextRequest) {
     const units = purchase.units ?? 1
     const totalAmount = Math.round(parseFloat(purchase.total_price.toString()))
 
-    // New order_id — must be unique in Midtrans
-    const newOrderId = `CARBON${Date.now()}`
+    // New order_id — must be unique in Midtrans. Pakai random suffix supaya
+    // tidak collide saat dua user renew di milisecond yang sama.
+    const newOrderId = generateOrderId('CARBON')
 
     const transactionPayload = {
       transaction_details: {

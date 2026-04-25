@@ -1,15 +1,34 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { denyInProduction } from '@/lib/dev-guard';
 
+/**
+ * POST /api/hajj-periods/seed
+ *
+ * SECURITY:
+ *   - Diblokir di production (404). Seed hanya untuk fresh-install dev.
+ *   - Di dev: tetap require login agar tidak dipanggil bot/scanner anonim.
+ *   - Operasi idempotent: skip kalau period dengan year yang sama sudah ada.
+ *   - Response error tidak lagi membawa stack trace (mitigasi VA-016).
+ */
 export async function POST() {
+  const blocked = denyInProduction();
+  if (blocked) return blocked;
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const hajjPeriods = [
       {
         year: 2026,
         start_date: new Date('2026-05-24'),
         end_date: new Date('2026-05-29'),
-        registration_open_date: new Date('2026-03-24'), // 2 months before
-        registration_close_date: new Date('2026-06-29'), // 1 month after
+        registration_open_date: new Date('2026-03-24'),
+        registration_close_date: new Date('2026-06-29'),
         is_active: true
       },
       {
@@ -55,13 +74,10 @@ export async function POST() {
 
   } catch (error) {
     console.error('Error seeding hajj periods:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Failed to seed hajj periods',
-        details: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

@@ -50,17 +50,9 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
     console.error('❌ [API] Error fetching emission factors:', error)
-    console.error('❌ [API] Error message:', errorMessage)
-    console.error('❌ [API] Error stack:', error instanceof Error ? error.stack : 'N/A')
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch emission factors',
-        details: errorMessage,
-        timestamp: new Date().toISOString(),
-      },
+      { error: 'Failed to fetch emission factors' },
       { status: 500 }
     )
   }

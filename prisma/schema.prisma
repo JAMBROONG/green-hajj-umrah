@@ -257,6 +257,7 @@ model csr_activity_participations {
   thank_you_certificate_url     String?
   participation_certificate_url String?
   notes                         String?
+  metadata                      Json     @default("{}")
   created_at                    DateTime @default(now())
   updated_at                    DateTime @updatedAt
 
@@ -390,8 +391,9 @@ model carbon_product_standard_relations {
 model service_setting {
   id             String   @id @default(uuid())
   tenant_id      String   @unique
-  idx_admin_fee  Decimal?
-  idx_tenant_fee Decimal?
+  idx_admin_fee  Decimal  @default(0)
+  idx_tenant_fee Decimal  @default(0)
+  csr_admin_fee  Decimal  @default(0)
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 

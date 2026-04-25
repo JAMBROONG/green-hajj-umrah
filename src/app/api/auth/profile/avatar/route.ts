@@ -1,6 +1,8 @@
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { validateAvatarUrl } from '@/lib/url-safety';
+import { mergeAndSanitizeMetadata } from '@/lib/profile-metadata';
 
 export const runtime = 'nodejs';
 
@@ -15,6 +17,18 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { avatarUrl } = body;
 
+    // Validasi SSRF: avatarUrl di-fetch oleh server saat generate sertifikat,
+    // jadi URL yang menunjuk private IP / cloud metadata bisa jadi serangan.
+    // validateAvatarUrl mengizinkan: data: URI, relative path, dan http(s)
+    // ke host non-private. Kosong/null = hapus avatar (boleh).
+    const check = validateAvatarUrl(avatarUrl);
+    if (!check.ok) {
+      return NextResponse.json(
+        { error: check.reason || 'avatarUrl tidak valid' },
+        { status: 400 },
+      );
+    }
+
     const user = await prisma.profiles.findUnique({
       where: { id: session.user.id },
       select: { metadata: true }
@@ -24,13 +38,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    const newMetadata = typeof user.metadata === 'object' && user.metadata !== null 
-      ? { ...user.metadata } 
-      : {};
-    
-    (newMetadata as any).avatar_url = avatarUrl;
+    // Sanitize merge: drop key tidak ada di allowlist + validate avatar_url.
+    // Walaupun sudah di-validate via validateAvatarUrl di atas, fungsi ini
+    // juga membersihkan key legacy yang mungkin tercemar sebelum patch.
+    const newMetadata = mergeAndSanitizeMetadata(user.metadata, {
+      avatar_url: avatarUrl ?? null,
+    });
 
-    const updatedProfile = await prisma.profiles.update({
+    await prisma.profiles.update({
       where: { id: session.user.id },
       data: {
         metadata: newMetadata,
@@ -39,7 +54,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      avatarUrl
+      avatarUrl: avatarUrl ?? null,
     });
   } catch (error) {
     console.error('Error updating avatar:', error);

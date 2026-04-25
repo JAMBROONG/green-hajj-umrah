@@ -116,6 +116,18 @@ function ProfilePageInner() {
     }
   }, [status])
 
+  // Re-fetch user data saat global PendingPaymentSyncer detect ada update.
+  // Event di-dispatch oleh <PendingPaymentSyncer /> di Providers setelah
+  // Midtrans status query mengkonfirmasi pembayaran (status: pending → confirmed).
+  useEffect(() => {
+    const handler = () => {
+      console.log('[Profile] pending-payments-synced — refreshing data')
+      fetchUserData()
+    }
+    window.addEventListener('pending-payments-synced', handler)
+    return () => window.removeEventListener('pending-payments-synced', handler)
+  }, [])
+
   // Load Midtrans Snap script for payment popup
   useEffect(() => {
     const loadMidtrans = async () => {

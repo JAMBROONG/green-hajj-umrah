@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 import { generateThankYouCertificate } from '@/lib/certificate-generator'
+import { generateCSRCertificate } from '@/lib/csr-certificate-generator'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -170,15 +171,137 @@ export async function POST(request: Request) {
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // 2) CSR activity participations — disabled
-    //    CSR participation schema belum punya field metadata/order_id,
-    //    jadi ga bisa query status ke Midtrans by order_id.
-    //    Sync dilakukan via redirect handler & verify endpoint aja.
+    // 2) CSR activity participations — re-enabled.
+    //    Schema sudah punya `metadata.order_id` (disimpan saat create di
+    //    /api/csr-activities/participate), jadi bisa query Midtrans status API.
+    //    Flow sama dengan carbon: query status → update DB → generate cert
+    //    pakai tenant template. Payment config: tenant-specific dulu, fallback
+    //    ke global carbonPaymentConfig (karena beberapa tenant memakai merchant
+    //    admin untuk CSR).
     // ─────────────────────────────────────────────────────────────────
+    const pendingCsr = await prisma.csr_activity_participations.findMany({
+      where: { user_id: userProfile.id, status: 'pending' },
+      include: {
+        user: true,
+        csr_activity: { include: { tenant: true } },
+      },
+    })
+
+    let csrScanned = 0
+
+    for (const donation of pendingCsr) {
+      csrScanned++
+
+      const meta = (donation.metadata as Record<string, unknown>) || {}
+      const orderId = meta.order_id as string | undefined
+      if (!orderId) continue // record lama tanpa order_id — tidak bisa di-sync
+
+      // Resolve payment config untuk tenant activity ini
+      const activityTenantId = donation.csr_activity?.tenant_id
+      let serverKey: string | null = null
+      let isProduction = false
+
+      if (activityTenantId) {
+        const tenantConfig = await prisma.tenantPaymentConfig.findUnique({
+          where: { tenant_id: activityTenantId },
+        })
+        if (tenantConfig?.enabled && tenantConfig.midtrans_server_key) {
+          serverKey = tenantConfig.midtrans_server_key
+          isProduction = tenantConfig.is_production ?? false
+        }
+      }
+      if (!serverKey && carbonConfig) {
+        serverKey = carbonConfig.midtrans_server_key
+        isProduction = carbonConfig.is_production
+      }
+      if (!serverKey) continue
+
+      const statusData = await queryMidtrans(orderId, serverKey, isProduction)
+      if (!statusData) continue
+
+      const mappedStatus = mapMidtransStatus(statusData.transaction_status)
+      if (mappedStatus === 'pending') continue
+
+      // CSR pakai status 'confirmed' (bukan 'completed') untuk sukses, sesuai
+      // konvensi di verify/route.ts dan company filter scope.
+      const newStatus = mappedStatus === 'completed' ? 'confirmed' : 'cancelled'
+
+      await prisma.csr_activity_participations.update({
+        where: { id: donation.id },
+        data: {
+          status: newStatus,
+          payment_method: donation.payment_method || 'midtrans',
+          metadata: {
+            ...meta,
+            transaction_id: statusData.transaction_id,
+            verified_at: new Date().toISOString(),
+            verified_via: 'sync_pending',
+          },
+          updated_at: new Date(),
+        },
+      })
+      updated.push({ type: 'csr', id: donation.id, status: newStatus })
+
+      // Generate CSR certificate + bump total_donations_amount (sama dengan
+      // verify endpoint) — hanya untuk transaksi yang baru saja dikonfirmasi
+      // DAN belum punya sertifikat (prevent double-generate).
+      if (newStatus === 'confirmed' && !donation.thank_you_certificate_url && donation.csr_activity) {
+        try {
+          ensureCertsDir()
+          const donationDate = new Date(donation.created_at).toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+          const userMeta  = donation.user?.metadata as Record<string, unknown> | null
+          const avatarUrl = (userMeta?.avatar_url as string | undefined) ?? null
+
+          // Ambil donation amount murni (tanpa fee) dari breakdown — ini yang
+          // tampil di sertifikat. Kalau breakdown tidak ada, fallback ke
+          // donation.amount (gross).
+          const breakdown = (meta.breakdown as Record<string, unknown>) || {}
+          const displayAmount = typeof breakdown.donation === 'number'
+            ? breakdown.donation
+            : parseFloat(donation.amount?.toString() || '0')
+
+          const certBuffer = await generateCSRCertificate({
+            recipientName: donation.user?.full_name || 'Donor',
+            activityTitle: donation.csr_activity.title || 'Kegiatan CSR',
+            activityCategory: donation.csr_activity.category || undefined,
+            amount: displayAmount,
+            donationDate,
+            certificateNumber: `CSR-${donation.id.slice(-8).toUpperCase()}`,
+            tenantId: donation.user?.tenant_id ?? null,
+            avatarUrl,
+          })
+          const filename = `csr-cert-${donation.id}-${Date.now()}.jpg`
+          fs.writeFileSync(path.join(CERTS_DIR, filename), certBuffer)
+
+          await prisma.csr_activity_participations.update({
+            where: { id: donation.id },
+            data: {
+              thank_you_certificate_url: `${APP_BASE_URL}/api/cert-files/${filename}`,
+            },
+          })
+
+          // Bump activity.total_donations_amount pakai donation murni, bukan
+          // gross (supaya progress bar activity tidak inflate fee).
+          await prisma.csr_activities.update({
+            where: { id: donation.csr_activity.id },
+            data: {
+              total_donations_amount: { increment: displayAmount },
+            },
+          })
+        } catch (e) {
+          console.error('[sync-pending] csr cert gen failed:', donation.id, e)
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      scanned: { carbon: pendingCarbon.length, csr: 0 },
+      scanned: { carbon: pendingCarbon.length, csr: csrScanned },
       updated,
     })
   } catch (error) {
