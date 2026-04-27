@@ -10,6 +10,9 @@ import { APP_NAME } from '@/lib/featureFlags';
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  // Honeypot field — kosong untuk user normal (CSS hidden), bot biasanya
+  // auto-fill semua input field. State terpisah supaya React tidak merge.
+  const [website, setWebsite] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
@@ -23,7 +26,10 @@ export default function ForgotPasswordPage() {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          website,  // honeypot — server cek field ini harus kosong
+        }),
       });
       const data = await res.json();
 
@@ -107,6 +113,26 @@ export default function ForgotPasswordPage() {
                   placeholder="nama@email.com"
                 />
               </div>
+            </div>
+
+            {/* Honeypot: user manusia tidak bakal isi (field hidden via CSS).
+                Bot scraper biasanya auto-fill semua input → server-side reject.
+                aria-hidden + tabIndex=-1 + autoComplete=off supaya screen
+                reader & keyboard navigation skip field ini. */}
+            <div
+              aria-hidden="true"
+              style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden' }}
+            >
+              <label htmlFor="website">Leave this field empty</label>
+              <input
+                id="website"
+                type="text"
+                name="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+              />
             </div>
 
             <button

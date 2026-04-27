@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as fs from 'fs'
 import * as path from 'path'
+import { isHostnameSafeForFetch } from '@/lib/url-safety'
+
+/**
+ * GET /api/download?url=...
+ *
+ * Proxy download utility — diizinkan hanya untuk:
+ *   1. Origin self (App's own /public/certificates/* yang di-serve via filesystem)
+ *   2. Origin backend Laravel (untuk file yg di-host di sana)
+ *
+ * SECURITY (VAFinal-001 fix):
+ *   - DULU pakai `url.startsWith(BACKEND_ORIGIN)` — bisa di-bypass dengan
+ *     hostname trick `http://127.0.0.1:8000.evil.com` karena prefix match
+ *     tanpa boundary character.
+ *   - Sekarang pakai strict origin compare via `URL.origin`. Comparison
+ *     mencakup scheme + host + port secara eksak.
+ *   - Plus DNS-resolved private IP guard di production (defense-in-depth
+ *     terhadap DNS rebinding & legacy data).
+ */
 
 const BACKEND_ORIGIN = (
   process.env.NEXT_PUBLIC_IMAGE_URL_PREFIX?.replace(/\/$/, '').replace('/storage', '') ||
@@ -13,8 +31,37 @@ const APP_ORIGIN = (
   'http://localhost:3000'
 ).replace(/\/$/, '')
 
-function isAllowedUrl(url: string): boolean {
-  return url.startsWith(BACKEND_ORIGIN) || url.startsWith(APP_ORIGIN)
+const ALLOW_PRIVATE_IPS = process.env.NODE_ENV !== 'production'
+
+/**
+ * Parse URL & match origin secara strict.
+ * Return classification: 'self' | 'backend' | null (rejected).
+ */
+function classifyUrl(url: string): 'self' | 'backend' | null {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return null
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return null
+  }
+
+  // Compare via URL.origin (scheme + host + port) — bukan startsWith() yg rentan
+  // prefix match attack (mis. `http://127.0.0.1:8000.evil.com`).
+  let appOrigin: string
+  let backendOrigin: string
+  try {
+    appOrigin     = new URL(APP_ORIGIN).origin
+    backendOrigin = new URL(BACKEND_ORIGIN).origin
+  } catch {
+    return null
+  }
+
+  if (parsed.origin === appOrigin)     return 'self'
+  if (parsed.origin === backendOrigin) return 'backend'
+  return null
 }
 
 const MIME_MAP: Record<string, string> = {
@@ -36,19 +83,34 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing url' }, { status: 400 })
   }
 
-  if (!isAllowedUrl(url)) {
+  const classification = classifyUrl(url)
+  if (!classification) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Sanitize filename untuk Content-Disposition — hapus karakter yg bisa break
+  // header ATAU jadi vector phishing (CRLF, quote). Cap length 200 char.
+  const safeFilename = filename
+    .replace(/[\r\n"\\]/g, '')
+    .slice(0, 200) || 'download'
   const disposition = inline
-    ? `inline; filename="${encodeURIComponent(filename)}"`
-    : `attachment; filename="${encodeURIComponent(filename)}"`
+    ? `inline; filename="${encodeURIComponent(safeFilename)}"`
+    : `attachment; filename="${encodeURIComponent(safeFilename)}"`
 
-  // For same-origin URLs, read directly from the filesystem (avoids middleware/auth)
-  if (url.startsWith(APP_ORIGIN)) {
+  // ── Self-origin: read directly from filesystem ───────────────────────
+  if (classification === 'self') {
     try {
       const urlPath = new URL(url).pathname  // e.g. /certificates/xxx.pdf
-      const filePath = path.join(process.cwd(), 'public', urlPath)
+
+      // Resolve absolute path lalu pastikan tetap di dalam public/ dir.
+      // Defense-in-depth — URL constructor sebenarnya sudah normalize `..`
+      // jadi pathname tidak akan bocor keluar root. Tapi tetap re-validate.
+      const publicDir = path.resolve(process.cwd(), 'public')
+      const filePath  = path.resolve(publicDir, '.' + urlPath)
+      if (!filePath.startsWith(publicDir + path.sep) && filePath !== publicDir) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
       if (!fs.existsSync(filePath)) {
         return NextResponse.json({ error: 'File not found' }, { status: 404 })
       }
@@ -68,7 +130,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // For cross-origin URLs (Laravel backend), fetch via HTTP
+  // ── Backend-origin: fetch via HTTP, with private-IP guard di production ─
+  if (!ALLOW_PRIVATE_IPS) {
+    try {
+      const hostname = new URL(url).hostname
+      const safe = await isHostnameSafeForFetch(hostname)
+      if (!safe) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
+
   try {
     const res = await fetch(url)
     if (!res.ok) {

@@ -11,9 +11,36 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/**
+ * Escape karakter HTML supaya nilai user-controlled aman di-interpolate ke
+ * template email. Tanpa ini, attacker bisa daftar dengan
+ * `fullName: "</strong><a href='evil.com'>Click</a>"` dan mengirim email
+ * phishing dari domain kita sendiri.
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Format OTP supaya mudah dibaca: "12345678" -> "1234 5678". */
+function formatOtp(otp: string): string {
+  if (otp.length <= 4) return otp;
+  const mid = Math.ceil(otp.length / 2);
+  return `${otp.slice(0, mid)} ${otp.slice(mid)}`;
+}
+
 export async function sendOtpEmail(toEmail: string, otp: string, name?: string) {
   const fromName = process.env.MAIL_FROM_NAME || APP_NAME;
   const fromAddress = process.env.MAIL_FROM_ADDRESS || process.env.MAIL_USERNAME;
+
+  // Escape semua nilai user-controlled sebelum masuk template HTML.
+  const safeName = name ? escapeHtml(name) : '';
+  const safeAppName = escapeHtml(APP_NAME);
+  const safeOtp = escapeHtml(formatOtp(otp));
 
   await transporter.sendMail({
     from: `"${fromName}" <${fromAddress}>`,
@@ -33,7 +60,7 @@ export async function sendOtpEmail(toEmail: string, otp: string, name?: string) 
           .header p { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0; }
           .body { padding: 32px 24px; }
           .otp-box { background: #f0faf5; border: 2px dashed #1a9668; border-radius: 12px; text-align: center; padding: 24px; margin: 24px 0; }
-          .otp-code { font-size: 40px; font-weight: 900; letter-spacing: 12px; color: #0a5c42; }
+          .otp-code { font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #0a5c42; }
           .otp-note { font-size: 13px; color: #666; margin-top: 8px; }
           .footer { background: #f9f9f9; padding: 16px 24px; text-align: center; font-size: 11px; color: #999; }
           p { color: #444; font-size: 14px; line-height: 1.6; }
@@ -42,21 +69,21 @@ export async function sendOtpEmail(toEmail: string, otp: string, name?: string) 
       <body>
         <div class="container">
           <div class="header">
-            <h1>${APP_NAME}</h1>
+            <h1>${safeAppName}</h1>
             <p>Jejak Karbon Perjalanan Ibadahmu</p>
           </div>
           <div class="body">
-            <p>Halo${name ? ' <strong>' + name + '</strong>' : ''},</p>
+            <p>Halo${safeName ? ' <strong>' + safeName + '</strong>' : ''},</p>
             <p>Kami menerima permintaan untuk mereset kata sandi akun Anda. Gunakan kode OTP berikut:</p>
             <div class="otp-box">
-              <div class="otp-code">${otp}</div>
+              <div class="otp-code">${safeOtp}</div>
               <div class="otp-note">Berlaku selama <strong>15 menit</strong></div>
             </div>
-            <p>Jika Anda tidak meminta reset kata sandi, abaikan email ini. Akun Anda tetap aman.</p>
-            <p style="font-size:13px; color:#999;">Kode ini bersifat rahasia. Jangan bagikan kepada siapapun.</p>
+            <p>Jika Anda tidak meminta reset kata sandi, abaikan email ini. Akun Anda tetap aman, namun pertimbangkan untuk mengganti kata sandi sebagai langkah pencegahan.</p>
+            <p style="font-size:13px; color:#999;">Kode ini bersifat rahasia. Jangan bagikan kepada siapapun, termasuk kepada pihak yang mengaku staff ${safeAppName}.</p>
           </div>
           <div class="footer">
-            &copy; ${new Date().getFullYear()} ${APP_NAME} · Email otomatis, jangan dibalas.
+            &copy; ${new Date().getFullYear()} ${safeAppName} &middot; Email otomatis, jangan dibalas.
           </div>
         </div>
       </body>

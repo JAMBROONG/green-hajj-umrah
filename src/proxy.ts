@@ -69,6 +69,11 @@ const PUBLIC_API_PREFIXES = [
   '/api/csr-activities/participate/notification',       // Midtrans S2S notification CSR
   '/api/payment-config/check',                          // Pre-checkout availability check
   '/api/tenants',                                       // Public tenant lookup
+  // /api/debug/users hanya dibuka saat dev — Quick Login panel di /auth/signin
+  // perlu fetch list jemaah sebelum login. Endpoint itu sendiri sudah guard
+  // dengan `NODE_ENV !== 'development' → 404` (lihat route.ts), jadi di prod
+  // tetap tidak akan jalan walaupun lolos middleware.
+  ...(process.env.NODE_ENV === 'development' ? ['/api/debug/users'] : []),
 ];
 
 function isPublicApi(pathname: string): boolean {

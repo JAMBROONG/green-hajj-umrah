@@ -4,23 +4,35 @@ import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import { rateLimiter } from '@/lib/rate-limiter';
 
-const OTP_EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
+const OTP_EXPIRY_MS = 15 * 60 * 1000; // 15 menit
+// Format OTP boleh "12345678" atau "1234 5678" (sesuai email yg di-format).
+// Strip whitespace dulu sebelum validasi.
+const OTP_PATTERN = /^\d{8}$/;
 
 export async function POST(req: NextRequest) {
   try {
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      'unknown';
+
     const body = await req.json();
     const email = (body?.email ?? '').trim().toLowerCase();
-    const otp = (body?.otp ?? '').trim();
+    // Strip semua whitespace supaya user bisa paste "1234 5678" dari email.
+    const otp = String(body?.otp ?? '').replace(/\s+/g, '');
 
-    if (!email || !otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+    if (!email || !otp || !OTP_PATTERN.test(otp)) {
       return NextResponse.json({ error: 'Data tidak valid.' }, { status: 400 });
     }
 
-    // Rate limit: 5 OTP verification attempts per email per 15 minutes
-    const rateKey = `otp:verify:${email}`;
-    const rateCheck = rateLimiter.check(rateKey, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+    // Rate limit per-email: 3/15min (turun dari 5).
+    // Plus IP-based limit untuk mencegah botnet brute-force lewat banyak IP.
+    const emailKey = `otp:verify:${email}`;
+    const ipKey = `otp:verify:ip:${ip}`;
+    const emailRate = rateLimiter.check(emailKey, 3, 15 * 60 * 1000, 15 * 60 * 1000);
+    const ipRate = rateLimiter.check(ipKey, 20, 15 * 60 * 1000, 15 * 60 * 1000);
 
-    if (!rateCheck.allowed) {
+    if (!emailRate.allowed || !ipRate.allowed) {
       return NextResponse.json(
         { error: 'Terlalu banyak percobaan. Silakan minta kode OTP baru.' },
         { status: 429 },
@@ -40,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Kode OTP sudah kadaluarsa. Silakan minta ulang.' }, { status: 400 });
     }
 
-    // Compare OTP
+    // Compare OTP (bcrypt — slow by design, ~100ms cost)
     const isValid = await compare(otp, record.token);
     if (!isValid) {
       return NextResponse.json({ error: 'Kode OTP salah. Periksa kembali kode yang dikirim.' }, { status: 400 });
@@ -55,7 +67,8 @@ export async function POST(req: NextRequest) {
       data: { token: resetTokenHash, created_at: new Date() },
     });
 
-    rateLimiter.reset(rateKey);
+    rateLimiter.reset(emailKey);
+    rateLimiter.reset(ipKey);
 
     return NextResponse.json({
       success: true,

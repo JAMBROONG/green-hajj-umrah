@@ -100,6 +100,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Standard is not available' }, { status: 400 })
     }
 
+    // ── Idempotency guard (VAFinal-002) ──────────────────────────────
+    // Cek apakah user sudah punya pending purchase IDENTIK (same standard +
+    // same units) dalam 60 detik terakhir. Kalau ada, return existing record
+    // — tidak buat transaksi Midtrans baru. Mencegah double-click bikin
+    // 2 record + 2 invoice + 2 cost transaksi Midtrans.
+    //
+    // Window 60 detik cukup besar untuk cover network slowness, tapi cukup
+    // kecil supaya user yang BENAR-BENAR mau beli kedua kalinya tidak
+    // terblokir lama.
+    const IDEMPOTENCY_WINDOW_MS = 60_000
+    const recentPending = await prisma.carbon_certificate_purchases.findFirst({
+      where: {
+        user_id: userProfile.id,
+        standard_id: standard.id,
+        units: unitsNum,
+        status: 'pending',
+        created_at: { gte: new Date(Date.now() - IDEMPOTENCY_WINDOW_MS) },
+      },
+      orderBy: { created_at: 'desc' },
+    })
+
+    if (recentPending) {
+      const meta = recentPending.metadata as Record<string, unknown> | null
+      devLog('⏭️ Idempotent: returning existing pending purchase', recentPending.id)
+      return NextResponse.json({
+        id: recentPending.id,
+        snapToken: recentPending.transaction_reference,
+        snapUrl: meta?.snap_url ?? null,
+        message: 'Existing pending transaction — silakan lanjutkan pembayaran sebelumnya.',
+        idempotent: true,
+      })
+    }
+
     // Scope service_setting to the user's tenant (fallback to 0% if not set)
     const serviceSetting = userProfile.tenant_id
       ? await prisma.service_setting.findUnique({ where: { tenant_id: userProfile.tenant_id } })

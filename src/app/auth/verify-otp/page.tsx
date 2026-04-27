@@ -12,7 +12,12 @@ function VerifyOtpContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') ?? '';
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  // OTP 8 digit (sebelumnya 6) — entropi naik 100× untuk mitigasi
+  // brute-force. Backend (forgot-password + verify-otp) generate &
+  // accept 8 digit.
+  const OTP_LEN = 8;
+  const emptyOtp = () => Array<string>(OTP_LEN).fill('');
+  const [otp, setOtp] = useState<string[]>(emptyOtp);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resending, setResending] = useState(false);
@@ -37,7 +42,7 @@ function VerifyOtpContent() {
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-    if (digit && index < 5) {
+    if (digit && index < OTP_LEN - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -50,18 +55,20 @@ function VerifyOtpContent() {
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (paste.length === 6) {
+    // Strip whitespace + non-digit (user paste "1234 5678" dari email langsung
+    // jalan). Ambil maksimum OTP_LEN digit.
+    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LEN);
+    if (paste.length === OTP_LEN) {
       setOtp(paste.split(''));
-      inputRefs.current[5]?.focus();
+      inputRefs.current[OTP_LEN - 1]?.focus();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const otpString = otp.join('');
-    if (otpString.length < 6) {
-      setError('Masukkan 6 digit kode OTP.');
+    if (otpString.length < OTP_LEN) {
+      setError(`Masukkan ${OTP_LEN} digit kode OTP.`);
       return;
     }
 
@@ -78,7 +85,7 @@ function VerifyOtpContent() {
 
       if (!res.ok) {
         setError(data.error || 'Kode OTP salah.');
-        setOtp(['', '', '', '', '', '']);
+        setOtp(emptyOtp());
         inputRefs.current[0]?.focus();
       } else {
         router.push(
@@ -104,7 +111,7 @@ function VerifyOtpContent() {
         body: JSON.stringify({ email }),
       });
       setResendCooldown(60);
-      setOtp(['', '', '', '', '', '']);
+      setOtp(emptyOtp());
       inputRefs.current[0]?.focus();
     } catch {
       setError('Gagal mengirim ulang. Coba lagi.');
@@ -154,9 +161,9 @@ function VerifyOtpContent() {
 
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 text-center">
-              Masukkan 6 Digit Kode OTP
+              Masukkan {OTP_LEN} Digit Kode OTP
             </label>
-            <div className="flex gap-2 justify-center" onPaste={handlePaste}>
+            <div className="flex gap-1.5 justify-center flex-wrap" onPaste={handlePaste}>
               {otp.map((digit, i) => (
                 <input
                   key={i}
@@ -167,7 +174,7 @@ function VerifyOtpContent() {
                   value={digit}
                   onChange={e => handleChange(i, e.target.value)}
                   onKeyDown={e => handleKeyDown(i, e)}
-                  className="w-12 h-14 text-center text-2xl font-bold border-2 rounded-xl outline-none transition-all
+                  className="w-10 h-14 text-center text-2xl font-bold border-2 rounded-xl outline-none transition-all
                     border-gray-200 bg-gray-50
                     focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white
                     caret-transparent"
@@ -178,7 +185,7 @@ function VerifyOtpContent() {
 
           <button
             type="submit"
-            disabled={loading || otp.join('').length < 6}
+            disabled={loading || otp.join('').length < OTP_LEN}
             className="w-full btn-primary font-bold py-3.5 rounded-xl text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
