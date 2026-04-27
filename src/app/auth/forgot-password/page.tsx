@@ -10,8 +10,7 @@ import { APP_NAME } from '@/lib/featureFlags';
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  // Honeypot field — kosong untuk user normal (CSS hidden), bot biasanya
-  // auto-fill semua input field. State terpisah supaya React tidak merge.
+  
   const [website, setWebsite] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
