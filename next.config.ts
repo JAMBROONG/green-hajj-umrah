@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
   // output: 'standalone',
   reactCompiler: true,
-  turbopack: {},
+  turbopack: {
+    // Pin workspace root to this project so Next.js tidak salah ambil lockfile
+    // dari parent dir (mis. C:\Users\dell\package-lock.json) saat infer root.
+    root: path.resolve(__dirname),
+  },
   images: {
     localPatterns: [
       { pathname: '/api/image-proxy/**' },

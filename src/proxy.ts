@@ -26,13 +26,21 @@ const MIDTRANS_HOSTS = [
   'https://api.sandbox.midtrans.com',
 ].join(' ');
 
+// OpenStreetMap services untuk fitur lokasi & rute:
+//   - nominatim: pencarian lokasi by nama (geocoding) di form alamat
+//   - router OSRM: hitung jarak driving antar dua koordinat (mis. transport antar fase)
+const GEOCODING_HOSTS = [
+  'https://nominatim.openstreetmap.org',
+  'https://router.project-osrm.org',
+].join(' ');
+
 const CSP_VALUE = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${MIDTRANS_HOSTS}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${MIDTRANS_HOSTS}`,
+  `connect-src 'self' ${MIDTRANS_HOSTS} ${GEOCODING_HOSTS}`,
   `frame-src 'self' ${MIDTRANS_HOSTS}`,
   "frame-ancestors 'self'",
   "object-src 'none'",
@@ -46,7 +54,10 @@ function withSecurityHeaders(res: NextResponse): NextResponse {
   res.headers.set('X-Frame-Options', 'SAMEORIGIN');
   res.headers.set('X-XSS-Protection', '1; mode=block');
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // geolocation=(self) — fitur "deteksi lokasi otomatis" di form alamat butuh
+  // permission ini untuk same-origin. camera & microphone tetap deny — tidak
+  // ada feature yang butuh mereka di app jemaah.
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
   res.headers.set('Content-Security-Policy', CSP_VALUE);
   if (process.env.NODE_ENV === 'production') {
     res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');

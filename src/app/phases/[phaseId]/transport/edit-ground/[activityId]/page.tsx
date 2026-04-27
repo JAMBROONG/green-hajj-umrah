@@ -7,12 +7,15 @@ import { useDialog } from '@/contexts/DialogContext';
 import { useEmissionFactors } from '@/hooks/useEmissionFactors';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { TransportActivity, PhaseId } from '@/lib/types';
-import { searchLocations, calculateRoutingDistance, Location } from '@/lib/locationService';
+import { calculateRoutingDistance, Location } from '@/lib/locationService';
+import { formatTruncated } from '@/lib/utils';
 import { FaCar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
-import { formatTruncated } from '@/lib/utils';
+import RouteLocationPicker from '@/components/forms/RouteLocationPicker';
 
-// Fixed locations for perjalanan-antar-kota
+// Lokasi tetap untuk fase perjalanan-antar-kota (Makkah ↔ Madinah).
+// Pakai dropdown khusus, BUKAN RouteLocationPicker, karena pasangan kota fix
+// dan auto-paired (pilih Makkah → Madinah otomatis di-set, dan sebaliknya).
 const FIXED_LOCATIONS = {
   makkah: {
     displayName: 'Makkah',
@@ -38,134 +41,99 @@ const toDateInputValue = (date: string | Date | undefined): string => {
   return `${year}-${month}-${day}`;
 };
 
-interface EditGroundTransportFormProps {
-  phaseId: PhaseId;
-  phaseName: string;
-  activityId: string;
-  activity: TransportActivity;
-  activities: TransportActivity[];
-  updateCategory: ReturnType<typeof useHajiJourney>['updateCategory'];
-}
-
-function EditGroundTransportForm({
-  phaseId,
-  phaseName,
-  activityId,
-  activity,
-  activities,
-  updateCategory
-}: EditGroundTransportFormProps) {
+export default function EditGroundTransportPage() {
+  const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tripId = searchParams.get('tripId');
   const { showWarning } = useDialog();
+  const phaseId = params.phaseId as PhaseId;
+  const activityId = params.activityId as string;
+  const tripId = searchParams.get('tripId');
+  const { journey, updateCategory } = useHajiJourney();
   const { factors: emissionFactors } = useEmissionFactors();
 
+  const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
+  const isFixedRoute = phaseId === 'perjalanan-antar-kota';
+  const categoryData = journey?.phases[phaseId]?.categories?.transport;
+  const activities = (categoryData?.activities as TransportActivity[]) || [];
+  const activity = activities.find(a => a.id === activityId);
+
+  // formData diisi saat user ubah field. Untuk init dari activity, kita pakai
+  // fallback baca-saat-render (selectedTransportType / selectedDate di bawah)
+  // — pola yang sama dengan edit.tsx. Alasannya: useHajiJourney() load async,
+  // jadi `activity` masih undefined saat useState initial dievaluasi. Init
+  // langsung dari `activity?.type` cuma kerja kalau journey kebetulan sudah
+  // di-cache; kalau belum, formData akan stuck di default.
   const [formData, setFormData] = useState({
-    type: activity.type || 'mobil',
-    date: toDateInputValue(activity.date)
+    type: '',
+    date: ''
   });
 
-  const [originQuery, setOriginQuery] = useState(activity.origin?.name || '');
-  const [destinationQuery, setDestinationQuery] = useState(activity.destination?.name || '');
-  const [originSuggestions, setOriginSuggestions] = useState<Location[]>([]);
-  const [destinationSuggestions, setDestinationSuggestions] = useState<Location[]>([]);
-  const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(
-    activity.origin
-      ? {
-          displayName: activity.origin.name,
-          lat: activity.origin.lat,
-          lon: activity.origin.lon,
-          placeId: 0
-        }
-      : null
-  );
-  const [selectedDestination, setSelectedDestination] = useState<Location | null>(
-    activity.destination
-      ? {
-          displayName: activity.destination.name,
-          lat: activity.destination.lat,
-          lon: activity.destination.lon,
-          placeId: 0
-        }
-      : null
-  );
-  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(activity.distance || null);
-  const [isSearching, setIsSearching] = useState(false);
+  const selectedTransportType = formData.type || activity?.type || 'mobil';
+  const selectedDate = formData.date || toDateInputValue(activity?.date);
 
-  const originRef = useRef<HTMLDivElement>(null);
-  const destinationRef = useRef<HTMLDivElement>(null);
+  const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<Location | null>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
 
-  // Calculate estimated emission based on distance and vehicle type
-  const estimatedEmission = useMemo(() => {
-    if (!calculatedDistance || !emissionFactors) return 0;
-    const factor = emissionFactors[formData.type] || 0;
-    return calculatedDistance * factor;
-  }, [calculatedDistance, formData.type, emissionFactors]);
+  const hasInitializedLocations = useRef(false);
 
-  // Search origin locations
+  // Initialize origin/destination dari activity yang sedang di-edit.
+  // RouteLocationPicker punya internal query state — kita cuma pass selected.
   useEffect(() => {
-    const searchOrigin = async () => {
-      if (originQuery.length >= 3 && !selectedOrigin) {
-        setIsSearching(true);
-        const results = await searchLocations(originQuery);
-        
-        // Filter results for perjalanan-antar-kota phase
-        let filtered = results;
-        if (phaseId === 'perjalanan-antar-kota') {
-          filtered = results.filter(loc => 
-            loc.displayName.toLowerCase().includes('makkah') || 
-            loc.displayName.toLowerCase().includes('madinah') ||
-            loc.displayName.toLowerCase().includes('mecca') ||
-            loc.displayName.toLowerCase().includes('medina')
-          );
+    if (activity && !hasInitializedLocations.current && (activity.origin || activity.destination)) {
+      const initData = () => {
+        if (activity.origin) {
+          setSelectedOrigin({
+            displayName: activity.origin.name,
+            lat: activity.origin.lat,
+            lon: activity.origin.lon,
+            placeId: 0
+          });
         }
-        
-        setOriginSuggestions(filtered);
-        setIsSearching(false);
-      } else {
-        setOriginSuggestions([]);
-      }
-    };
+        if (activity.destination) {
+          setSelectedDestination({
+            displayName: activity.destination.name,
+            lat: activity.destination.lat,
+            lon: activity.destination.lon,
+            placeId: 0
+          });
+        }
+        if (activity.distance) {
+          setCalculatedDistance(activity.distance);
+        }
+        hasInitializedLocations.current = true;
+      };
 
-    const debounce = setTimeout(searchOrigin, 300);
-    return () => clearTimeout(debounce);
-  }, [originQuery, selectedOrigin, phaseId]);
+      requestAnimationFrame(initData);
+    }
+  }, [activity]);
 
-  // Search destination locations
+  // Auto-pair Makkah ↔ Madinah for perjalanan-antar-kota phase
   useEffect(() => {
-    const searchDestination = async () => {
-      if (destinationQuery.length >= 3 && !selectedDestination) {
-        setIsSearching(true);
-        const results = await searchLocations(destinationQuery);
-        
-        // Filter results for perjalanan-antar-kota phase
-        let filtered = results;
-        if (phaseId === 'perjalanan-antar-kota') {
-          filtered = results.filter(loc => 
-            loc.displayName.toLowerCase().includes('makkah') || 
-            loc.displayName.toLowerCase().includes('madinah') ||
-            loc.displayName.toLowerCase().includes('mecca') ||
-            loc.displayName.toLowerCase().includes('medina')
-          );
-        }
-        
-        setDestinationSuggestions(filtered);
-        setIsSearching(false);
-      } else {
-        setDestinationSuggestions([]);
-      }
-    };
+    if (!isFixedRoute || !selectedOrigin) return;
+    if (selectedOrigin.displayName === 'Makkah') {
+      setSelectedDestination(FIXED_LOCATIONS.madinah as Location);
+    } else if (selectedOrigin.displayName === 'Madinah') {
+      setSelectedDestination(FIXED_LOCATIONS.makkah as Location);
+    }
+  }, [selectedOrigin, isFixedRoute]);
 
-    const debounce = setTimeout(searchDestination, 300);
-    return () => clearTimeout(debounce);
-  }, [destinationQuery, selectedDestination, phaseId]);
+  useEffect(() => {
+    if (!isFixedRoute || !selectedDestination) return;
+    if (selectedDestination.displayName === 'Makkah') {
+      setSelectedOrigin(FIXED_LOCATIONS.madinah as Location);
+    } else if (selectedDestination.displayName === 'Madinah') {
+      setSelectedOrigin(FIXED_LOCATIONS.makkah as Location);
+    }
+  }, [selectedDestination, isFixedRoute]);
 
-  // Calculate distance when both locations are selected
+  // Recalculate distance when both locations are selected (via OSRM routing)
   useEffect(() => {
     const calculateDistance = async () => {
       if (selectedOrigin && selectedDestination) {
-        setIsSearching(true);
+        setIsCalculating(true);
         const distance = await calculateRoutingDistance(
           selectedOrigin.lat,
           selectedOrigin.lon,
@@ -173,8 +141,10 @@ function EditGroundTransportForm({
           selectedDestination.lon
         );
         setCalculatedDistance(distance);
-        setIsSearching(false);
-      } else {
+        setIsCalculating(false);
+      } else if (hasInitializedLocations.current) {
+        // Hanya null-kan setelah init selesai supaya distance dari activity
+        // tidak ke-clear di first render sebelum location di-set.
         setCalculatedDistance(null);
       }
     };
@@ -182,54 +152,11 @@ function EditGroundTransportForm({
     calculateDistance();
   }, [selectedOrigin, selectedDestination]);
 
-  // Auto-set destination based on origin for perjalanan-antar-kota phase
-  useEffect(() => {
-    if (phaseId === 'perjalanan-antar-kota' && selectedOrigin) {
-      if (selectedOrigin.displayName === 'Makkah') {
-        setSelectedDestination(FIXED_LOCATIONS.madinah as Location);
-      } else if (selectedOrigin.displayName === 'Madinah') {
-        setSelectedDestination(FIXED_LOCATIONS.makkah as Location);
-      }
-    }
-  }, [selectedOrigin, phaseId]);
-
-  // Auto-set origin based on destination for perjalanan-antar-kota phase
-  useEffect(() => {
-    if (phaseId === 'perjalanan-antar-kota' && selectedDestination) {
-      if (selectedDestination.displayName === 'Makkah') {
-        setSelectedOrigin(FIXED_LOCATIONS.madinah as Location);
-      } else if (selectedDestination.displayName === 'Madinah') {
-        setSelectedOrigin(FIXED_LOCATIONS.makkah as Location);
-      }
-    }
-  }, [selectedDestination, phaseId]);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (originRef.current && !originRef.current.contains(event.target as Node)) {
-        setOriginSuggestions([]);
-      }
-      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
-        setDestinationSuggestions([]);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleOriginSelect = (location: Location) => {
-    setSelectedOrigin(location);
-    setOriginQuery(location.displayName);
-    setOriginSuggestions([]);
-  };
-
-  const handleDestinationSelect = (location: Location) => {
-    setSelectedDestination(location);
-    setDestinationQuery(location.displayName);
-    setDestinationSuggestions([]);
-  };
+  // Memoized emission calculation that updates when factors load
+  const estimatedEmission = useMemo(() => {
+    if (!calculatedDistance || !emissionFactors) return 0;
+    return calculatedDistance * ((emissionFactors[selectedTransportType]) || 0);
+  }, [calculatedDistance, emissionFactors, selectedTransportType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,15 +168,15 @@ function EditGroundTransportForm({
 
     const distance = calculatedDistance;
     const passengers = 1;
-    const factor = (emissionFactors && emissionFactors[formData.type]) || 0;
+    const factor = (emissionFactors && emissionFactors[selectedTransportType]) || 0;
     const emission = distance * factor;
 
     const updatedActivity: TransportActivity = {
       ...activity!,
-      type: formData.type,
+      type: selectedTransportType,
       distance,
       passengers,
-      date: formData.date,
+      date: selectedDate,
       emission,
       origin: {
         name: selectedOrigin.displayName,
@@ -263,7 +190,7 @@ function EditGroundTransportForm({
       }
     };
 
-    const updatedActivities = activities.map(a => 
+    const updatedActivities = activities.map(a =>
       a.id === activityId ? updatedActivity : a
     );
     const totalEmission = updatedActivities.reduce((sum, act) => sum + act.emission, 0);
@@ -284,74 +211,80 @@ function EditGroundTransportForm({
     router.push(url);
   };
 
+  if (!phase || !activity) {
+    return null;
+  }
+
   return (
     <div className="app-container">
-        <div className="min-h-screen bg-gray-50 pb-24">
-        {/* Header */}
-        <div
-          className="text-white shadow-lg"
-          style={{ backgroundImage: "url('/bg-menu.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
-        >
-          <div className="px-5 pt-5 pb-5">
-            <button
-              onClick={handleCancel}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors mb-4"
-            >
-              <IoArrowBack className="text-base text-white" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                <FaCar className="text-2xl text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Edit Transportasi Darat</h1>
-                <p className="text-sm text-white/75">{phaseName}</p>
-              </div>
+      <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
+      <div
+        className="text-white shadow-lg"
+        style={{ backgroundImage: "url('/bg-menu.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="px-5 pt-5 pb-5">
+          <button
+            onClick={handleCancel}
+            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors mb-4"
+          >
+            <IoArrowBack className="text-base text-white" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <FaCar className="text-2xl text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">Edit Transportasi Darat</h1>
+              <p className="text-sm text-white/75">{phase.name}</p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-5">
-          {/* Transport Type - Ground Only */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Jenis Kendaraan *
-            </label>
-            <select
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-              required
-            >
-              <option value="mobil">Mobil</option>
-              <option value="mobil-listrik">Mobil Listrik</option>
-              <option value="bus">Bus</option>
-              <option value="bus-listrik">Bus Listrik</option>
-              <option value="kereta">Kereta</option>
-            </select>
-          </div>
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="px-5 py-4 space-y-5">
+        {/* Transport Type — Ground Only */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Jenis Kendaraan *
+          </label>
+          <select
+            value={selectedTransportType}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+            required
+          >
+            <option value="mobil">Mobil</option>
+            <option value="mobil-listrik">Mobil Listrik</option>
+            <option value="bus">Bus</option>
+            <option value="bus-listrik">Bus Listrik</option>
+            <option value="kereta">Kereta</option>
+          </select>
+        </div>
 
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Tanggal *
-            </label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-              required
-            />
-          </div>
+        {/* Date */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Tanggal *
+          </label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+            required
+          />
+        </div>
 
-          {/* Origin Location */}
-          <div ref={originRef}>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Dari (Lokasi Asal) *
-            </label>
-            {phaseId === 'perjalanan-antar-kota' ? (
+        {/* Locations */}
+        {isFixedRoute ? (
+          <>
+            {/* Origin (fixed Makkah/Madinah) */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Dari (Lokasi Asal) *
+              </label>
               <select
                 value={selectedOrigin?.displayName === 'Makkah' ? 'makkah' : selectedOrigin?.displayName === 'Madinah' ? 'madinah' : ''}
                 onChange={(e) => {
@@ -370,53 +303,16 @@ function EditGroundTransportForm({
                 <option value="makkah">Makkah</option>
                 <option value="madinah">Madinah</option>
               </select>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={originQuery}
-                  onChange={(e) => {
-                    setOriginQuery(e.target.value);
-                    setSelectedOrigin(null);
-                  }}
-                  placeholder="Cari lokasi asal..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-                  required
-                />
-                {isSearching && originQuery.length >= 3 && (
-                  <div className="absolute right-4 top-11 text-gray-400">
-                    <div className="animate-spin">⏳</div>
-                  </div>
-                )}
-                {originSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    {originSuggestions.map((location) => (
-                      <button
-                        key={location.placeId}
-                        type="button"
-                        onClick={() => handleOriginSelect(location)}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                      >
-                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                          {location.displayName}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {selectedOrigin && (
-              <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
-            )}
-          </div>
+              {selectedOrigin && (
+                <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
+              )}
+            </div>
 
-          {/* Destination Location */}
-          <div ref={destinationRef}>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Menuju (Lokasi Tujuan) *
-            </label>
-            {phaseId === 'perjalanan-antar-kota' ? (
+            {/* Destination (fixed Makkah/Madinah) */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Menuju (Lokasi Tujuan) *
+              </label>
               <select
                 value={selectedDestination?.displayName === 'Makkah' ? 'makkah' : selectedDestination?.displayName === 'Madinah' ? 'madinah' : ''}
                 onChange={(e) => {
@@ -435,107 +331,57 @@ function EditGroundTransportForm({
                 <option value="makkah">Makkah</option>
                 <option value="madinah">Madinah</option>
               </select>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={destinationQuery}
-                  onChange={(e) => {
-                    setDestinationQuery(e.target.value);
-                    setSelectedDestination(null);
-                  }}
-                  placeholder="Cari lokasi tujuan..."
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
-                  required
-                />
-                {isSearching && destinationQuery.length >= 3 && (
-                  <div className="absolute right-4 top-11 text-gray-400">
-                    <div className="animate-spin">⏳</div>
-                  </div>
-                )}
-                {destinationSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    {destinationSuggestions.map((location) => (
-                      <button
-                        key={location.placeId}
-                        type="button"
-                        onClick={() => handleDestinationSelect(location)}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                      >
-                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                          {location.displayName}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {selectedDestination && (
-              <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
-            )}
-          </div>
-
-          {/* Calculated Distance Display */}
-          {calculatedDistance !== null && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-              <p className="text-sm text-blue-700 font-medium mb-1">
-                Jarak Rute Jalan
-              </p>
-              <p className="text-2xl font-bold text-blue-900">
-                {calculatedDistance.toFixed(1)} km
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                Estimasi emisi: {formatTruncated(estimatedEmission)} kg CO₂
-              </p>
+              {selectedDestination && (
+                <p className="text-xs text-green-600 mt-1">✓ Lokasi dipilih</p>
+              )}
             </div>
-          )}
+          </>
+        ) : (
+          <RouteLocationPicker
+            origin={selectedOrigin}
+            destination={selectedDestination}
+            onOriginChange={setSelectedOrigin}
+            onDestinationChange={setSelectedDestination}
+          />
+        )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-3 btn-primary rounded-xl font-semibold"
-            >
-              Simpan
-            </button>
+        {/* Calculated Distance Display */}
+        {isCalculating && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-center gap-3">
+            <span className="inline-block w-5 h-5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-sm text-blue-700 font-medium">Menghitung jarak rute…</p>
           </div>
-        </form>
+        )}
+        {!isCalculating && calculatedDistance !== null && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <p className="text-sm text-blue-700 font-medium mb-1">Jarak Rute Jalan</p>
+            <p className="text-2xl font-bold text-blue-900">
+              {calculatedDistance.toFixed(1)} km
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Estimasi emisi: {formatTruncated(estimatedEmission)} kg CO₂
+            </p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="flex-1 py-3 btn-primary rounded-xl font-semibold"
+          >
+            Simpan
+          </button>
+        </div>
+      </form>
       </div>
     </div>
-  );
-}
-
-export default function EditGroundTransportPage() {
-  const params = useParams();
-  const phaseId = params.phaseId as PhaseId;
-  const activityId = params.activityId as string;
-  const { journey, updateCategory } = useHajiJourney();
-
-  const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
-  const categoryData = journey?.phases[phaseId]?.categories?.transport;
-  const activities = (categoryData?.activities as TransportActivity[]) || [];
-  const activity = activities.find(a => a.id === activityId);
-
-  if (!phase || !activity) {
-    return null;
-  }
-
-  return (
-    <EditGroundTransportForm
-      phaseId={phaseId}
-      phaseName={phase.name}
-      activityId={activityId}
-      activity={activity}
-      activities={activities}
-      updateCategory={updateCategory}
-    />
   );
 }

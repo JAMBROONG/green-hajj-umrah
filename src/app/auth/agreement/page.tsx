@@ -128,7 +128,7 @@ export default function AgreementPage() {
             <Link href="/legal/privacy-policy" target="_blank" className="text-emerald-600 font-semibold underline">
               Kebijakan Privasi
             </Link>{' '}
-            Green Hajj &amp; Umrah.
+            {APP_NAME}.
           </span>
         </label>
 

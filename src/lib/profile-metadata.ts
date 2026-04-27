@@ -11,6 +11,8 @@
  * saat sanitize. Setiap key punya validator type sendiri.
  */
 
+import type { Prisma } from '@prisma/client';
+
 const PHONE_RE = /^[+0-9\s().-]{6,20}$/;
 
 interface FieldSpec {
@@ -59,7 +61,10 @@ const ALLOWED_KEYS = new Set(Object.keys(ALLOWED_FIELDS));
 export function mergeAndSanitizeMetadata(
   current: unknown,
   patch: Record<string, unknown>,
-): Record<string, unknown> {
+): Prisma.InputJsonValue {
+  // Semua value yang lolos validate per-field di ALLOWED_FIELDS sudah dijamin
+  // JSON-safe (string atau null). TS tidak bisa narrow itu otomatis dari
+  // `unknown`, jadi cast ke Prisma.InputJsonValue di akhir fungsi (lihat return).
   const base: Record<string, unknown> =
     typeof current === 'object' && current !== null ? { ...(current as Record<string, unknown>) } : {};
 
@@ -86,7 +91,7 @@ export function mergeAndSanitizeMetadata(
     base[k] = value;
   }
 
-  return base;
+  return base as Prisma.InputJsonValue;
 }
 
 /**

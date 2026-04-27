@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); 
     setError('');
     setLoading(true);
 
