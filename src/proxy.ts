@@ -34,6 +34,14 @@ const GEOCODING_HOSTS = [
   'https://router.project-osrm.org',
 ].join(' ');
 
+// Google Maps embed iframe — dipakai di carbon-market/project/[id] untuk
+// menampilkan lokasi proyek karbon. Hanya butuh di `frame-src`, bukan
+// `connect-src` (iframe load, bukan fetch).
+const MAPS_FRAME_HOSTS = [
+  'https://www.google.com',
+  'https://maps.google.com',
+].join(' ');
+
 const CSP_VALUE = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${MIDTRANS_HOSTS}`,
@@ -41,7 +49,7 @@ const CSP_VALUE = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `connect-src 'self' ${MIDTRANS_HOSTS} ${GEOCODING_HOSTS}`,
-  `frame-src 'self' ${MIDTRANS_HOSTS}`,
+  `frame-src 'self' ${MIDTRANS_HOSTS} ${MAPS_FRAME_HOSTS}`,
   "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",
