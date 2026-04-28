@@ -88,6 +88,11 @@ const PUBLIC_API_PREFIXES = [
   '/api/csr-activities/participate/notification',       // Midtrans S2S notification CSR
   '/api/payment-config/check',                          // Pre-checkout availability check
   '/api/tenants',                                       // Public tenant lookup
+  // Image proxy melayani aset publik (foto CSR activity, gambar produk karbon,
+  // sertifikat dll) yang TIDAK sensitif. Route-nya sendiri sudah validate path
+  // strict (no traversal, ext whitelist, host verify) + content-type guard.
+  // Jadi tidak perlu auth wall — sama dengan favicon/static asset.
+  '/api/image-proxy/',
   // /api/debug/users hanya dibuka saat dev — Quick Login panel di /auth/signin
   // perlu fetch list jemaah sebelum login. Endpoint itu sendiri sudah guard
   // dengan `NODE_ENV !== 'development' → 404` (lihat route.ts), jadi di prod

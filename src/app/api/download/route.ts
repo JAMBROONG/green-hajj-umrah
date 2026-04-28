@@ -25,22 +25,25 @@ const BACKEND_ORIGIN = (
   'http://127.0.0.1:8000'
 )
 
-const APP_ORIGIN = (
-  process.env.NEXTAUTH_URL ||
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  'http://localhost:3000'
-).replace(/\/$/, '')
+// Self-origin di-detect runtime via request.nextUrl.origin di handler — bukan
+// dari env. Lebih robust: same-origin URL pasti match request, terlepas dari
+// localhost vs 127.0.0.1 vs domain prod.
 
 const ALLOW_PRIVATE_IPS = process.env.NODE_ENV !== 'production'
 
 /**
  * Parse URL & match origin secara strict.
- * Return classification: 'self' | 'backend' | null (rejected).
+ * Return: { kind, parsed } atau null kalau URL invalid/rejected.
+ *
+ * Relative URL (mis. `/api/image-proxy/...`) di-resolve terhadap origin
+ * request saat ini — itu pattern yang dipakai getImageUrl() di sisi client
+ * untuk menjembatani path Laravel storage lewat Next.js.
  */
-function classifyUrl(url: string): 'self' | 'backend' | null {
+function classifyUrl(url: string, requestOrigin: string): { kind: 'self' | 'backend'; parsed: URL } | null {
   let parsed: URL
   try {
-    parsed = new URL(url)
+    // Allow relative URL — resolve terhadap requestOrigin saat ini.
+    parsed = new URL(url, requestOrigin)
   } catch {
     return null
   }
@@ -50,17 +53,17 @@ function classifyUrl(url: string): 'self' | 'backend' | null {
 
   // Compare via URL.origin (scheme + host + port) — bukan startsWith() yg rentan
   // prefix match attack (mis. `http://127.0.0.1:8000.evil.com`).
-  let appOrigin: string
   let backendOrigin: string
   try {
-    appOrigin     = new URL(APP_ORIGIN).origin
     backendOrigin = new URL(BACKEND_ORIGIN).origin
   } catch {
     return null
   }
 
-  if (parsed.origin === appOrigin)     return 'self'
-  if (parsed.origin === backendOrigin) return 'backend'
+  // Self-origin: pakai requestOrigin saat ini (lebih robust dari env APP_ORIGIN
+  // yang bisa mismatch saat user akses via 127.0.0.1 vs localhost).
+  if (parsed.origin === requestOrigin) return { kind: 'self', parsed }
+  if (parsed.origin === backendOrigin) return { kind: 'backend', parsed }
   return null
 }
 
@@ -83,10 +86,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing url' }, { status: 400 })
   }
 
-  const classification = classifyUrl(url)
+  const classification = classifyUrl(url, request.nextUrl.origin)
   if (!classification) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  const { kind, parsed } = classification
 
   // Sanitize filename untuk Content-Disposition — hapus karakter yg bisa break
   // header ATAU jadi vector phishing (CRLF, quote). Cap length 200 char.
@@ -97,10 +102,44 @@ export async function GET(request: NextRequest) {
     ? `inline; filename="${encodeURIComponent(safeFilename)}"`
     : `attachment; filename="${encodeURIComponent(safeFilename)}"`
 
-  // ── Self-origin: read directly from filesystem ───────────────────────
-  if (classification === 'self') {
+  // ── Self-origin handler ─────────────────────────────────────────────
+  // Dua sub-case:
+  //   a. /api/* → dynamic Next.js route (mis. /api/image-proxy/...,
+  //      /api/certificate-file/...) yang tidak ada di filesystem. Fetch
+  //      via HTTP biar Next.js handle routing-nya. PENTING: forward cookies
+  //      dari incoming request supaya target route punya konteks session
+  //      user yang sama (mis. /api/certificate-file butuh auth + ownership
+  //      check). Tanpa forwarding ini, server fetch jadi anonim → 401.
+  //   b. /static-path → file fisik di public/ dir. Read langsung dari fs
+  //      (lebih cepat, no extra HTTP hop, no SSRF risk).
+  if (kind === 'self') {
+    if (parsed.pathname.startsWith('/api/')) {
+      try {
+        const cookieHeader = request.headers.get('cookie')
+        const res = await fetch(parsed.toString(), {
+          headers: cookieHeader ? { cookie: cookieHeader } : {},
+        })
+        if (!res.ok) {
+          return NextResponse.json({ error: 'File not found' }, { status: res.status })
+        }
+        const contentType = res.headers.get('content-type') || 'application/octet-stream'
+        const buffer = await res.arrayBuffer()
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Disposition': disposition,
+            'Content-Length': String(buffer.byteLength),
+          },
+        })
+      } catch {
+        return NextResponse.json({ error: 'Download failed' }, { status: 500 })
+      }
+    }
+
+    // Static file — read from filesystem (public/ dir)
     try {
-      const urlPath = new URL(url).pathname  // e.g. /certificates/xxx.pdf
+      const urlPath = parsed.pathname  // e.g. /certificates/xxx.pdf
 
       // Resolve absolute path lalu pastikan tetap di dalam public/ dir.
       // Defense-in-depth — URL constructor sebenarnya sudah normalize `..`
@@ -132,19 +171,14 @@ export async function GET(request: NextRequest) {
 
   // ── Backend-origin: fetch via HTTP, with private-IP guard di production ─
   if (!ALLOW_PRIVATE_IPS) {
-    try {
-      const hostname = new URL(url).hostname
-      const safe = await isHostnameSafeForFetch(hostname)
-      if (!safe) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      }
-    } catch {
+    const safe = await isHostnameSafeForFetch(parsed.hostname)
+    if (!safe) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
   }
 
   try {
-    const res = await fetch(url)
+    const res = await fetch(parsed.toString())
     if (!res.ok) {
       return NextResponse.json({ error: 'File not found' }, { status: res.status })
     }

@@ -148,14 +148,18 @@ export async function POST(request: Request) {
           })
           const productName =
             purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
+          const userMeta  = purchase.user?.metadata as Record<string, unknown> | null
+          const avatarUrl = (userMeta?.avatar_url as string | undefined) ?? null
 
           const certBuffer = await generateThankYouCertificate({
             recipientName: purchase.user?.full_name || 'Carbon Supporter',
-            activityTitle: `${productName} (${purchase.units || 0} tCO2e)`,
+            activityTitle: productName,
+            units: purchase.units || 0,
             amount: parseFloat(purchase.total_price?.toString() || '0'),
             donationDate: purchaseDate,
             certificateNumber: purchase.id.substring(0, 8).toUpperCase(),
             tenantId: purchase.user?.tenant_id ?? null,
+            avatarUrl,
           })
           const filename = `carbon-thankyou-${purchase.id}-${Date.now()}.jpg`
           fs.writeFileSync(path.join(CERTS_DIR, filename), certBuffer)

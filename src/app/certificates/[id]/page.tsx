@@ -55,16 +55,29 @@
     const resolvedUrl = fileUrl ? getImageUrl(fileUrl) : null
     const [showViewer, setShowViewer] = useState(false)
     const isImage = resolvedUrl ? /\.(jpe?g|png|webp|gif)$/i.test(resolvedUrl) : false
+
+    // Auto-align filename extension dengan ekstensi file sumber. Caller bisa
+    // pass `.pdf` di nama, tapi kalau file aslinya `.jpg`, kita override —
+    // mencegah file di-save dengan ekstensi salah → terlihat seperti file
+    // berbeda saat user buka di OS.
+    const sourceExt = (fileUrl ?? resolvedUrl)?.match(/\.(jpe?g|png|webp|gif|pdf)(?:\?|#|$)/i)?.[1]?.toLowerCase()
+    const safeFileName = (() => {
+      if (!sourceExt) return fileName
+      // Normalize jpeg → jpg untuk konsistensi
+      const ext = sourceExt === 'jpeg' ? 'jpg' : sourceExt
+      return fileName.replace(/\.[a-z0-9]+$/i, '') + '.' + ext
+    })()
+
     const viewerUrl = resolvedUrl
-      ? `/api/download?url=${encodeURIComponent(resolvedUrl)}&filename=${encodeURIComponent(fileName)}&inline=1`
+      ? `/api/download?url=${encodeURIComponent(resolvedUrl)}&filename=${encodeURIComponent(safeFileName)}&inline=1`
       : null
 
     const handleDownload = () => {
       if (!resolvedUrl) return
-      const proxyUrl = `/api/download?url=${encodeURIComponent(resolvedUrl)}&filename=${encodeURIComponent(fileName)}`
+      const proxyUrl = `/api/download?url=${encodeURIComponent(resolvedUrl)}&filename=${encodeURIComponent(safeFileName)}`
       const a = document.createElement('a')
       a.href = proxyUrl
-      a.download = fileName
+      a.download = safeFileName
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
