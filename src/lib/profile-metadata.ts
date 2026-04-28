@@ -23,9 +23,12 @@ interface FieldSpec {
 
 const ALLOWED_FIELDS: Record<string, FieldSpec> = {
   avatar_url: {
-    // Validasi mendalam (SSRF) di-handle oleh validateAvatarUrl di endpoint
-    // avatar. Di sini cukup type & length cap.
-    validate: (v) => v === null || (typeof v === 'string' && v.length <= 2048),
+    // Validasi mendalam (SSRF + data-URI vs HTTP URL split) di-handle oleh
+    // validateAvatarUrl di endpoint avatar. Di sini cukup type & length cap
+    // longgar — 256 KB string (≈190 KB binary) — supaya base64 data URI dari
+    // crop avatar (JPEG 512×512 q0.85) lolos. URL HTTP biasa jauh lebih
+    // pendek dari ini, jadi aman.
+    validate: (v) => v === null || (typeof v === 'string' && v.length <= 262_144),
   },
   phone: {
     validate: (v) => v === null || (typeof v === 'string' && PHONE_RE.test(v.trim())),

@@ -80,13 +80,22 @@ export function validateAvatarUrl(url: unknown): AvatarUrlCheck {
   }
 
   const trimmed = url.trim();
-  if (trimmed.length > 2048) {
-    return { ok: false, reason: 'avatarUrl terlalu panjang (max 2048 char)' };
+
+  // 1) Data URI gambar — aman, tidak fetch network. Boleh panjang karena base64
+  // avatar tersimpan inline di kolom JSON profiles.metadata. Cap 256 KB string
+  // (~190 KB binary setelah decode) — cukup untuk JPEG 512×512 quality 0.85
+  // dengan margin, tapi mencegah row JSON jadi membengkak gila kalau ada bug
+  // di sisi client yang lupa kompres.
+  if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(trimmed)) {
+    if (trimmed.length > 262_144) {
+      return { ok: false, reason: 'Foto profil terlalu besar setelah dikompres. Coba foto lain dengan ukuran lebih kecil.' };
+    }
+    return { ok: true };
   }
 
-  // 1) Data URI gambar — aman, tidak fetch network
-  if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(trimmed)) {
-    return { ok: true };
+  // Untuk URL non-data (HTTP / relative), batas 2048 — sesuai konvensi browser.
+  if (trimmed.length > 2048) {
+    return { ok: false, reason: 'URL avatar terlalu panjang' };
   }
 
   // 2) Relative path (mulai dengan '/' tapi bukan '//')

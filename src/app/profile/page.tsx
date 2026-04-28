@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, Suspense, useRef } from 'react'
+import { useEffect, useState, Suspense, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import StatusBar from '@/components/StatusBar'
 import BottomNav from '@/components/BottomNav'
 import { useDialog } from '@/contexts/DialogContext'
-import { FaSignOutAlt, FaUser, FaPhone, FaEnvelope, FaCalendar, FaEdit, FaLock } from 'react-icons/fa'
+import { FaSignOutAlt, FaUser, FaPhone, FaEnvelope, FaCalendar, FaEdit, FaLock, FaTrash, FaChevronRight, FaArrowLeft, FaLeaf } from 'react-icons/fa'
+import Cropper, { Area } from 'react-easy-crop'
 
 interface MidtransSnapResponse {
   transaction_status: string
@@ -71,6 +72,67 @@ interface Certificate {
   transaction_reference?: string
 }
 
+/**
+ * Extract cropped region dari image src (base64/blob), kompres ke JPEG
+ * dengan auto-step-down kalau hasil masih > target size.
+ *
+ * Strategi:
+ *   1. Mulai dari 512×512 quality 0.85
+ *   2. Kalau base64 result > MAX_BASE64_CHARS, turunkan quality ke 0.75 → 0.6 → 0.45
+ *   3. Kalau masih kebesaran, turunkan dimensi ke 384×384 lalu 256×256
+ *   4. Akhirnya, kalau benar-benar gak muat: throw error supaya UI bisa kasih
+ *      pesan jelas (alih-alih server reject dengan pesan tech)
+ *
+ * Margin: pakai 240KB sebagai cap (safe under server's 256KB limit, kasih
+ * ruang untuk JSON wrapper, header, dll).
+ */
+const MAX_BASE64_CHARS = 240_000
+
+async function getCroppedAvatar(imageSrc: string, pixelCrop: Area): Promise<string> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = imageSrc
+  })
+
+  // Coba beberapa kombinasi (size, quality) sampai dapat hasil di bawah cap.
+  // Step-down yang masuk akal — bukan loop sampai infinity.
+  const attempts: Array<{ size: number; quality: number }> = [
+    { size: 512, quality: 0.85 },
+    { size: 512, quality: 0.75 },
+    { size: 384, quality: 0.8 },
+    { size: 384, quality: 0.65 },
+    { size: 256, quality: 0.8 },
+    { size: 256, quality: 0.6 },
+  ]
+
+  for (const { size, quality } of attempts) {
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas context unavailable')
+
+    // Image smoothing high → hasil lebih halus saat downscale
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
+      0, 0, size, size
+    )
+
+    const dataUrl = canvas.toDataURL('image/jpeg', quality)
+    if (dataUrl.length <= MAX_BASE64_CHARS) {
+      return dataUrl
+    }
+  }
+
+  throw new Error('Foto tidak bisa dikompres ke ukuran yang sesuai. Coba pakai foto lain.')
+}
+
 function ProfilePageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -103,6 +165,14 @@ function ProfilePageInner() {
   const [showAvatarMenu, setShowAvatarMenu] = useState(false)
   const [showViewAvatar, setShowViewAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Crop modal state — diisi saat user pilih file, dibersihkan saat batal/selesai.
+  // cropImageSrc = base64 file mentah dari user, jadi user bisa adjust crop area
+  // sebelum upload (tidak langsung kirim ke server seperti dulu).
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -443,81 +513,75 @@ function ProfilePageInner() {
     setShowEditPhoneModal(true)
   }
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+  // Step 1 — user pilih file dari device. Baca jadi base64, lalu open crop modal.
+  // Tidak langsung upload supaya user bisa atur posisi & zoom dulu.
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-      // Ensure it's an image
-      if (!file.type.startsWith('image/')) {
-        showError('Pilih file gambar yang valid')
-        return
-      }
-
-      setUploadingAvatar(true)
-      
-      try {
-        // Read file and resize with canvas
-        const base64Avatar = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.readAsDataURL(file)
-          reader.onload = (event) => {
-            const img = new Image()
-            img.src = event.target?.result as string
-            img.onload = () => {
-              const canvas = document.createElement('canvas')
-              const MAX_WIDTH = 256
-              const MAX_HEIGHT = 256
-              let width = img.width
-              let height = img.height
-
-              if (width > height) {
-                if (width > MAX_WIDTH) {
-                  height *= MAX_WIDTH / width
-                  width = MAX_WIDTH
-                }
-              } else {
-                if (height > MAX_HEIGHT) {
-                  width *= MAX_HEIGHT / height
-                  height = MAX_HEIGHT
-                }
-              }
-
-              canvas.width = width
-              canvas.height = height
-              const ctx = canvas.getContext('2d')
-              ctx?.drawImage(img, 0, 0, width, height)
-              
-              // compress to webp or jpeg
-              resolve(canvas.toDataURL('image/jpeg', 0.8))
-            }
-            img.onerror = (err) => reject(err)
-          }
-          reader.onerror = (err) => reject(err)
-        })
-
-        const response = await fetch('/api/auth/profile/avatar', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ avatarUrl: base64Avatar }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUserAvatar(base64Avatar)
-          showSuccess('Foto profil berhasil diperbarui')
-        } else {
-          const data = await response.json()
-          showError(data.error || 'Gagal memperbarui foto profil')
-        }
-      } catch (error) {
-        console.error('Error uploading avatar:', error)
-        showError('Terjadi kesalahan saat mengunggah foto')
-      } finally {
-        setUploadingAvatar(false)
-        // Reset input value so same file can be uploaded again if needed
-        if (e.target) e.target.value = ''
-      }
+    if (!file.type.startsWith('image/')) {
+      showError('Pilih file gambar yang valid')
+      return
     }
+
+    // Cap raw input size — 10MB. File lebih besar biasanya foto kamera RAW,
+    // tidak masuk akal untuk avatar dan menghabiskan memori browser.
+    if (file.size > 10 * 1024 * 1024) {
+      showError('Ukuran file maksimal 10 MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setCropImageSrc(ev.target?.result as string)
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+      setCroppedAreaPixels(null)
+    }
+    reader.onerror = () => showError('Gagal membaca file')
+    reader.readAsDataURL(file)
+
+    // Reset input value supaya kalau user pilih file yang sama lagi, onChange tetap fire.
+    if (e.target) e.target.value = ''
+  }
+
+  // Callback dari react-easy-crop saat user selesai geser/zoom — kasih kita
+  // koordinat pixel area yang ingin dipotong (bukan yang ditampilkan).
+  const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels)
+  }, [])
+
+  // Step 2 — extract cropped region pakai canvas, kompres ke JPEG 0.85, kirim.
+  // Output: 512×512 (cukup tajam di retina, tapi base64-nya ~30-80KB saja —
+  // jauh lebih kecil dari foto original yang sering 2-5 MB).
+  const handleConfirmCrop = async () => {
+    if (!cropImageSrc || !croppedAreaPixels) return
+
+    setUploadingAvatar(true)
+    try {
+      const cropped = await getCroppedAvatar(cropImageSrc, croppedAreaPixels)
+
+      const response = await fetch('/api/auth/profile/avatar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: cropped }),
+      })
+
+      if (response.ok) {
+        setUserAvatar(cropped)
+        showSuccess('Foto profil berhasil diperbarui')
+        setCropImageSrc(null)
+      } else {
+        const data = await response.json()
+        showError(data.error || 'Gagal memperbarui foto profil')
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      showError('Terjadi kesalahan saat menyimpan foto')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
 
 
@@ -604,14 +668,37 @@ function ProfilePageInner() {
   return (
     <div className="app-container">
       <StatusBar />
-      
-      <div className="page pb-32">
-        {/* Profile Header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-white pt-6 pb-8 px-5">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4 flex-1">
-              <div 
-                className="w-16 h-16 bg-white/30 border-2 border-white/50 rounded-full flex items-center justify-center text-2xl font-bold cursor-pointer relative group overflow-hidden"
+
+      <div className="min-h-screen bg-gray-50 pb-32">
+        {/* Header — pakai bg-menu.png seperti /journeys, tampilan clean & solid */}
+        <div
+          className="text-white shadow-md"
+          style={{
+            backgroundImage: "url('/bg-menu.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="px-5 pt-5 pb-6">
+            {/* Top row: back button + title */}
+            <div className="flex items-center gap-3 mb-5">
+              <button
+                onClick={() => router.push('/')}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+                aria-label="Kembali ke beranda"
+              >
+                <FaArrowLeft className="text-base text-white" />
+              </button>
+              <div>
+                <h1 className="text-lg font-bold leading-tight">Profil Saya</h1>
+                <p className="text-xs text-white/75">Kelola akun &amp; aktivitas Anda</p>
+              </div>
+            </div>
+
+            {/* Avatar + name */}
+            <div className="flex items-center gap-4 mb-5">
+              <div
+                className="w-16 h-16 bg-white/25 border-2 border-white/40 rounded-full flex items-center justify-center text-2xl font-bold cursor-pointer relative group overflow-hidden flex-shrink-0"
                 onClick={() => setShowAvatarMenu(true)}
               >
                 {uploadingAvatar ? (
@@ -625,46 +712,45 @@ function ProfilePageInner() {
                   <FaEdit className="text-white text-sm" />
                 </div>
               </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleAvatarUpload} 
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarUpload}
               />
-              <div className="flex-1">
-                <h1 className="text-xl font-bold">{displayName || session.user?.name || 'User'}</h1>
-                <p className="text-white/80 text-sm">{session.user?.email}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-semibold truncate">{displayName || session.user?.name || 'User'}</p>
+                <p className="text-white/80 text-xs truncate">{session.user?.email}</p>
               </div>
             </div>
-          </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-base mb-0.5">✈️</div>
-              <div className="text-2xl font-bold">{stats?.totalTrips || 0}</div>
-              <div className="text-xs text-white/70">Perjalanan</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-base mb-0.5">🌿</div>
-              <div className="text-2xl font-bold">{stats?.totalCSRDonations || 0}</div>
-              <div className="text-xs text-white/70">Donasi CSR</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-base mb-0.5">📜</div>
-              <div className="text-2xl font-bold">{stats?.totalCertificates || 0}</div>
-              <div className="text-xs text-white/70">Sertifikat</div>
+            {/* Stats pill — 3 angka di satu baris, glass background */}
+            <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center justify-between">
+              <div className="text-center flex-1">
+                <p className="text-xl font-bold tabular-nums">{stats?.totalTrips || 0}</p>
+                <p className="text-[10px] text-white/80 font-medium tracking-wide uppercase">Perjalanan</p>
+              </div>
+              <div className="w-px h-8 bg-white/25" />
+              <div className="text-center flex-1">
+                <p className="text-xl font-bold tabular-nums">{stats?.totalCSRDonations || 0}</p>
+                <p className="text-[10px] text-white/80 font-medium tracking-wide uppercase">Donasi CSR</p>
+              </div>
+              <div className="w-px h-8 bg-white/25" />
+              <div className="text-center flex-1">
+                <p className="text-xl font-bold tabular-nums">{stats?.totalCertificates || 0}</p>
+                <p className="text-[10px] text-white/80 font-medium tracking-wide uppercase">Sertifikat</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="sticky top-0 bg-white border-b border-border z-40">
+        {/* Tab Navigation — sticky, simpel, single accent */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 z-40">
           <div className="flex gap-2 px-5 py-3 overflow-x-auto no-scrollbar">
             {(
               [
-                { id: 'dashboard', label: 'Dashboard' },
+                { id: 'dashboard', label: 'Ringkasan' },
                 { id: 'trips', label: 'Perjalanan' },
                 { id: 'donations', label: 'CSR' },
                 { id: 'certificates', label: 'Sertifikat' },
@@ -674,10 +760,10 @@ function ProfilePageInner() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeTab === tab.id
                     ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-textMuted hover:bg-gray-200'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 {tab.label}
@@ -687,153 +773,188 @@ function ProfilePageInner() {
         </div>
 
         {/* Tab Content */}
-        <div className="px-5 py-6">
-          {/* Dashboard Tab */}
+        <div className="px-5 py-5">
+          {/* Dashboard / Ringkasan Tab */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-4">
-              {/* Net Carbon Balance — featured card */}
+            <div className="space-y-3">
+              {/* Net Carbon Balance — single white card with subtle accent */}
               {(() => {
                 const netKg = (stats?.totalCO2Emitted || 0) - (stats?.totalCO2Offset || 0)
                 const netTon = netKg / 1000
                 const isNeutral = netKg <= 0
                 return (
-                  <div className={`rounded-2xl p-5 text-white ${
-                    isNeutral
-                      ? 'bg-gradient-to-br from-green-500 to-emerald-600'
-                      : 'bg-gradient-to-br from-orange-500 to-red-500'
-                  }`}>
-                    <p className="text-sm text-white/80 mb-1">Net Carbon Balance</p>
-                    <p className="text-4xl font-bold mb-3">{netTon.toFixed(3)} <span className="text-2xl font-normal">ton CO₂e</span></p>
-                    <div className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/20 px-3 py-1.5 rounded-full">
-                      <span>{isNeutral ? '✅' : '⚠️'}</span>
-                      <span>{isNeutral ? 'Carbon Netral' : 'Perlu Offset Lebih'}</span>
+                  <div className="bg-white border border-gray-200 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Net Carbon Balance</p>
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                        isNeutral ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isNeutral ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        {isNeutral ? 'Carbon Netral' : 'Perlu Offset'}
+                      </span>
                     </div>
+                    <p className="text-3xl font-bold text-gray-900 tabular-nums">{netTon.toFixed(3)}</p>
+                    <p className="text-xs text-gray-500 mt-1">ton CO₂e</p>
                   </div>
                 )
               })()}
 
-              {/* Emitted & Offset */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-                  <div className="text-2xl mb-2">🔴</div>
-                  <p className="text-xs text-gray-500 mb-1">CO₂ Dihasilkan</p>
-                  <p className="text-xl font-bold text-gray-900">{((stats?.totalCO2Emitted || 0) / 1000).toFixed(3)}</p>
-                  <p className="text-xs text-gray-400">ton CO₂e</p>
+              {/* Emitted vs Offset — vertical list, no big colored backgrounds */}
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">CO₂ Dihasilkan</p>
+                      <p className="text-xs text-gray-500">Total emisi perjalanan</p>
+                    </div>
+                  </div>
+                  <p className="text-base font-bold text-gray-900 tabular-nums">
+                    {((stats?.totalCO2Emitted || 0) / 1000).toFixed(3)}
+                    <span className="text-xs font-normal text-gray-500 ml-1">ton</span>
+                  </p>
                 </div>
-                <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                  <div className="text-2xl mb-2">🟢</div>
-                  <p className="text-xs text-gray-500 mb-1">CO₂ Dioffset</p>
-                  <p className="text-xl font-bold text-gray-900">{((stats?.totalCO2Offset || 0) / 1000).toFixed(3)}</p>
-                  <p className="text-xs text-gray-400">ton CO₂e</p>
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">CO₂ Dioffset</p>
+                      <p className="text-xs text-gray-500">Total kontribusi netralisasi</p>
+                    </div>
+                  </div>
+                  <p className="text-base font-bold text-gray-900 tabular-nums">
+                    {((stats?.totalCO2Offset || 0) / 1000).toFixed(3)}
+                    <span className="text-xs font-normal text-gray-500 ml-1">ton</span>
+                  </p>
                 </div>
               </div>
 
-              {/* Quick Links */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Quick Actions — vertical list pattern */}
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
                 <button
                   onClick={() => router.push('/carbon-market')}
-                  className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-left hover:bg-primary/10 transition active:scale-95"
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
                 >
-                  <div className="text-2xl mb-2">🌿</div>
-                  <p className="text-sm font-semibold text-primary">Beli Sertifikat</p>
-                  <p className="text-xs text-gray-500">Offset karbon Anda</p>
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <FaLeaf className="text-primary text-sm" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">Beli Sertifikat Karbon</p>
+                    <p className="text-xs text-gray-500">Offset emisi Anda</p>
+                  </div>
+                  <FaChevronRight className="text-gray-300 text-xs" />
                 </button>
                 <button
                   onClick={() => router.push('/csr-activities')}
-                  className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-left hover:bg-blue-100 transition active:scale-95"
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
                 >
-                  <div className="text-2xl mb-2">💚</div>
-                  <p className="text-sm font-semibold text-blue-700">Donasi CSR</p>
-                  <p className="text-xs text-gray-500">Berkontribusi nyata</p>
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <FaLeaf className="text-primary text-sm" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">Donasi CSR</p>
+                    <p className="text-xs text-gray-500">Berkontribusi nyata</p>
+                  </div>
+                  <FaChevronRight className="text-gray-300 text-xs" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* Trips Tab */}
+          {/* Trips Tab — vertical list */}
           {activeTab === 'trips' && (
-            <div className="space-y-3">
+            <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
               {trips.length > 0 ? (
                 trips.map((trip) => (
-                  <div key={trip.id} onClick={() => router.push(`/journeys/${trip.id}`)} className="bg-white border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-primary">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{trip.name}</h3>
-                        <p className="text-sm text-textMuted">{trip.type === 'hajj' ? 'Haji' : 'Umrah'}</p>
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        trip.status === 'completed' 
-                          ? 'bg-green-100 text-green-700'
-                          : trip.status === 'ongoing'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {trip.status === 'completed' ? 'Selesai' : trip.status === 'ongoing' ? 'Sedang Berjalan' : 'Akan Datang'}
-                      </span>
+                  <button
+                    key={trip.id}
+                    onClick={() => router.push(`/journeys/${trip.id}`)}
+                    className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <FaCalendar className="text-primary text-sm" />
                     </div>
-                    <p className="text-xs text-textMuted flex items-center gap-1">
-                      <FaCalendar className="w-3 h-3" />
-                      {new Date(trip.startDate).toLocaleDateString('id-ID')}
-                    </p>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{trip.name}</p>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                          trip.status === 'completed' ? 'bg-emerald-50 text-emerald-700'
+                            : trip.status === 'ongoing' ? 'bg-blue-50 text-blue-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {trip.status === 'completed' ? 'Selesai' : trip.status === 'ongoing' ? 'Berjalan' : 'Akan Datang'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {trip.type === 'hajj' ? 'Haji' : 'Umrah'} · {new Date(trip.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
+                  </button>
                 ))
               ) : (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-3">✈️</div>
+                <div className="text-center py-12 px-5">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FaCalendar className="text-gray-400 text-xl" />
+                  </div>
                   <h3 className="font-semibold text-gray-900 mb-1">Belum Ada Perjalanan</h3>
-                  <p className="text-sm text-textMuted mb-5">Mulai perjalanan haji atau umrah dan lacak jejak karbon Anda</p>
+                  <p className="text-sm text-gray-500 mb-5">Mulai perjalanan haji atau umrah dan lacak jejak karbon Anda</p>
                   <button
-                    onClick={() => router.push('/')}
-                    className="btn-primary text-sm px-6 py-2.5 rounded-full font-medium"
+                    onClick={() => router.push('/journeys')}
+                    className="btn-primary text-sm px-6 py-2.5 rounded-lg font-medium"
                   >
-                    Ke Beranda
+                    Buat Perjalanan
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* CSR Donations Tab */}
+          {/* CSR Donations Tab — vertical list */}
           {activeTab === 'donations' && (
-            <div className="space-y-3">
+            <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
               {donations.length > 0 ? (
                 donations.map((donation) => (
-                  <div 
-                    key={donation.id} 
+                  <button
+                    key={donation.id}
                     onClick={() => router.push(`/csr-donations/${donation.id}`)}
-                    className="bg-white border border-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary"
+                    className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{donation.activity_title}</h3>
-                        <p className="text-sm text-primary font-bold">{donation.amount > 0 ? `Rp ${donation.amount.toLocaleString('id-ID')}` : '(Donasi)'}</p>
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ml-2 ${
-                        donation.status === 'confirmed'
-                          ? 'bg-green-100 text-green-700'
-                          : donation.status === 'cancelled'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {donation.status === 'confirmed' ? 'Terkonfirmasi' : donation.status === 'cancelled' ? 'Dibatalkan' : 'Menunggu'}
-                      </span>
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <FaLeaf className="text-primary text-sm" />
                     </div>
-                    <p className="text-xs text-textMuted">
-                      {new Date(donation.created_at).toLocaleDateString('id-ID')}
-                    </p>
-                    {donation.status === 'confirmed' && (donation.thank_you_certificate_url || donation.participation_certificate_url) && (
-                      <p className="text-xs text-primary font-medium mt-2">Sertifikat tersedia · Ketuk untuk lihat</p>
-                    )}
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{donation.activity_title}</p>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                          donation.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700'
+                            : donation.status === 'cancelled' ? 'bg-red-50 text-red-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {donation.status === 'confirmed' ? 'Berhasil' : donation.status === 'cancelled' ? 'Batal' : 'Menunggu'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {donation.amount > 0 ? `Rp ${donation.amount.toLocaleString('id-ID')}` : '(Donasi)'} · {new Date(donation.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
+                  </button>
                 ))
               ) : (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-3">💚</div>
+                <div className="text-center py-12 px-5">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FaLeaf className="text-gray-400 text-xl" />
+                  </div>
                   <h3 className="font-semibold text-gray-900 mb-1">Belum Ada Donasi CSR</h3>
-                  <p className="text-sm text-textMuted mb-5">Dukung program lingkungan dan dapatkan sertifikat partisipasi</p>
+                  <p className="text-sm text-gray-500 mb-5">Dukung program lingkungan dan dapatkan sertifikat partisipasi</p>
                   <button
                     onClick={() => router.push('/csr-activities')}
-                    className="btn-primary text-sm px-6 py-2.5 rounded-full font-medium"
+                    className="btn-primary text-sm px-6 py-2.5 rounded-lg font-medium"
                   >
                     Lihat Kegiatan CSR
                   </button>
@@ -842,66 +963,58 @@ function ProfilePageInner() {
             </div>
           )}
 
-          {/* Certificates Tab */}
+          {/* Certificates Tab — vertical list */}
           {activeTab === 'certificates' && (
-            <div className="space-y-3">
+            <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
               {certificates.length > 0 ? (
                 certificates.map((cert) => {
                   const isNewPurchase = purchasedId === cert.id
-                  
+                  const isActive = cert.status === 'confirmed' || cert.status === 'completed'
+                  const isFailed = cert.status === 'failed' || cert.status === 'cancelled'
+
                   return (
-                    <div 
-                      key={cert.id} 
+                    <button
+                      key={cert.id}
                       onClick={() => router.push(`/certificates/${cert.id}`)}
-                      className={`bg-white rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-primary ${
-                        isNewPurchase ? 'border-2 border-green-500 shadow-lg' : 'border border-border'
-                      }`}
+                      className={`w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left ${isNewPurchase ? 'bg-emerald-50/40' : ''}`}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900">{cert.standard_name || cert.standard_series || 'Sertifikat Karbon'}</h3>
-                            {isNewPurchase && <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Baru!</span>}
-                          </div>
-                          <p className="text-sm text-gray-600">{cert.units || cert.co2_equivalent} tCO2e</p>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          cert.status === 'confirmed' || cert.status === 'completed'
-                            ? 'bg-green-100 text-green-700'
-                            : cert.status === 'failed' || cert.status === 'cancelled'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {cert.status === 'confirmed' || cert.status === 'completed'
-                            ? 'Aktif'
-                            : cert.status === 'failed' || cert.status === 'cancelled'
-                            ? 'Gagal'
-                            : 'Menunggu Pembayaran'}
-                        </span>
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <FaLeaf className="text-primary text-sm" />
                       </div>
-                      <p className="text-xs text-textMuted">
-                        Rp {cert.amount.toLocaleString('id-ID')} • {new Date(cert.purchase_date).toLocaleDateString('id-ID')}
-                      </p>
-                      {(cert.status === 'confirmed' || cert.status === 'completed') && (
-                        <p className="text-xs text-primary font-medium mt-2">Sertifikat tersedia · Ketuk untuk lihat</p>
-                      )}
-                      {cert.status === 'pending' && (
-                        <p className="text-xs text-yellow-600 font-medium mt-2">Belum dibayar · Ketuk untuk bayar</p>
-                      )}
-                      {(cert.status === 'failed' || cert.status === 'cancelled') && (
-                        <p className="text-xs text-red-500 font-medium mt-2">Pesanan dibatalkan</p>
-                      )}
-                    </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {cert.standard_name || cert.standard_series || 'Sertifikat Karbon'}
+                          </p>
+                          {isNewPurchase && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500 text-white flex-shrink-0">Baru</span>
+                          )}
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                            isActive ? 'bg-emerald-50 text-emerald-700'
+                              : isFailed ? 'bg-red-50 text-red-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {isActive ? 'Aktif' : isFailed ? 'Gagal' : 'Menunggu'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {cert.units || cert.co2_equivalent} tCO₂e · Rp {cert.amount.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                      <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
+                    </button>
                   )
                 })
               ) : (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-3">🌿</div>
+                <div className="text-center py-12 px-5">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FaLeaf className="text-gray-400 text-xl" />
+                  </div>
                   <h3 className="font-semibold text-gray-900 mb-1">Belum Ada Sertifikat</h3>
-                  <p className="text-sm text-textMuted mb-5">Beli kredit karbon untuk mengoffset emisi perjalanan Anda</p>
+                  <p className="text-sm text-gray-500 mb-5">Beli kredit karbon untuk mengoffset emisi perjalanan Anda</p>
                   <button
                     onClick={() => router.push('/carbon-market')}
-                    className="btn-primary text-sm px-6 py-2.5 rounded-full font-medium"
+                    className="btn-primary text-sm px-6 py-2.5 rounded-lg font-medium"
                   >
                     Beli Sertifikat Karbon
                   </button>
@@ -910,63 +1023,88 @@ function ProfilePageInner() {
             </div>
           )}
 
-          {/* Account Tab */}
+          {/* Account Tab — vertical list pattern (Gojek/Shopee style) */}
           {activeTab === 'account' && (
-            <div className="space-y-4">
-              {/* Account Info */}
-              <div className="bg-white border border-border rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3 pb-3 border-b border-border">
-                  <FaUser className="text-primary text-lg" />
-                  <div className="flex-1">
-                    <p className="text-xs text-textMuted">Nama Lengkap</p>
-                    <p className="font-semibold text-gray-900">{displayName || '-'}</p>
+            <div className="space-y-3">
+              {/* Profile Info — list with edit icons */}
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+                <button
+                  onClick={handleOpenEditName}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <FaUser className="text-gray-500 text-sm" />
                   </div>
-                  <button 
-                    onClick={handleOpenEditName}
-                    className="text-primary hover:text-primary/80 transition"
-                  >
-                    <FaEdit />
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-gray-500">Nama Lengkap</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{displayName || '-'}</p>
+                  </div>
+                  <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
+                </button>
+
+                <div className="flex items-center gap-3 px-5 py-4">
+                  <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <FaEnvelope className="text-gray-500 text-sm" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-gray-500">Email</p>
+                    <p className="text-sm font-medium text-gray-900 truncate break-all">{session.user?.email}</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 pb-3 border-b border-border">
-                  <FaEnvelope className="text-primary text-lg" />
-                  <div className="flex-1">
-                    <p className="text-xs text-textMuted">Email</p>
-                    <p className="font-semibold text-gray-900 break-all">{session.user?.email}</p>
+                <button
+                  onClick={handleOpenEditPhone}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
+                >
+                  <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <FaPhone className="text-gray-500 text-sm" />
                   </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <FaPhone className="text-primary text-lg" />
-                  <div className="flex-1">
-                    <p className="text-xs text-textMuted">Nomor Telepon</p>
-                    <p className="font-semibold text-gray-900">{userPhone || '-'}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-gray-500">Nomor Telepon</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{userPhone || '-'}</p>
                   </div>
-                  <button 
-                    onClick={handleOpenEditPhone}
-                    className="text-primary hover:text-primary/80 transition"
-                  >
-                    <FaEdit />
-                  </button>
-                </div>
+                  <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
+                </button>
               </div>
 
-              {/* Account Actions */}
-              <div className="space-y-2">
-                <button 
+              {/* Security Section */}
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+                <button
                   onClick={() => router.push('/settings/change-password')}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
                 >
-                  <FaLock className="w-4 h-4" />
-                  Ubah Password
+                  <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <FaLock className="text-gray-500 text-sm" />
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-gray-900">Ubah Password</p>
+                  <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
                 </button>
-                <button 
+              </div>
+
+              {/* Danger Zone — logout + delete account */}
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+                <button
                   onClick={handleLogout}
-                  className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition text-left"
                 >
-                  <FaSignOutAlt className="w-4 h-4" />
-                  Keluar
+                  <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <FaSignOutAlt className="text-gray-500 text-sm" />
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-gray-900">Keluar</p>
+                  <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
+                </button>
+                <button
+                  onClick={() => router.push('/settings/delete-account')}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50/50 transition text-left"
+                >
+                  <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <FaTrash className="text-red-500 text-sm" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-600">Hapus Akun</p>
+                    <p className="text-[11px] text-gray-500">Hapus akun &amp; semua data secara permanen</p>
+                  </div>
+                  <FaChevronRight className="text-gray-300 text-xs flex-shrink-0" />
                 </button>
               </div>
             </div>
@@ -1081,12 +1219,90 @@ function ProfilePageInner() {
           <div className="relative w-full max-w-md aspect-square flex items-center justify-center">
             <img src={userAvatar} alt="Profile Full" className="w-full h-full object-contain rounded-xl" />
           </div>
-          <button 
+          <button
             className="absolute top-5 right-5 text-white bg-black/50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/70"
             onClick={() => setShowViewAvatar(false)}
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Crop Avatar Modal — IG/WA-style: full-screen dark, minimal chrome.
+          Image fills viewport. Bottom controls floating semi-transparent
+          supaya tidak makan luas crop area. */}
+      {cropImageSrc && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Top header — dark transparent, white text. Sama style dengan
+              IG story editor / WA media editor. */}
+          <div className="absolute top-0 inset-x-0 z-10 px-4 pt-3 pb-3 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+            <button
+              onClick={() => setCropImageSrc(null)}
+              disabled={uploadingAvatar}
+              className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white disabled:opacity-50 transition"
+              aria-label="Batal"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <p className="text-white text-sm font-semibold tracking-wide">Atur Foto</p>
+
+            <button
+              onClick={handleConfirmCrop}
+              disabled={uploadingAvatar || !croppedAreaPixels}
+              className="px-4 h-10 rounded-full bg-white text-gray-900 text-sm font-bold disabled:opacity-50 transition active:scale-95"
+            >
+              {uploadingAvatar ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
+                  Menyimpan
+                </span>
+              ) : 'Selesai'}
+            </button>
+          </div>
+
+          {/* Crop area — fills viewport behind header & footer */}
+          <div className="absolute inset-0 bg-black">
+            <Cropper
+              image={cropImageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              objectFit="contain"
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+            />
+          </div>
+
+          {/* Bottom: zoom slider — floating semi-transparent, minimal
+              footprint. Mobile users biasanya pakai pinch, desktop users
+              pakai slider ini. */}
+          <div className="absolute bottom-0 inset-x-0 z-10 px-6 pb-8 pt-12 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="flex items-center gap-3 max-w-md mx-auto">
+              <svg className="w-5 h-5 text-white/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.01}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                disabled={uploadingAvatar}
+                className="flex-1 accent-white disabled:opacity-50 h-1"
+                aria-label="Zoom"
+              />
+              <svg className="w-6 h-6 text-white/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <circle cx="12" cy="12" r="6" />
+              </svg>
+            </div>
+          </div>
         </div>
       )}
 
