@@ -57,7 +57,7 @@ export default function EditAirplaneTransportPage() {
     const loadAirportOptions = async () => {
       try {
         const indonesiaAirports = await fetchAirports({ country: 'Indonesia' });
-        const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
+        const saudiAirports = await fetchAirports({ country: 'Arab Saudi' });
         const indonesiaOptions = toIndonesiaSelectOptions(indonesiaAirports);
         const saudiOptions = getSaudiAirportOptions(saudiAirports);
         const allOptions = [...indonesiaOptions, ...saudiOptions];
@@ -65,16 +65,16 @@ export default function EditAirplaneTransportPage() {
         setFlatAirportOptions(allOptions);
         setGroupedAirportOptions([
           { label: 'Indonesia', options: indonesiaOptions },
-          { label: 'Saudi Arabia', options: saudiOptions }
+          { label: 'Arab Saudi', options: saudiOptions }
         ]);
       } catch (error) {
         console.error('Failed to load airports:', error);
         // Fallback: try to load just Saudi Arabia
         try {
-          const saudiAirports = await fetchAirports({ country: 'Saudi Arabia' });
+          const saudiAirports = await fetchAirports({ country: 'Arab Saudi' });
           const saudiOptions = getSaudiAirportOptions(saudiAirports);
           setFlatAirportOptions(saudiOptions);
-          setGroupedAirportOptions([{ label: 'Saudi Arabia', options: saudiOptions }]);
+          setGroupedAirportOptions([{ label: 'Arab Saudi', options: saudiOptions }]);
         } catch (innerError) {
           console.error('Failed to load Saudi airports:', innerError);
           setGroupedAirportOptions([]);
@@ -114,14 +114,14 @@ export default function EditAirplaneTransportPage() {
       return groupedAirportOptions.filter(g => g.label === 'Indonesia');
     }
     if (phaseId === 'kepulangan') {
-      return groupedAirportOptions.filter(g => g.label === 'Saudi Arabia');
+      return groupedAirportOptions.filter(g => g.label === 'Arab Saudi');
     }
     return groupedAirportOptions;
   }, [groupedAirportOptions, phaseId]);
 
   const destinationOptions = useMemo(() => {
     if (phaseId === 'keberangkatan') {
-      return groupedAirportOptions.filter(g => g.label === 'Saudi Arabia');
+      return groupedAirportOptions.filter(g => g.label === 'Arab Saudi');
     }
     if (phaseId === 'kepulangan') {
       return groupedAirportOptions.filter(g => g.label === 'Indonesia');
