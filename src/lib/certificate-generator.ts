@@ -73,7 +73,7 @@ export async function generateThankYouCertificate(data: ThankYouCertData): Promi
   // ── Prepare text ──────────────────────────────────────────────────────────
   const name       = escapeXml(data.recipientName)
   const program    = escapeXml(
-    data.units ? `${data.activityTitle} (${data.units} tCO2e)` : data.activityTitle
+    data.units ? `${data.activityTitle}` : data.activityTitle
   )
   const kontribusi = escapeXml(`Rp ${data.amount.toLocaleString('id-ID')}`)
   const tanggal    = escapeXml(data.donationDate)
@@ -95,7 +95,7 @@ export async function generateThankYouCertificate(data: ThankYouCertData): Promi
           font-family="Arial,Helvetica,sans-serif" font-size="${labelFSize}" fill="#3A3A3A">Kontribusi</text>
 
     <text x="${leftX}" y="${valueY}"
-          font-family="Arial,Helvetica,sans-serif" font-size="${valueFSize}" font-weight="bold" fill="#1A4731">${kontribusi}</text>
+          font-family="Arial,Helvetica,sans-serif" font-size="${valueFSize}" font-weight="bold" fill="#1A4731">${data.units} tCO2e</text>
 
     <text x="${rightX}" y="${labelY}" text-anchor="end"
           font-family="Arial,Helvetica,sans-serif" font-size="${labelFSize}" fill="#3A3A3A">Tanggal:</text>

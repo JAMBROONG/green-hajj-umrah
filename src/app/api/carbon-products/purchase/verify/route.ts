@@ -215,7 +215,9 @@ export async function POST(request: NextRequest) {
           })
 
           const recipientName  = purchase.user?.full_name || 'Carbon Supporter'
-          const productName    = purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
+          // Pakai `series` dulu (kode pendek mis. "VCS-1234") supaya muat di
+          // sertifikat tanpa overflow. Fallback ke `name` kalau series kosong.
+          const productName    = purchase.standard?.series || purchase.standard?.name || 'Carbon Certificate'
           const units          = purchase.units || 0
           const userMeta       = purchase.user?.metadata as Record<string, unknown> | null
           const avatarUrl      = (userMeta?.avatar_url as string | undefined) ?? null

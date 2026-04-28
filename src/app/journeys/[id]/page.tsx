@@ -240,7 +240,9 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        {/* Phase Helper Card */}
+        {/* Phase Helper Card — sembunyikan kalau trip sudah selesai/cancelled.
+            "Cek Tahapan Saya" relevan cuma untuk trip yang sedang berjalan. */}
+        {trip.status === 'ongoing' && (
         <div className="px-5 pt-3">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-5 shadow-sm">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl"></div>
@@ -267,6 +269,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         </div>
+        )}
 
         {/* Phases list */}
         <div className="px-5 py-4">

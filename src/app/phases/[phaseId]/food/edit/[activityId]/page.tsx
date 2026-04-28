@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { fetchFoodEmissionFactors, toFoodSelectOptions, FoodSelectOption } from '@/lib/foodHelper';
@@ -91,6 +92,7 @@ function EditFoodForm({ phaseId, activityId, phaseName, activity, activities }: 
   const tripId = searchParams.get('tripId');
   const { showWarning } = useDialog();
   const { updateCategory } = useHajiJourney();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
   const [foodOptions, setFoodOptions] = useState<FoodSelectOption[]>([]);
   const [formData, setFormData] = useState<FoodFormData>(() => createInitialFormData(activity));
 
@@ -162,6 +164,11 @@ function EditFoodForm({ phaseId, activityId, phaseName, activity, activities }: 
 
     if (!effectiveFoodId) {
       showWarning('Pilih jenis makanan terlebih dahulu', { title: 'Data Belum Lengkap' });
+      return;
+    }
+
+    if (formData.servings < 1) {
+      showWarning('Jumlah porsi minimal 1', { title: 'Data Belum Lengkap' });
       return;
     }
 
@@ -271,6 +278,8 @@ function EditFoodForm({ phaseId, activityId, phaseName, activity, activities }: 
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />
@@ -286,8 +295,20 @@ function EditFoodForm({ phaseId, activityId, phaseName, activity, activities }: 
             min="1"
             max="10"
             step="1"
-            value={formData.servings}
-            onChange={(e) => setFormData({ ...formData, servings: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })}
+            // Tampilkan kosong saat 0 supaya user bisa langsung ketik tanpa
+            // harus block-and-delete angka default — sama pola dengan food/add.
+            value={formData.servings || ''}
+            onChange={(e) => {
+              const raw = e.target.value
+              if (raw === '') {
+                setFormData({ ...formData, servings: 0 })
+                return
+              }
+              const num = parseInt(raw, 10)
+              if (Number.isNaN(num)) return
+              setFormData({ ...formData, servings: Math.min(10, Math.max(0, num)) })
+            }}
+            placeholder="1 - 10"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />

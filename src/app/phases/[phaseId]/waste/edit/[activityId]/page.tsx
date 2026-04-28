@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds } from '@/hooks/useTripDateBounds';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { WasteActivity, PhaseId } from '@/lib/types';
 import { fetchWasteEmissionFactors, toWasteSelectOptions, WasteSelectOption } from '@/lib/wasteHelper';
@@ -18,6 +19,7 @@ export default function EditWastePage() {
   const activityId = params.activityId as string;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
   const hasInitialized = useRef(false);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
@@ -210,6 +212,8 @@ export default function EditWastePage() {
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />

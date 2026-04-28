@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { HotelActivity, PhaseId, HotelStars } from '@/lib/types';
@@ -28,6 +29,7 @@ export default function EditHotelPage() {
   const activityId = params.activityId as string;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const categoryData = journey?.phases[phaseId]?.categories?.hotel;
@@ -276,6 +278,8 @@ export default function EditHotelPage() {
             type="date"
             value={formData.checkIn}
             onChange={(e) => handleDateChange('checkIn', e.target.value)}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />
@@ -290,7 +294,8 @@ export default function EditHotelPage() {
             type="date"
             value={formData.checkOut}
             onChange={(e) => handleDateChange('checkOut', e.target.value)}
-            min={formData.checkIn}
+            min={formData.checkIn || minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />

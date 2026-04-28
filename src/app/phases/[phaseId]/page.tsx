@@ -49,7 +49,25 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
   const [isMarking, setIsMarking] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [missingCategories, setMissingCategories] = useState<string[]>([]);
+  const [tripStatus, setTripStatus] = useState<'ongoing' | 'completed' | 'cancelled' | null>(null);
   const { showSuccess, showError } = useDialog();
+
+  // Fetch status trip — dipakai untuk hide tombol "Tandai Fase Selesai"
+  // saat trip sudah selesai/cancelled (tidak ada gunanya tandai fase di
+  // trip yang sudah berakhir). Lightweight fetch, sekali per mount.
+  useEffect(() => {
+    if (!tripId) return;
+    let cancelled = false;
+    fetch(`/api/trips/${tripId}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!cancelled && data?.trip?.status) {
+          setTripStatus(data.trip.status);
+        }
+      })
+      .catch(() => { /* fallback: tombol tetap tampil */ });
+    return () => { cancelled = true; };
+  }, [tripId]);
 
   // Redirect to journeys if no tripId
   useEffect(() => {
@@ -219,24 +237,27 @@ export default function PhaseDetailPage({ params }: { params: Promise<{ phaseId:
         </div>
 
         <div className="px-5 py-4">
-          {/* Mark as Complete Button */}
-          <button
-            onClick={() => handleMarkPhaseComplete(false)}
-            disabled={isMarking}
-            className="w-full btn-primary font-semibold py-3 rounded-xl mb-5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isMarking ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Memproses...
-              </>
-            ) : (
-              <>
-                <IoCheckmarkDone className="text-xl" />
-                Tandai Fase Selesai
-              </>
-            )}
-          </button>
+          {/* Mark as Complete Button — hide kalau trip sudah selesai/cancelled.
+              Tidak ada gunanya tandai fase di trip yang sudah berakhir. */}
+          {tripStatus === 'ongoing' && (
+            <button
+              onClick={() => handleMarkPhaseComplete(false)}
+              disabled={isMarking}
+              className="w-full btn-primary font-semibold py-3 rounded-xl mb-5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isMarking ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <IoCheckmarkDone className="text-xl" />
+                  Tandai Fase Selesai
+                </>
+              )}
+            </button>
+          )}
 
           {/* Categories */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Kategori Emisi</p>

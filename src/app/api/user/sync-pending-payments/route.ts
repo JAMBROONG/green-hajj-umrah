@@ -146,8 +146,10 @@ export async function POST(request: Request) {
             month: 'long',
             day: 'numeric',
           })
+          // Pakai `series` dulu (kode pendek mis. "VCS-1234") supaya muat di
+          // sertifikat tanpa overflow. Fallback ke `name` kalau series kosong.
           const productName =
-            purchase.standard?.name || purchase.standard?.series || 'Carbon Certificate'
+            purchase.standard?.series || purchase.standard?.name || 'Carbon Certificate'
           const userMeta  = purchase.user?.metadata as Record<string, unknown> | null
           const avatarUrl = (userMeta?.avatar_url as string | undefined) ?? null
 

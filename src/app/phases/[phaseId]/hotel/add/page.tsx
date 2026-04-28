@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds, clampToTripBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { HotelActivity, PhaseId, HotelStars } from '@/lib/types';
@@ -28,6 +29,7 @@ export default function AddHotelPage() {
   const phaseId = params.phaseId as PhaseId;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
 
@@ -43,6 +45,16 @@ export default function AddHotelPage() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!minDate && !maxDate) return;
+    setFormData(prev => {
+      const checkIn = clampToTripBounds(prev.checkIn, { minDate, maxDate });
+      const checkOut = clampToTripBounds(prev.checkOut, { minDate, maxDate });
+      if (checkIn === prev.checkIn && checkOut === prev.checkOut) return prev;
+      return { ...prev, checkIn, checkOut };
+    });
+  }, [minDate, maxDate]);
 
   // Fetch hotels from API
   useEffect(() => {
@@ -256,6 +268,8 @@ export default function AddHotelPage() {
             type="date"
             value={formData.checkIn}
             onChange={(e) => handleDateChange('checkIn', e.target.value)}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />
@@ -270,7 +284,8 @@ export default function AddHotelPage() {
             type="date"
             value={formData.checkOut}
             onChange={(e) => handleDateChange('checkOut', e.target.value)}
-            min={formData.checkIn}
+            min={formData.checkIn || minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />

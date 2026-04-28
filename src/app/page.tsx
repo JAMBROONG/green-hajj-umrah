@@ -395,12 +395,13 @@ export default function Home() {
           )}
         </div>
 
-        {/* Phase Helper Card */}
+        {/* Phase Helper Card — sembunyikan kalau user tidak punya trip yang sedang berjalan. */}
+        {hasOngoingTrip && (
         <div className="px-5 pt-6 pb-2 fade-in-item" style={{ animationDelay: '0.2s' }}>
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-5 shadow-sm">
             <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl"></div>
             <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-teal-500/10 rounded-full blur-xl"></div>
-            
+
             <div className="relative z-10 flex flex-col items-center text-center">
               <span className="text-3xl mb-2">🧭</span>
               <h3 className="text-gray-800 font-bold mb-1">
@@ -409,8 +410,8 @@ export default function Home() {
               <p className="text-sm text-gray-500 mb-4">
                 Biar kami yang bantu arahkan tahapan Anda saat ini.
               </p>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   const ongoing = trips.find(t => t.status === 'ongoing');
                   checkCurrentStageAlert(dialogContext, (phaseId) => {
@@ -429,6 +430,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Action Cards */}
         <div className="px-5 pt-5 space-y-3">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { useEmissionFactors } from '@/hooks/useEmissionFactors';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
@@ -34,6 +35,7 @@ export default function EditAirplaneTransportPage() {
   const activityId = params.activityId as string;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const categoryData = journey?.phases[phaseId]?.categories?.transport;
@@ -102,6 +104,30 @@ export default function EditAirplaneTransportPage() {
     if (selectedDestinationAirport !== undefined) return selectedDestinationAirport;
     return findAirportByName(flatAirportOptions, activity?.destination?.name);
   }, [selectedDestinationAirport, flatAirportOptions, activity?.destination?.name]);
+
+  // Filter bandara berdasarkan phase (lihat add-airplane untuk reasoning):
+  // - keberangkatan: origin = Indonesia, dest = Saudi
+  // - kepulangan:    origin = Saudi, dest = Indonesia
+  // - phase lain: tampilkan semua
+  const originOptions = useMemo(() => {
+    if (phaseId === 'keberangkatan') {
+      return groupedAirportOptions.filter(g => g.label === 'Indonesia');
+    }
+    if (phaseId === 'kepulangan') {
+      return groupedAirportOptions.filter(g => g.label === 'Saudi Arabia');
+    }
+    return groupedAirportOptions;
+  }, [groupedAirportOptions, phaseId]);
+
+  const destinationOptions = useMemo(() => {
+    if (phaseId === 'keberangkatan') {
+      return groupedAirportOptions.filter(g => g.label === 'Saudi Arabia');
+    }
+    if (phaseId === 'kepulangan') {
+      return groupedAirportOptions.filter(g => g.label === 'Indonesia');
+    }
+    return groupedAirportOptions;
+  }, [groupedAirportOptions, phaseId]);
 
   const calculatedDistance = useMemo(() => {
     if (!resolvedOriginAirport || !resolvedDestinationAirport) return null;
@@ -225,6 +251,8 @@ export default function EditAirplaneTransportPage() {
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              min={minDate || undefined}
+              max={maxDate || undefined}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
               required
             />
@@ -238,7 +266,7 @@ export default function EditAirplaneTransportPage() {
             <Select
               value={resolvedOriginAirport || null}
               onChange={(option) => setSelectedOriginAirport(option as AirportSelectOption | null)}
-              options={groupedAirportOptions}
+              options={originOptions}
               placeholder="Cari atau pilih bandara asal..."
               isClearable
               isSearchable
@@ -278,7 +306,7 @@ export default function EditAirplaneTransportPage() {
             <Select
               value={resolvedDestinationAirport || null}
               onChange={(option) => setSelectedDestinationAirport(option as AirportSelectOption | null)}
-              options={groupedAirportOptions}
+              options={destinationOptions}
               placeholder="Cari atau pilih bandara tujuan..."
               isClearable
               isSearchable

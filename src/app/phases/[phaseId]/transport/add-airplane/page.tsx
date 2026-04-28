@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds, clampToTripBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { useEmissionFactors } from '@/hooks/useEmissionFactors';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
@@ -23,6 +24,7 @@ export default function AddAirplaneTransportPage() {
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
   const { factors: emissionFactors } = useEmissionFactors();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
 
@@ -35,6 +37,14 @@ export default function AddAirplaneTransportPage() {
   const [selectedDestinationAirport, setSelectedDestinationAirport] = useState<AirportSelectOption | null>(null);
   const [groupedAirportOptions, setGroupedAirportOptions] = useState<{ label: string; options: AirportSelectOption[] }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!minDate && !maxDate) return;
+    setFormData(prev => {
+      const clamped = clampToTripBounds(prev.date, { minDate, maxDate });
+      return clamped === prev.date ? prev : { ...prev, date: clamped };
+    });
+  }, [minDate, maxDate]);
 
   useEffect(() => {
     const loadAirportOptions = async () => {
@@ -67,6 +77,30 @@ export default function AddAirplaneTransportPage() {
 
     loadAirportOptions();
   }, []);
+
+  // Filter bandara berdasarkan phase:
+  // - keberangkatan: origin = Indonesia, dest = Saudi (perjalanan keluar)
+  // - kepulangan:    origin = Saudi, dest = Indonesia (perjalanan pulang)
+  // - phase lain (mis. transit): tampilkan semua tanpa filter.
+  const originOptions = useMemo(() => {
+    if (phaseId === 'keberangkatan') {
+      return groupedAirportOptions.filter(g => g.label === 'Indonesia');
+    }
+    if (phaseId === 'kepulangan') {
+      return groupedAirportOptions.filter(g => g.label === 'Arab Saudi');
+    }
+    return groupedAirportOptions;
+  }, [groupedAirportOptions, phaseId]);
+
+  const destinationOptions = useMemo(() => {
+    if (phaseId === 'keberangkatan') {
+      return groupedAirportOptions.filter(g => g.label === 'Arab Saudi');
+    }
+    if (phaseId === 'kepulangan') {
+      return groupedAirportOptions.filter(g => g.label === 'Indonesia');
+    }
+    return groupedAirportOptions;
+  }, [groupedAirportOptions, phaseId]);
 
   const calculatedDistance = useMemo(() => {
     if (!selectedOriginAirport || !selectedDestinationAirport) return null;
@@ -190,6 +224,8 @@ export default function AddAirplaneTransportPage() {
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              min={minDate || undefined}
+              max={maxDate || undefined}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
               required
             />
@@ -204,7 +240,7 @@ export default function AddAirplaneTransportPage() {
             <Select
               value={selectedOriginAirport}
               onChange={(option) => setSelectedOriginAirport(option as AirportSelectOption | null)}
-              options={groupedAirportOptions}
+              options={originOptions}
               placeholder="Cari atau pilih bandara asal..."
               isClearable
               isSearchable
@@ -247,7 +283,7 @@ export default function AddAirplaneTransportPage() {
             <Select
               value={selectedDestinationAirport}
               onChange={(option) => setSelectedDestinationAirport(option as AirportSelectOption | null)}
-              options={groupedAirportOptions}
+              options={destinationOptions}
               placeholder="Cari atau pilih bandara tujuan..."
               isClearable
               isSearchable

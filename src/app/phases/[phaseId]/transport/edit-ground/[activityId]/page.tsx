@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { useEmissionFactors } from '@/hooks/useEmissionFactors';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
@@ -51,6 +52,7 @@ export default function EditGroundTransportPage() {
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
   const { factors: emissionFactors } = useEmissionFactors();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const isFixedRoute = phaseId === 'perjalanan-antar-kota';
@@ -272,6 +274,8 @@ export default function EditGroundTransportPage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />

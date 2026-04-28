@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Select from 'react-select';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds, clampToTripBounds } from '@/hooks/useTripDateBounds';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
 import { fetchFoodEmissionFactors, toFoodSelectOptions, FoodSelectOption } from '@/lib/foodHelper';
@@ -20,6 +21,7 @@ export default function AddFoodPage() {
   const phaseId = params.phaseId as PhaseId;
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
 
@@ -27,10 +29,21 @@ export default function AddFoodPage() {
     foodId: '',
     foodName: '',
     factor: 0,
-    servings: 1,
+    servings: 0,                                  // mulai blank — bukan paksa 1, biar user gak harus block-and-delete
     date: new Date().toISOString().split('T')[0]
   });
   const [foodOptions, setFoodOptions] = useState<FoodSelectOption[]>([]);
+
+  // Saat trip date bounds load, clamp tanggal ke range trip kalau di luar.
+  // Default `new Date()` bisa jatuh sebelum minDate (trip future) atau setelah
+  // maxDate (trip lampau). Clamp menjamin user mulai dengan tanggal valid.
+  useEffect(() => {
+    if (!minDate && !maxDate) return;
+    setFormData(prev => {
+      const clamped = clampToTripBounds(prev.date, { minDate, maxDate });
+      return clamped === prev.date ? prev : { ...prev, date: clamped };
+    });
+  }, [minDate, maxDate]);
 
   useEffect(() => {
     const loadFoodOptions = async () => {
@@ -68,6 +81,11 @@ export default function AddFoodPage() {
 
     if (!formData.foodId) {
       showWarning('Pilih jenis makanan terlebih dahulu', { title: 'Data Belum Lengkap' });
+      return;
+    }
+
+    if (formData.servings < 1) {
+      showWarning('Jumlah porsi minimal 1', { title: 'Data Belum Lengkap' });
       return;
     }
 
@@ -186,6 +204,8 @@ export default function AddFoodPage() {
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />
@@ -201,9 +221,22 @@ export default function AddFoodPage() {
             min="1"
             max="10"
             step="1"
-            value={formData.servings}
-            onChange={(e) => setFormData({ ...formData, servings: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) })}
+            // Tampilkan kosong saat 0 supaya user bisa langsung ketik tanpa
+            // harus block-and-delete angka default — masalahnya dulu auto-fix
+            // ke 1 yang bikin user gak bisa hapus dulu sebelum ketik baru.
+            value={formData.servings || ''}
+            onChange={(e) => {
+              const raw = e.target.value
+              if (raw === '') {
+                setFormData({ ...formData, servings: 0 })
+                return
+              }
+              const num = parseInt(raw, 10)
+              if (Number.isNaN(num)) return
+              setFormData({ ...formData, servings: Math.min(10, Math.max(0, num)) })
+            }}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
+            placeholder="1 - 10"
             required
           />
         </div>

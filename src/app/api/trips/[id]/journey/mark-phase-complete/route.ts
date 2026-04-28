@@ -136,13 +136,24 @@ export async function PUT(
       },
     });
 
-    // Check if ALL phases are completed -> auto-complete trip
-    const allPhasesCompleted = Object.values(updatedPhasesMap).every(
-      (phase: any) => phase?.completed === true
+    // Auto-complete trip cek phase yang RELEVAN dengan tipe trip ini saja.
+    // PHASE_DEFINITIONS punya `type: ['haji', 'umrah']` per phase — phase yg
+    // haji-only (arafah, muzdalifah, mina) tidak boleh di-required untuk trip
+    // umrah, kalau tidak trip umrah tidak akan pernah auto-complete (phase
+    // tsb selalu completed:false karena user umrah tidak akses-nya).
+    const tripType = trip.type as 'haji' | 'umrah'
+    const relevantPhaseIds = PHASE_DEFINITIONS
+      .filter(p => (p.type as readonly string[]).includes(tripType))
+      .map(p => p.id)
+
+    const allPhasesCompleted = relevantPhaseIds.every(
+      pid => updatedPhasesMap[pid]?.completed === true
     );
 
+    console.log(`📊 Trip type: ${tripType}, relevant phases: ${relevantPhaseIds.length}, all completed: ${allPhasesCompleted}`);
+
     if (allPhasesCompleted) {
-      console.log('✅ All phases completed, marking trip as completed');
+      console.log('✅ All relevant phases completed, marking trip as completed');
       await prisma.trips.update({
         where: { id },
         data: { status: 'completed' }

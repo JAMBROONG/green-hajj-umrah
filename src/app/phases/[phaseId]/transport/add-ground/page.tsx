@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useHajiJourney } from '@/hooks/useHajiJourney';
+import { useTripDateBounds, clampToTripBounds } from '@/hooks/useTripDateBounds';
 import { useEmissionFactors } from '@/hooks/useEmissionFactors';
 import { useDialog } from '@/contexts/DialogContext';
 import { PHASE_DEFINITIONS } from '@/lib/constants';
@@ -41,6 +42,7 @@ export default function AddGroundTransportPage() {
   const tripId = searchParams.get('tripId');
   const { journey, updateCategory } = useHajiJourney();
   const { factors: emissionFactors } = useEmissionFactors();
+  const { minDate, maxDate } = useTripDateBounds(tripId);
 
   const phase = PHASE_DEFINITIONS.find(p => p.id === phaseId);
   const isFixedRoute = phaseId === 'perjalanan-antar-kota';
@@ -49,6 +51,14 @@ export default function AddGroundTransportPage() {
     type: 'mobil',
     date: typeof window !== 'undefined' ? new Date().toISOString().split('T')[0] : ''
   });
+
+  useEffect(() => {
+    if (!minDate && !maxDate) return;
+    setFormData(prev => {
+      const clamped = clampToTripBounds(prev.date, { minDate, maxDate });
+      return clamped === prev.date ? prev : { ...prev, date: clamped };
+    });
+  }, [minDate, maxDate]);
 
   const [selectedOrigin, setSelectedOrigin] = useState<Location | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<Location | null>(null);
@@ -215,6 +225,8 @@ export default function AddGroundTransportPage() {
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            min={minDate || undefined}
+            max={maxDate || undefined}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none"
             required
           />
